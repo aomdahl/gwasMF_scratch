@@ -1,0 +1,896 @@
+---
+title: "Reproducing Udler Results"
+output: html_notebook
+---
+All of the udler summary stats were listed out at:
+REFERENCE:
+(here)[https://nealelab.github.io/UKBB_ldsc/h2_browser.html]
+NEF calculated as ukbb heritabilty:
+4/(1/Ncase
+)+(1/Ncontrol
+), otherwise is the sample size.
+
+```{r setup, echo = FALSE}
+pacman::p_load(data.table, tidyr, dplyr, readr, ggplot2, stringr,stats, cowplot)
+ambig <- c("AT", "TA", "GC", "CG")
+```
+
+First, we need to figure out which SNPs we want. Much easier here when only doing something on the order of ~100 SNPs or so, eh?
+They selected the top 88 loci identified by "Mohlke KL, Boehnke M. Recent advances in understanding the genetic architecture of type 2 diabetes."
+
++ Started with the 88 variants reaching genome-wide significance aggregated by Mohlke and Boehnke  (*Recent advances in understanding the genetic architecture of type 2 diabetes*)
++ Added 37 additional loci reported in subsequent T2D large-scale genetic studies 
+    + Scott et al: *An Expanded Genome-Wide Association Study of Type 2 Diabetes in Europeans*
+    + Bonas-Guarch et al: *Re-analysis of public genetic data reveals a rare X-chromosomal variant associated with type 2 diabetes*
+    + Mahajan et al: *Refining the accuracy of validated target identification through coding variant fine-mapping in type 2 diabetes*
+
++ Some loci appear to have multiple distinct signals ("9 additional variants representing distinct signals at 6 loci (ANKRD55, DGKB, CDKN2A, KCNQ1, CCND2, and HNF4A)"):
+  + Scott (as above)
+  + Gaulton et al: *Genetic fine mapping and genomic annotation defines causal mechanisms at type 2 diabetes susceptibility loci* 
+  
++ Of these 125 T2D variants, select a subset (94 representative variants) which had an association with T2D in the DIAGRAM version 3 (DIAGRAMv3) Stage 1 meta-analysis [16] with P< 0.05 (or a proxy of the variant). Proxies of variants were required to either be in linkage disequilibrium (r2 > 0.6) with an original T2D variant published at genome-wide significance, be the lead SNP at the T2D locus in DIAGRAMv3, or reach genome-wide significance in DIAGRAMv3. 
+
+Which variants actually appear in all the datasets?
+The ones for selection have been previously filtered.
+Variants were pulled firectly from papers, as those specified
+```{r}
+diagramv3 <- fread("./data/DIAGRAMv3.2012DEC17.txt")
+scott <- fread("./variant_lists/scott.t2d.13.txt",skip = 3) #this one had variants in high lD, #6
+mohlke <- fread("./variant_lists/mohlke.88.txt",skip = 2) 
+bonas <- fread("./variant_lists/bonas-guarch.CLEAN.t2d.7.txt")  #7
+gaulton <- fread("./variant_lists/gaulton.CLEAN.t2d.txt", skip = 3, header = FALSE)
+mahajan <- fread("./variant_lists/mahajan.t2d.CLEAN.new.txt") #9
+mahajan2 <- fread("./variant_lists/mahajan.t2d.CLEAN.prev.txt") #9
+snp_list.start <- unique(c(scott$`EA/`, mohlke$Variant, 
+                           gsub(x = bonas$`rsID––Risk`, pattern = "-[ATCG]$", replacement = ""),
+                           gaulton$V2, mahajan$rsID, mahajan2$rsID))
+
+#Do 6,7,9 give us 37?
+next.37 <- unique(c(scott$`EA/`,gsub(x = bonas$`rsID––Risk`, pattern = "-[ATCG]$", replacement = ""),
+                           mahajan$rsID, mahajan2$rsID))
+#no it gives us 60
+```
+Some wierd ones in the snp list, and we have more than they did.
+But that's okay- results dont' need to be exact, just close.
+Okay, filter by DIAGRAMv3, replace ambigs with nearby proxies.
+```{r}
+
+inset <- diagramv3 %>% filter(SNP %in% snp_list.start)
+#Find proxies for the ambigs
+ambig_replacement <- inset %>% filter((paste0(RISK_ALLELE, OTHER_ALLELE) %in% ambig))
+ambig_replacement
+lookups <- NULL
+for(i in 1:nrow(ambig_replacement))
+{
+  curr <- ambig_replacement[i,]
+  close.candidate <- diagramv3 %>% filter(CHROMOSOME == curr$CHROMOSOME) %>% filter(!(paste0(RISK_ALLELE, OTHER_ALLELE) %in% ambig)) %>% slice(which.min(abs(curr$POSITION - POSITION))) 
+  
+    lookups <- rbind(lookups, c(curr$CHROMOSOME,curr$SNP,close.candidate$SNP,abs(curr$POSITION - close.candidate$POSITION)))
+}
+#check the R2 of all of these.
+lookups
+```
+These were manually checked in `LDPair Tool` at https://ldlink.nci.nih.gov/?tab=ldpair, very handy and quick
+ [1,] "3"  "rs1801282"  "rs7649970" 0.991
+ [2,] "6"  "rs10440833" "rs9368222" 0.99
+ [3,] "8"  "rs328"      "rs327"     0.361
+ [4,] "11" "rs458069"   "rs2237897" 0.0198
+ [5,] "11" "rs10830963" "rs10765576" 0.2963
+ [6,] "12" "rs1531343"  "rs2260671" 0.6657
+ [7,] "12" "rs7957197"  "rs12819210" 0.0497
+ [8,] "12" "rs1727313"  "rs1051434"  0.6379
+ [9,] "18" "rs8090011"  "rs6506470" NA(not biallelic- i will just DROP)
+[10,] "19" "rs1800437"  "rs11672660" 1.0
+[11,] "22" "rs28265"    "rs36571"   1.0
+[12,] "22" "rs738409"   "rs738408" 1.0
+We keep if the R2 > 0.55, that should be a fine enough proxy.
+So in a few cases, need alternatives: ("rs328"      "rs327" ),("rs10830963" "rs10765576), ("rs458069"   "rs2237897") ("rs7957197"  "rs12819210") searching now.
+```{r}
+retry <- c("rs328","rs10830963","rs458069","rs7957197" )
+for(snp in retry)
+{
+  curr <- diagramv3 %>% filter(SNP == snp)
+  close.candidate <- diagramv3 %>% filter(CHROMOSOME == curr$CHROMOSOME) %>% filter(!(paste0(RISK_ALLELE, OTHER_ALLELE) %in% ambig)) %>% mutate( "dist" = (abs(curr$POSITION - POSITION))) %>% filter(dist < 500000) %>% arrange(dist) %>% top_n(100,wt = -dist )%>% select(SNP) #, dist)#%>% top_n(10,wt = -dist) %>% select(SNP) #, dist)
+print(close.candidate)
+}
+```
+**For rs328**
+*"rs328"      "rs325"      1.0*
+
+**For rs10830963**  (not in first 20)
+rs11020126 0.0103
+rs11020126  0.2786
+rs7951037 0.2786
+rs6483208 0.0103
+rs12277904  0.0129
+rs12804291 0.04
+...
+*rs11020124 0.7217*
+
+**For rs458069** (not in first 100)
+Dropping this.
+
+
+**For rs7957197**
+*rs7965349 0.8898*
+
+So, using the lookup tool, chose the closest SNP with R2 > 0.6
+```{r}
+proxies <- c("rs1801282", "rs10440833", "rs1531343", "rs1727313", "rs1800437", "rs28265", "rs738409", "rs325", "rs11020124", "rs7965349")
+new.list <- rbind(inset %>% filter(!(paste0(RISK_ALLELE, OTHER_ALLELE) %in% ambig)), do.call("rbind", lapply(proxies, function(x) diagramv3 %>% filter(SNP == x))))
+```
+
+* variants (other than those representing distinct signals at a locus) were conservatively excluded if they fell within 500 kb of another variant on the list. 
+```{r}
+chroms <- unique(new.list$CHROMOSOME)
+all.drops <- NULL
+for(chr in chroms)
+{
+  #new.list %>% filter(CHROMOSOME == chr) %>% 
+  t <- new.list %>% filter(CHROMOSOME == chr) 
+  for(snp in 1:nrow(t))
+  {
+    dist <- abs(t[snp,]$POSITION - t$POSITION)
+    drops <- which((dist < 500000) & (dist != 0))
+    if(length(drops) > 0)
+    {
+      drops.snps <- rbind(all.drops, c(chr, t[snp,]$SNP, t$SNP[drops]))
+    }
+    
+  }
+}
+drops.snps
+```
+Quickly view and drop the weaker one...
+```{r}
+new.list %>% filter(SNP %in% c("rs1800961", "rs4812829"))
+new.list <- new.list %>% filter(SNP != "rs1800961")
+dim(new.list)
+new.list
+```
+We have 12 more than they did..... interesting. Seems like maybe our selection criteria isn't exactly the same.
+But TBH I don't think it will matter.
+Finally...
++ For the 94 T2D-associated variants, the T2D risk–increasing alleles were identified and all
+future analyses used the aligned T2D risk–increasing alleles
+```{r}
+risk.increasing.t2d <- new.list %>% filter(OR > 1)
+risk.increasing.t2d
+```
+*12/14/2021*
+Turns out, the authos actually provide a list of all the variants in their supplement. this makes things a bit simpler.
+Suppplementary table 1 from https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002654#pmed.1002654.s006
+An excel file- extracted and imported...
+```{r}
+var.list.true <- fread("./variant_lists/udler_final_list.csv",sep = "," )
+which(!(var.list.true$Variant %in% risk.increasing.t2d$SNP))
+#The original list?
+var.list.true$Variant[which(!(var.list.true$Variant %in% snp_list.start))]
+
+```
+
+Our SNP lists are very very different it looks like. It appears they aren't even in the data.
+Why the heck.
+
+Going to be lazy here, and ignore this point. But note that part of the issue has to do with selecting those "reported" from the original papers it would seem (authos claimn there are 37, we got 60)
+
+
+## Extract these variants from each study
+### as of 12/14, I am running this on the true set of variants
+With our list of ~100 variants ready,we need to extract them for each study. I want to get them together in a format as follows, where we have 
+`rsid chr pos(hg37) risk_allele other_allele  effectsize/OR p-val source`
+At the end of the day, I want a 94 x M table, with one column for each study
+```{r}
+#write_tsv(risk.increasing.t2d %>% arrange(SNP) %>% select(SNP), col_names = FALSE, file = "./variant_lists/joined.filtered.query.list.txt") <- this will give you the wrong thing.
+write_tsv(var.list.true %>% arrange(Variant) %>% select(Variant), col_names = FALSE, file = "./variant_lists/joined.filtered.query.list.txt")
+```
+Probably just going to grep these out since that will be fastest....
+But grep has all kinds of dumb search issues.
+Maybe just awk
+We want output with format:
+`rsid effect other beta se pvalue`
+*Sanity check*
+```{bash}
+cd variant_lists
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' joined.filtered.query.list.txt ../data/DIAGRAMv3.2012DEC17.txt
+```
+the Magic files:
+MAGIC_INSULIN_SECRETION_CIR_for_release_HMrel27.txt
+MAGIC_INSULIN_SECRETION_DI_for_release_HMrel27.txt
+MAGIC_INSULIN_SECRETION_Incr30_for_release_HMrel27.txt
+MAGIC_INSULIN_SECRETION_Ins30_for_release_HMrel27.txt
+MAGIC_INSULIN_SECRETION_Ins30_BMI_for_release_HMrel27.txt
+MAGIC_Manning_et_al_lnFastingInsulin_MainEffect.txt
+MAGIC_Manning_et_al_lnFastingInsulin_MainEffect.txt
+MAGIC_FastingGlucose.txt
+MAGIC_ln_HOMA-B.txt
+MAGIC_ln_HOMA-IR.txt
+MAGIC_2hrGlucose_AdjustedForBMI.txt
+MAGIC_HbA1C.txt.gz
+MAGIC_ln_fastingProinsulin.txt
+MAGIC_ISI_Model_1_AgeSexOnly.txt
+MAGIC_ISI_Model_2_AgeSexBMI.txt
+```{bash}
+mkdir -p analysis_data
+for m in `cat data/MAGIC_files.txt`; do
+  cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt data/${m}) | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7}' > analysis_data/${m}
+done  
+#Odd case:
+for m in MAGIC_ISI_Model_1_AgeSexOnly.txt  MAGIC_ISI_Model_2_AgeSexBMI.txt; do
+echo $m
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt data/${m} | awk '{print $1"\t"$4"\t"$5"\t"$7"\t"$8"\t"$9}') > analysis_data/${m}
+done
+ #sample size not availab ein the source
+ #on website: 5318
+```
+CHARGE:
+Note that some of these have special formatting, need to adjust for that accordingly
+```{bash}
+for m in `cat data/CHARGE_files_normal.txt`; do
+  cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt data/${m} | awk '{print $1"\t"$2"\t"$3"\t"$8"\t"$9"\t"$10}') > analysis_data/${m}
+done
+
+for m in `cat data/CHARGE_files_extra.txt`; do
+  cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt data/${m} | awk '{print $1"\t"$2"\t"$3"\t"$7"\t1\t"$8}') > analysis_data/${m}
+done  
+
+m=CHARGE_20_0.txt
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt data/${m} | awk '{print $1"\t"$2"\t"$3"\t"$9"\t1\t"$10}') > analysis_data/${m}
+
+```
+CHARGE N6 meta
+```{bash}
+for m in data/N6meta*.gz; do
+filename=`basename $m`
+OUT="${filename%.*}"
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(zcat ${m}) | awk '{print $1"\t"$2"\t"$3"\t"$8"\t"$9"\t"$10}' ) > analysis_data/${OUT}.tsv
+done
+```
+McGill university adiponectin:
+```{bash}
+cat data/adipogen.discovery.eur_.meta_.public.release.part*_.txt > data/adipogen.discovery.eur_.meta_.public.release.joined.txt
+DATA=data/adipogen.discovery.eur_.meta_.public.release.joined.txt
+
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt $DATA | awk '{print $1"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8}') > analysis_data/adipogen.discovery.eur_.meta_.public.release.joined.txt
+
+DATA=data/adipogen.discovery.eur_.meta_.public.release.joined.txt
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt $DATA | awk '{print $1"\t"$9}' |awk '{sum += $2 } END {if (NR > 0) print sum/NR}'
+#28651.1
+```
+Urate from  germany [V]
+```{bash}
+DATA=data/GUGC_MetaAnalysis_Results_UA.csv
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7}') > analysis_data/GUGC_MetaAnalysis_Results_UA.txt
+
+DATA=data/GUGC_MetaAnalysis_Results_UA.csv
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$2}' | awk '{sum += $2 } END {if (NR > 0) print sum/NR}'
+```
+
+CAD from cardiogram [V]
+```{bash}
+DATA=data/CARDIoGRAM_GWAS_RESULTS.txt
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$3"\t"$4"\t"$8"\t"$9"\t"$6}') > analysis_data/CARDIoGRAM_GWAS_RESULTS.txt
+
+cat <(echo -e "SNP\tN_CASES\tN_CONTROLS") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | awk '{print $1"\t"$10"\t"$11}')) > analysis_data/CARDIoGRAM_GWAS_RESULTS.counts.tmp
+
+
+c <- ncount %>% mutate("guess1" = 4/((1/N_CASES) + (1/N_CONTROLS)), "guess2" = 4/(1/N_CASES) + (1/N_CONTROLS))
+
+```
+
+```{r}
+c <- fread("analysis_data/CARDIoGRAM_GWAS_RESULTS.counts.tmp") %>% mutate("guess1" = 4/((1/N_CASES) + (1/N_CONTROLS)), "guess2" = 4/(1/N_CASES) + (1/N_CONTROLS))
+mean(c$guess1)
+```
+
+
+eGFR [V]
+```{bash}
+DATA=data/formatted_round3meta_eGFRcrea_overall_IV_2GC_b36_MAFget005_Nget50_20120705_b37.csv
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7}') > analysis_data/formatted_round3meta_eGFRcrea_overall.txt
+
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$8}' | awk '{sum += $2 } END {if (NR > 0)  print sum/NR}'
+
+```
+
+
+UACR in all [-]
+```{bash}
+DATA=data/Published_UACR_EA.csv
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8}') > analysis_data/Published_UACR_EA.txt
+```
+^This one only gets 60 hits (?) not good.
+TRYING THE ALTERNATIVE OPTION [V]
+```{bash}
+DATA=data/UACR_overall-EA-nstud_18-SumMac_400.tbl.rsid
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $3"\t"$4"\t"$5"\t"$7"\t"$8"\t"$9}') > analysis_data/UACR_overall-EA-nstud_18-SumMac_400.txt
+
+#geet numbers
+DATA=data/UACR_overall-EA-nstud_18-SumMac_400.tbl.rsid
+awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $3"\t"$10}' | awk '{sum += $2 } END {if (NR > 0) print sum/NR}'
+
+```
+CKD [-]
+Only gives us 104, try other
+```{bash}
+DATA=data/ckd_egfr_pattaro_cdkgen.csv
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7}') > analysis_data/ckd_egfr_pattaro_cdkgen.txt
+```
+
+DATA=data/ckd_egfr_pattaro_cdkgen.csv
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$8}'
+
+This one has all....
+CKD[V ]
+```{bash}
+DATA=data/CKD_overall_EA_JW_20180223_nstud23.dbgap.txt
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $3"\t"$4"\t"$5"\t"$7"\t"$8"\t"$9}') > analysis_data/CKD_overall_EA_JW_20180223_nstud23.dbgap.txt
+
+#get avg n
+DATA=data/CKD_overall_EA_JW_20180223_nstud23.dbgap.txt
+awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $3"\t"$10}' |  awk '{sum += $2 } END {if (NR > 0) print sum/NR}'
+
+
+```
+Go with this one I
+Ischemic Stroke[V]
+```{bash}
+
+```
+
+
+No guarantees we have the right directions here.
+```{bash}
+for i in `ls data/METAANALYSIS1_*`; do
+filename=`basename $i`
+OUT="${filename%.*}"
+echo $OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $i | tr "," "\t") | awk '{print $1"\t"$2"\t"$3"\t"$8"\t"$9"\t"$10}') > analysis_data/$OUT.txt
+done
+
+```
+
+Type 2 diabetes 
+This one is abit tricky, since the SEs aren't provided. NEed to run this one separately I think...
+Remember, pvals come from the log odds ratio, not the raw OR. Need to do something a bit more nuanced.
+Specifically, what is described in https://stats.stackexchange.com/questions/10375/how-to-calculate-standard-error-of-odds-ratios
+```{r}
+#var.list.true
+#head(diagramv3) %>% mutate("std_error1" = abs(OR_95U - OR), "std_error2" = abs(OR_95L - OR)) %>% 
+#fin <- diagramv3 %>% filter(SNP %in% risk.increasing.t2d$SNP) %>% arrange(SNP) %>% mutate("std_error" = log(OR)/(qnorm(P_VALUE/2)[1])) %>% mutate("std_error" = ifelse(OR > 1, -1 * std_error, std_error)) %>% select(SNP, RISK_ALLELE, OTHER_ALLELE, OR, std_error, P_VALUE) %>%
+fin <- diagramv3 %>% filter(SNP %in% var.list.true$Variant) %>% arrange(SNP) %>% mutate("std_error" = log(OR)/(qnorm(P_VALUE/2)[1])) %>% mutate("std_error" = ifelse(OR > 1, -1 * std_error, std_error)) %>% select(SNP, RISK_ALLELE, OTHER_ALLELE, OR, std_error, P_VALUE,N_CASES, N_CONTROLS) %>%
+  magrittr::set_colnames(c("SNP",	"effect",	"other",	"effect_size",	"std_error",	"pval"))
+write_tsv(fin, file = "./analysis_data/DIAGRAMv3.2012DEC17.txt")
+
+
+#do here.
+ncount <- diagramv3 %>% filter(SNP %in% var.list.true$Variant) %>% arrange(SNP) %>% mutate("std_error" = log(OR)/(qnorm(P_VALUE/2)[1])) %>% mutate("std_error" = ifelse(OR > 1, -1 * std_error, std_error)) %>% select(SNP, RISK_ALLELE, OTHER_ALLELE, OR, std_error, P_VALUE,N_CASES, N_CONTROLS)
+c <- ncount %>% mutate("guess1" = 4/((1/N_CASES) + (1/N_CONTROLS)), "guess2" = 4/(1/N_CASES) + (1/N_CONTROLS))
+mean(c$guess2)
+mean(c$guess1)
+```
+I still am not super confident on this, the SEs seem kinda low to me.
+
+For some files, we need the variants in hg19 or grCH38 `chr:pos` coordinates.
+First, convert this into the coordinates we need:
+```{bash}
+DATA=data/CKD_overall_EA_JW_20180223_nstud23.dbgap.txt
+cat <(echo -e "chr\tpos\trisd") <(awk '(FNR == NR) {arr[$1];next} ($3 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(cat $DATA | tr "," "\t") | awk '{print $1"\t"$2"\t"$3}') | sort -k3,3 > lookup_snps_hg37.txt
+```
+
+triglycerides [V]
+hdl
+total cholesterol
+ldl
+```{bash}
+for f in data/*ENGAGE_1000G.txt.gz; do
+filename=`basename $f`
+OUT="${filename%.*}"
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr["chr"$1":"$2]=$3;next} ($1":"$2 in arr) {print arr[$1":"$2]"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7}' lookup_snps_hg37.txt <( zcat $f)) > analysis_data/$OUT
+done
+```
+#Extra code to get the avg Ns...
+```
+for f in data/*ENGAGE_1000G.txt.gz; do
+filename=`basename $f`
+OUT="${filename%.*}"
+echo $filename
+awk '(FNR == NR) {arr["chr"$1":"$2]=$3;next} ($1":"$2 in arr) {print arr[$1":"$2]"\t"$8}' lookup_snps_hg37.txt <( zcat $f) | awk '{sum += $2 } END {if (NR > 0) print sum/NR}'
+done
+```
+HDL_Meta_ENGAGE_1000G.txt.gz
+58137.4
+LDL_Meta_ENGAGE_1000G.txt.gz
+55726.6
+TC_Meta_ENGAGE_1000G.txt.gz
+59481
+TG_Meta_ENGAGE_1000G.txt.gz
+57347.8
+
+
+The ones from GIANT...
+```{bash}
+for g in `cat data/GIANT_files.txt`; do
+filename=`basename $g`
+OUT="${filename%.*}"
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(zcat data/$g) | awk '{print $1"\t"$4"\t"$5"\t"$7"\t"$8"\t"$9}') > analysis_data/${OUT}.txt
+done
+
+#one weird case #back to here...
+g=GIANT_2015_WHRadjBMI_COMBINED_EUR.txt.gz
+OUT=GIANT_2015_WHRadjBMI_COMBINED_EUR.txt
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(zcat data/$g) | awk '{print $1"\t"$2"\t"$3"\t"$5"\t"$6"\t"$7}') > analysis_data/${OUT}.txt
+```
+MarkerName	Chr	Pos	Allele1	Allele2	FreqAllele1HapMapCEU	b	se	p	N
+rs17321515	8	126555591	A	G	0.6083	-0.017	0.0043	0.0001	143707
+rs11049399	12	28218413	C	T	0.65	0.018	0.0047	0.0001	143788
+
+#Getting N from GIANT
+The ones from GIANT...
+```{bash}
+for g in `cat data/GIANT_files.txt`; do
+filename=`basename $g`
+OUT="${filename%.*}"
+echo $OUT
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(zcat data/$g) | awk '{print $1"\t"$10}' | awk '{sum += $2 } END {if (NR > 0) print sum/NR}' 
+done
+
+#one weird case #back to here...
+g=GIANT_2015_WHRadjBMI_COMBINED_EUR.txt.gz
+OUT=GIANT_2015_WHRadjBMI_COMBINED_EUR.txt
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' variant_lists/joined.filtered.query.list.txt <(zcat data/$g) | awk '{print $1"\t"$8}'|  awk '{sum += $2 } END {if (NR > 0) print sum/NR}' 
+
+```
+
+GIANT_2015_WCadjBMI_COMBINED_EUR.txt
+209608
+GIANT_2015_WHRadjBMI_COMBINED_EUR.txt
+193186
+GIANT_2015_HIPadjBMI_COMBINED_EUR.txt
+194141
+GIANT_2015_WHR_FEMALES_EUR.txt
+110138
+GIANT_2015_WHR_COMBINED_EUR.txt
+195353
+GIANT_2015_WHR_MALES_EUR.txt
+86244.1
+
+
+
+
+
+The rest are UKBB. These will take a bit longer, but hey we can do it.
+```{bash}
+awk '{print $1":"$2"\t"$3}' lookup_snps_hg37.txt > lookup_snps_hg37.format.txt
+for f in `cat data/UKBB_paths.continuous.txt`; do
+filename=`basename $f`
+OUT="${filename%.*}"
+echo $OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14}')) > analysis_data/$OUT
+done
+```
+Running the above on a separate screen
+^^^Currently running on big mem 12/14
+THe last UKBB I missed....
+[]
+```{bash}
+for f in `cat data/UKBB_paths.continuous.2.txt`; do
+filename=`basename $f`
+OUT="${filename%.*}"
+echo $OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(cat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14}')) > analysis_data/$OUT
+done
+```
+
+OKAY. Now I think we have enough traits to move forward.
+Need to fix the headers, some aren't coming out right...
+```{bash}
+cd analysis_data
+for f in ./*; do
+echo $f
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(tail -n +2 $f) > t && mv t $f
+done
+```
+--------
+12/20
+###Sidways sanity check
+*Stroke*
+Some of these data are not actually z-scores, but odds ratios from case-control studies. I need to know hich ones these are so I can adjust the odds ratios accordingly:
+One that is unclear is the `METASTROKE` studies- they appear to be z-scores, but would be case-control diseases.
+Nothing given in the online page associated with it
+```{r}
+q <- fread("./data/METAANALYSIS1_IS.TBL")
+head(q)
+hist(q$Effect)
+mean(q$Effect)
+t.test(q$Effect)
+```
+Well. It looks like its not centered at one.
+*CKD*
+```{r}
+q <- fread("./data/ckd_egfr_pattaro_cdkgen.csv")
+head(q)
+hist(q$beta)
+mean(q$beta)
+t.test(q$beta)
+```
+For sure equal to 0.
+*CAD*
+This one is quite confusing, because the file labels them as odds ratios, but they are centered around 0...
+Ah. Its the log odds. Derp. that explains.
+```{r}
+q <- fread("./data/CARDIoGRAM_GWAS_RESULTS.txt")
+head(q)
+hist(q$log_odds)
+hist(q$log_odds/q$log_odds_se)
+mean(q$log_odds)
+t.test(q$log_odds/q$log_odds_se)
+qqnorm(q$log_odds/q$log_odds_se)
+hist(exp(q$log_odds_se))
+hist((q$log_odds_se))
+#I guessI just don't know if its actually log odds se orj ust se...
+hist(q$log_odds)
+
+#compare this to a known one 
+q2 <- fread("./data/MAGIC_INSULIN_SECRETION_CIR_ISI_for_release_HMrel27.txt")
+hist(q2$stderr)
+```
+Based on the distributions I am seeing, I think we are on target with this...
+I think its fine as it is TBH.
+
+
+ *T2D* we knoow for sure, visually clear.
+
+Seems like in general, most of thse summary stats claim they are log ORs, but they just give betas. Huh.So I don't really need to do anything different here, do i.
+--------
+Let's read them all in. Make sure though the ones we read in are actually the valid ones, I think we did a few extra here and there.
+Need to get z-scores, split into positive and negative, harmonize the directions (make sure same way), and scale by `sqrt(N)`.
+Problem is on N, not consistent necessarily across studies. Maybe hold off on this one? Just get the rest of things going okay...
+Function to harmonize
+```{r}
+#Problematic cells: 
+#12/15 adding a change- we only care that the EFFECT ALLELE is lined up correctly. No chance for redress with other allele.
+harmonizeEasy <- function(issue, std)
+{
+  issue <- issue %>% arrange(SNP)
+  #First possible error- dimension
+  while(dim(issue)[1] != dim(std)[1])
+  {
+    print("Issue is dimensionality")
+    print(dim(issue))
+    print(dim(std))
+    print(head(issue))
+    cat ("Press [enter] to continue")
+    line <- readline()
+    ms <- which(!(std$SNP %in% issue$SNP))
+    for(m in ms)
+    {
+      replacement <- list(std[m,]$SNP,std[ms,]$effect,std[m,]$other,0,1,1)
+      issue <- rbind(issue, replacement)
+    }
+    issue <- issue %>% arrange(SNP)
+  }
+  ef = which(issue$effect != std$effect)
+  ot = which(issue$other != std$other)
+  if(all(ef %in% ot) | all(ot %in% ef))
+  {
+    for(error in ef)
+    {
+     old.eff <- issue[error,]$effect
+     issue[error,]$effect <- issue[error,]$other
+     issue[error,]$other <- old.eff
+     issue[error,]$effect_size <- -1 * issue[error,]$effect_size
+    }
+  }
+    #did this fix the issue?
+  if(all(issue$effect == std$effect) & all(issue$other == std$other))
+  {
+    print("Issue fixed, returning")
+    return(issue)
+  } else
+  {
+    print("Error not resolved, may have multi-alleliuc snps...")
+    return(issue)
+  }
+  
+}
+
+
+harmonizeEasyEffectOnly <- function(issue, std)
+{
+  issue <- issue %>% arrange(SNP)
+  #First possible error- dimension
+  while(dim(issue)[1] != dim(std)[1])
+  {
+    print("Issue is dimensionality")
+
+    ms <- which(!(std$SNP %in% issue$SNP))
+    for(m in ms)
+    {
+      replacement <- list(std[m,]$SNP,std[m,]$effect,std[m,]$other,0,1,1)
+      issue <- rbind(issue, replacement)
+    }
+    issue <- issue %>% arrange(SNP)
+  }
+  ef = which(issue$effect != std$effect)
+  for(error in ef)
+    {
+     old.eff <- issue[error,]$effect
+     issue[error,]$effect <- issue[error,]$other
+     issue[error,]$other <- old.eff
+     issue[error,]$effect_size <- -1 * issue[error,]$effect_size
+    }
+    #did this fix the issue?
+  if(all(issue$effect == std$effect))# & all(issue$other == std$other))
+  {
+    print("Issue fixed, returning")
+    return(issue)
+  } else
+  {
+    print("Error not resolved, may have multi-alleliuc snps...")
+    return(issue)
+  }
+  
+}
+```
+Now run it.
+```{r}
+file.list <- paste0("./analysis_data/", list.files("./analysis_data/", pattern = "*"))
+file.names <- list.files("./analysis_data/", pattern = "*")
+all.dat <- lapply(file.list, function(x) fread(x) %>% mutate("effect" = toupper(effect), "other" = toupper(other)))
+
+#std harmonization
+#std <- all.dat[[1]] %>% arrange(SNP) %>% select(SNP, effect, other)
+std <- var.list.true %>% arrange(Variant) %>% select(Position_alleles, `Risk allele`, Variant) %>% rename("effect" =`Risk allele`, "SNP" = Variant) %>% separate(Position_alleles,into = c("chr", "pos", "a1", "a2"), sep = "_") 
+#For some reason, this is missing one risk allele- not clear if its its T or G, we should just pick one to be consistent
+std[50,]$effect = "T"
+std <- std %>% mutate("other" = ifelse(a1 == effect, a2, a1))  %>% select(SNP, effect, other)
+
+problem.files <- c()
+for(i in 1:length(all.dat))
+{
+  curr =  all.dat[[i]] %>% arrange(SNP) %>% select(SNP, effect, other)
+  if((dim(curr)[1] == dim(std)[1])){
+    print("Dimensions correct...")
+    if(all(curr == std)){
+    print("perfectly aligned match")
+    } else{
+    print("Misaligned directions:")
+    print(i)
+    print(file.names[i])
+    #all.dat[[i]] <- harmonizeEasy(all.dat[[i]], std)
+    all.dat[[i]] <- harmonizeEasyEffectOnly(all.dat[[i]], std)
+    }
+  } else{
+    print("Issues for:")
+    print(i)
+    print(file.names[i])
+    all.dat[[i]] <- harmonizeEasyEffectOnly(all.dat[[i]], std)
+  }
+  
+}
+```
+
+We have more trait than they do in the study. We can drop some.
+The ones they actually include
+MAGIC:
+  -fasting insulin
+  -fasting glucose
+  -fasting insulin adjusted for BMI
+  -2-hour glucose on oral glucose tolerance test [OGTT] adjusted for BMI [2hrGlu adj BMI]
+  -glycated hemoglobin [HbA1c]
+  -homeostatic model assessments of beta cell function [HOMA-B]
+  -insulin resistance [HOMA-IR]
+  -incremental insulin response at 30 minutes on OGTT [Incr30]
+  -insulin secretion at 30 minutes on OGTT [Ins30]
+  -fasting proinsulin adjusted for fasting insulin
+  -corrected insulin response [CIR]
+  -disposition index [DI]
+  -insulin sensitivity index [ISI]. 
+GIANT: 
+  -BMI
+  -height
+  -waist circumference [WC] with and ...
+    -without adjustment for BMI, 
+  -waist-hip ratio [WHR] with and ...
+    -without adjustment for BMI) 
+  -birth weight 
+  -birth length
+VATGen consortium
+  -visceral adipose tissue
+  -subcutaneous adipose tissue
+  -percent body fat
+  -heart rate [31]. 
+Serum Lab result:
+  -HDL cholesterol
+  -low-density lipoprotein [LDL] cholesterol
+  -total cholesterol
+  -triglycerides
+  -leptin with...
+    and without BMI adjustment [33], 
+  -adiponectin adjusted for BMI [34]
+  -urate [35]
+  -Omega-3 fatty acids [36]
+  -Omega-6-fatty acids [37]
+  -plasma phospholipid fatty acids in the de novo lipogenesis pathway [38], 
+  -long-chain saturated fatty acids [39].
+  
+To reduce noise in the cluster analysis, traits were only included if at least one variant was associated with the trait at a Bonferroni-corrected threshold ofsignificance P< 5 × 10−4 (0.05/94). 
+CLinical outcomes:
+  -ischemic stroke and its sub- types:
+    -large vessel disease
+    -small vessel disease
+    -cardioembolic
+  -coronary artery disease (CAD) [41]
+  -renal function as defined by estimated glomerular filtration rate (eGFR)
+  -urine albumin-creatinine ratio (UACR)
+  -chronic kidney disease (CKD) [42];
+  -systolic blood pressure (SBP)
+  -diastolic blood pressure (DBP) [43].
+Here they list ~47 ish traits, across 94 SNPS. 
+So I need to drop about 20 of the ones that I have.
+Unfortunately, the paper isn't that clear. So just going with this.
+```{r}
+file.drop <- c("48_irnt.gwas.imputed_v3.female.tsv", "48_irnt.gwas.imputed_v3.male.tsv", "49_irnt.gwas.imputed_v3.female.tsv","49_irnt.gwas.imputed_v3.male.tsv","GIANT_2015_WHR_MALES_EUR.txt.txt","GIANT_2015_WHR_FEMALES_EUR.txt.txt","GIANT_2015_HIPadjBMI_COMBINED_EUR.txt.txt","ckd_egfr_pattaro_cdkgen.txt" )
+#These were selected based on previous heuristic, redundancy, and problematic file formattingi that I didn't want to deal with.
+#droppers <- c(5,6,7,8,9,51,31,34,35,21,22)
+#dropped CKD one because we have 2 of them, don't need both.
+#behenic acid- not even sure if it was included.
+#Also lignoceric, CHARGE_24_0.txt. Non-standard format, not sure if its included.
+
+```
+Get in the sample sizes
+HEREEEE
+```{r}
+sample.sizes <- fread("./file.names.dec.txt")
+min(sample.sizes$V2)
+```
+
+
+Cool. Now we need to get z-scores (?)
+```{r}
+tot.mat <- NULL
+all.names <- c()
+for(i in 1:length(file.names))
+{
+  if(file.names[i] %in% file.drop){
+    print(paste0("skipping:", file.names[i]))
+    next
+    }
+
+  n <- gsub(x=gsub(x = file.names[i], pattern = ".txt", replacement = ""), pattern = ".tsv", replacement= "")
+  n_samp <- unlist((sample.sizes %>% filter(V1 == file.names[i]))$V2)
+  n_name <- unlist((sample.sizes %>% filter(V1 == file.names[i]))$V3)
+  curr = all.dat[[i]]
+    if(file.names[i] == "DIAGRAMv3.2012DEC17.txt")
+  {
+      zpos <- (log(abs(curr$effect_size))/curr$std_error)/sqrt(n_samp)
+    zneg <- (log(abs(curr$effect_size))/curr$std_error)/sqrt(n_samp)
+  #based on https://huwenboshi.github.io/data%20management/2017/11/23/tips-for-formatting-gwas-summary-stats.html
+  }else
+  {
+    zpos <- (curr$effect_size/curr$std_error)/sqrt(n_samp)
+  zneg <- (curr$effect_size/curr$std_error)/sqrt(n_samp)
+  }
+  
+  zpos[zpos < 0] <- 0
+  zneg[zneg > 0] <- 0
+  zneg <- zneg * -1
+  tot.mat <- cbind(tot.mat, zpos, zneg)
+  #all.names <- c(all.names, paste0(n, "_POS"), paste0(n, "_NEG"))
+  all.names <- c(all.names, paste0(n_name, "_POS"), paste0(n_name, "_NEG"))
+}
+rownames(tot.mat)  <- curr$SNP
+colnames(tot.mat) <- all.names
+head(tot.mat)[,1:5]
+```
+
+THey don't say anything about OR or anything like that... so may need to revisit
+
+## added scaling by sqrtN on 12/16
+Look at distribution of values
+```{r}
+hist(as.vector(tot.mat),breaks = 30)
+ex <- which(apply(tot.mat, 2, function(x) which(x == max(as.vector(tot.mat)))) > 0)
+ex
+max(as.vector(tot.mat))
+```
+The effect sizes were prviously off the charts, but they are now fixed with the correct effect size columsn selected!
+Now, making sure all non-zero variance...
+```{r}
+which(apply(tot.mat, 2, var) == 0)
+```
+Of course. We expect this- we selected all to have only positive T2d effecst.So now we drop it...
+```{r}
+tot.mat <- tot.mat[,-48]
+any(apply(tot.mat, 2, var) == 0)
+```
+
+
+
+What is this issue- these are not z scores, they are odds ratios! We need to adjust how we do this.
+Now, going to try th efactorization
+
+## 12/15- trying this with flashier....
+```{r}
+source("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+
+full.mat <- flashier::flash((tot.mat))
+full.mat$pve
+
+plotFactors(F = full.mat$loadings.pm[[2]],trait_names = colnames(tot.mat),title = "Flashr") 
+plotFactors(F = full.mat$loadings.pm[[2]],trait_names = colnames(tot.mat),title = "Flashr") + coord_flip() + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Great. But we technically want non-negative here, so let's adjust the settings...
+```{r}
+full.mat.pos <- flashier::flash((tot.mat),prior.family = flashier::prior.nonnegative(), backfit = TRUE)
+plotFactors(F = full.mat.pos$loadings.pm[[2]],trait_names = colnames(tot.mat),title = "Flashr") 
+```
+
+
+Try it also with 5 max
+```{r}
+full.mat.pos.lim <- flashier::flash((tot.mat),prior.family = flashier::prior.nonnegative(), backfit = TRUE, greedy.Kmax = 5)
+n_adj <- abbreviate(gsub(gsub(gsub(colnames(tot.mat), pattern = "POS", replacement = "+"), pattern = "NEG", replacement = "-"), pattern = "_", replacement = " "), minlength = 10)
+plotFactors(F = full.mat.pos.lim $loadings.pm[[2]],trait_names = n_adj,title = "Flashr")  + coord_flip() + theme(axis.text.x = element_text(angle = 45, hjust = 1)) + scale_y_discrete(guide = guide_axis(n.dodge=2))
+
+plotFactors(F = full.mat.pos.lim $loadings.pm[[2]],trait_names = colnames(tot.mat),title = "Flashr")
+```
+
+I'm observing an uncanny grouping by study type. We should color by this and see what comes up...
+
+In the interum....
+Keep getting errors of missing values, but I cannot find them.
+```{r}
+max(colSums(apply(tot.mat,2, is.na)))
+max(colSums(apply(tot.mat,2, is.infinite)))
+interim <- svd(scale(tot.mat,scale = FALSE),nu = 5, nv = 5 ) #some with no variance apparently...
+plot(interim$d^2/sum(interim$d^2))
+plotFactors(interim$v, paste0(colnames(tot.mat), 1:118), "Factors across traits", cluster = F,abbrev = TRUE)
+```
+
+
+## Let's compare performance using the gene-based metrics
+Straight from table 4 of the paper...
+```{r}
+source("../snp_selection/performanceEvaluation.R")
+```
+Need to first get the data and merge it here....
+```{r}
+combined <- loadUdlerGeneLists()
+rep.version <- left_join(data.frame("SNP" = rownames(full.mat.pos.lim $loadings.pm[[1]]), full.mat.pos.lim $loadings.pm[[1]]), combined, by = "SNP")
+```
+```{r}
+plotWeightDist(input.mat =full.mat.pos.lim$loadings.pm[[1]],title = "Weight distribution, FlashR" )
+plotDeltas(full.mat.pos.lim$loadings.pm[[1]],plot.title = "Deltas")
+findCutoffScore(full.mat.pos.lim$loadings.pm[[1]], perc.thresh = 0.05)
+```
+Great, seems like we are on our way. Now to do the assessment.
+```{r}
+multi.test.recall <- getPrecisionRecallCurveTab(5, iter_cols, udler_factors, 0.130, rep.version,which(colnames(rep.version) == "Loci"))
+multi.test.precision <- getPrecisionRecallCurveTab(5, iter_cols, udler_factors, 0.130, rep.version,which(colnames(rep.version) == "Loci"), metric.choice = "precision")
+head(multi.test.recall)
+head(multi.test.precision)
+```
+
+an alternative option would be to check for gene enrichment...
+```{r}
+thresholdPR (multi.test.recall, 0.13, first = "Recall")
+averagePR(joined = multi.test.recall,first = "Average recall") + xlim(0,1) + ylim(0,1)
+```
+
+Hmmm. This isn't that impressive, at least not for the pro-insulin one. I wonder what is happening there...
+(Proinsulin is true group 2)
+```{r}
+rep.version %>% arrange(-Proinsulin)#Does thi
+head(multi.test.recall)
+```
+
+You know, it probably would have been easier to just look at the pairwise correlation between these things derp.
+```{r}
+heatmap(cor(rep.version %>% select(X1, X2, X3, X4, X5, `Beta-Cell`,Proinsulin,Obesity,Lipodystrophy, Liver )))
+```
+
+Well. That says it all, doesn't it.
+
+The last thing to do is to try and run it with the same method they used. Might help.
