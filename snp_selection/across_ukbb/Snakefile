@@ -1,0 +1,47 @@
+#Modified to just do the first half, run the rest on alternative script
+#
+# load modules
+shell.prefix("module load gcc/5.5.0; module load R;")
+
+#For later:
+srcdir ="/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src"
+#make things better with the checkpoint tutorial:https://evodify.com/snakemake-checkpoint-tutorial/
+rule trait_list:
+    input:
+       "/work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/genetic_correlations/geno_correlations.simplified.txt", "/work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/heritability_estimates/ukbb.tsv",
+    output:
+        "trait_selections/seed{seedn}_thresh{thresh}_h2-{h2}.studies.tsv","trait_selections/seed{seedn}_thresh{thresh}_h2-{h2}.names.tsv"
+    shell:
+        """
+        Rscript {srcdir}/getSelectionList.R --corr_dat {input[0]}  --trait_list {input[1]} --output ./trait_selections/ --nongender_specific \
+        --num_samples 1 --start_seed {wildcards.seedn} --threshold {wildcards.thresh} --h2 {wildcards.h2} --names --drop_missing_rg
+        
+        """
+rule extract_snps_individually: #finds the variants that meet our signal threshold. here just looking at the LDSC ones.
+    input:
+       trait_list="trait_selections/seed{seedn}_thresh{thresh}_h2-{h2}.studies.tsv",
+    output:
+        "gwas_extracts/seed{seedn}_thresh{thresh}_h2-{h2}_vars{pval}/final.run"
+    shell:
+        """
+            NTOT=`wc -l {input} | cut -f 1 -d " "`
+            ml python/3.7-anaconda
+            while read i; do
+            python {srcdir}/unionVariants.py --gwas_id ${{i}}  --output gwas_extracts/seed{wildcards.seedn}_thresh{wildcards.thresh}_h2-{wildcards.h2}_vars{wildcards.pval}/${{i}}.snp_ids.txt \
+             --type std --pval {wildcards.pval} --extension ".both_sexes.tsv" --gwas_dir /work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/highly_heritable_traits_2/unzipped/
+            done < {input}
+
+            NOUTS=`ls gwas_extracts/seed{wildcards.seedn}_thresh{wildcards.thresh}_h2-{wildcards.h2}_vars{wildcards.pval}/*.snp_ids.txt | wc -l | cut -f 1 -d " "`
+
+            if [ $NOUTS = $NTOT ]; then
+                echo "Succesfully completed run" > {output}
+            else
+                echo "Error, no touch."
+            fi
+        """
+
+
+#Next steps
+#$convert
+#$Prune
+##continue only with those that have at least 100 loci that are independent. Otherwise too little
