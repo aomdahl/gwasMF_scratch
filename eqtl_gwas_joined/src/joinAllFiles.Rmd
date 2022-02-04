@@ -1,0 +1,243 @@
+---
+title: "Joining SNP sets for analysis"
+output: html_notebook
+---
+```{r setup}
+pacman::p_load(data.table, tidyr, dplyr, readr, ggplot2, stringr, magrittr)
+#Referrence stuff
+ambig.set <- c("AT", "TA", "GC", "CG")
+```
+
+1. Extract all 1000G variants from the UKBB dataset (filtered by MAF 0.01)
+    + drop all ambiguous variants
+2. Lift this variant set over into hg38
+3. Match all the corresponding SNPs in GTEx v8, and get hg19 ids for them
+    + This will be our working set
+4. For the GWAS-centric approach, choose signal threshold across 55 traits
+    + Top significant ones for each trait?
+    + All hits p < 1e-5 (already have)
+    + then prune
+
+5. For the random approach, just grab some at random (duh), then prune
+
+
+# 1 Extract all 1000G variants from the UKBB dataset
+I think this has already been done, see `/work-zfs/abattle4/ashton/prs_dev/neal_ukbb_sumstats/neale_i_1000G.tsv` As a sanity check, running again to confirm:
+
+```{bash, eval = FALSE}
+#Get the intersection
+awk '(FNR == NR) {arr[$2];next} ($1 in arr) {print $0}' /work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/ref.bim /work-zfs/abattle4/ashton/prs_dev/neal_ukbb_sumstats/chr_pos.tsv >  neale_i_1000G.tsv 
+
+#Move it to the refernce data directory
+mv neale_i_1000G.tsv /work-zfs/abattle4/ashton/reference_data/1000G_UKBB_intersect.tsv
+```
+
+This is literally the same exact code I ran in May 2020 lol. See how far I haven't come.
+
+## Drop the ambiguous variants
+...missing some steps here, file deleted because MARCC stupid, had to try and recreate from an html.
+```{r}
+#The length argument doesn't work the way you think it does. you need nchar.
+#fixed this on Nov 3 2021- changed from length to nchar.
+UKBB.1KG <- fread("/work-zfs/abattle4/ashton/reference_data/UKBB_NEALE_variants.tsv", header = FALSE) %>% set_colnames(c("id", "fid"))
+noambig.vars.bed <- UKBB.1KG %>% separate(fid, sep = ":", into = c("chr", "pos", "ref", "alt"), remove = FALSE) %>% mutate("snps" = paste0(ref, alt)) %>% filter(!(snps %in% ambig.set), nchar(snps) == 2) %>% mutate("chr" = paste0("chr", chr), "start" = as.numeric(pos) - 1, "end" = pos) %>% select(chr, start, end, fid)
+
+write_tsv(noambig.vars.bed, "/work-zfs/abattle4/ashton/reference_data/1000G_UKBB_intersect.no_ambig.no_multi.hg19.bed", col_names = FALSE)
+```
+Note this should say no indels, not no multi
+# 2. Lift this variant set over into hg38
+Hide
+```{bash}
+liftOver /work-zfs/abattle4/ashton/reference_data/1000G_UKBB_intersect.no_ambig.no_multi.hg19.bed /work-zfs/abattle4/ashton/reference_data/liftOver_chains/hg19ToHg38.over.chain.gz /work-zfs/abattle4/ashton/reference_data/1000G_UKBB_intersect.no_ambig.no_multi.hg38.bed /work-zfs/abattle4/ashton/reference_data/unmapped.1000G_UKBB_intersect.no_ambig.no_multi.txt
+```
+
+Great. We lost only 5455 variants in the process, all of which were deleted in new.
+
+# 3. Match the corresponding GTExv8 SNPs, and get hg19 ids for them
+
+Note- we need SNPS unioned across all traits. I believe that is what is in Yuan's list there... Ended up being a complex process, but something like this
+
+```{bash}
+#bash join_all_gtex.sh
+cd /work-zfs/abattle4/ashton/gtex_v8_joined
+bash first.step.sh
+bash second.step.sh
+bash third.step.sh
+cp final.txt ../reference_data/gtex_v8_joined_snps.txt
+awk -F "_" '{print $1":"$2"\t"$3"\t"$4}' gtex_v8_joined_snps.txt > gtex_v8_joined_snps.hg38.txt
+```
+This simpl
+Read in the list, match to bed file, get the hg19 IDs
+
+<moved over to python notebook, brought back here after the fact.>
+```{bash}
+cat ./snp_overlap/final.list.txt | sed 's/chr//g' | awk -F "_" '{print $1":"$2"\t"$3"\t"$4}' > snp_overlap/final.list.format.txt
+```
+
+```{r}
+pacman::p_load(dplyr, tidyr, magrittr, data.table)
+ukbb_1kg.bed <- fread("/work-zfs/abattle4/ashton/reference_data/1000G_UKBB_intersect.no_ambig.no_multi.hg38.bed")
+#gtex.joined <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/eqtl_gwas_joined/fourth_pass_universal/snp_overlap/final.list.format.txt", header = TRUE)
+#gtex.joined <- fread("./snp_overlap/final.list.txt") %>% separate(variant_id,into = c("chr", "pos", "ref", "alt", "build"), sep = "_") %>% mutate("hg38" = paste0(chr, ":", pos)) %>% select(-build)
+#this according to https://storage.googleapis.com/gtex_analysis_v8/single_tissue_qtl_data/README_eQTL_v8.txt  
+
+#New gtex.joined
+gtex.joined <- fread("/work-zfs/abattle4/ashton/reference_data/gtex_v8_joined_snps.hg38.txt",header = FALSE) %>% magrittr::set_colnames(c("hg38", "hg38_ref", "hg38_alt"))
+
+ukbb_1kg.bed <- ukbb_1kg.bed %>% mutate("hg38" = paste0(V1, ":", V3)) %>% rename("ukbb_hg19" = V4) %>% separate(ukbb_hg19, into = c("c", "p", "ref", "alt"), remove = FALSE) %>% 
+  mutate("hg19" = paste0(c, ":", p)) %>% select(-c, -p)
+#colnames(gtex.joined) <- c("hg38_chr", "hg38_pos", "hg38_ref", "hg38_alt", "hg38")
+#colnames(gtex.joined) <- c("hg38", "hg38_ref", "hg38_alt")
+#ukbb_1kg.bed$hg38 <- gsub(x = ukbb_1kg.bed$hg38 , pattern = "chr", replacement = "")
+colnames(ukbb_1kg.bed) <- c("chr", "start", "end", "ukbb_hg19", "hg19_ref", "hg19_alt", "hg38", "hg19")
+```
+**Final cleanup in GTEx**
+Drop the ambigs
+
+```{r}
+drops.ambig <- (paste0(gtex.joined$hg38_ref, gtex.joined$hg38_alt) %in% c("AT", "TA", "GC", "CG"))
+#I am not sure how this got through
+drops.multiallelic <- ifelse(sapply(paste0(gtex.joined$hg38_ref, gtex.joined$hg38_alt), nchar) > 2, TRUE, FALSE)
+gtex.joined <- gtex.joined[!(as.logical(drops.ambig + drops.multiallelic)),] 
+gtex.joined <- gtex.joined %>% group_by(hg38) %>% filter(n() == 1) %>% ungroup()
+
+#Check the ukbb set- this should already be on point
+drops.ambig <- (paste0(ukbb_1kg.bed$hg19_ref, ukbb_1kg.bed$hg19_alt) %in% c("AT", "TA", "GC", "CG"))
+drops.multiallelic <- ifelse(sapply(paste0(ukbb_1kg.bed$hg19_ref, ukbb_1kg.bed$hg19_alt), nchar) > 2, TRUE, FALSE) #INDEL, not multiallelic
+ukbb_1kg.bed <- ukbb_1kg.bed[!(as.logical(drops.ambig + drops.multiallelic)),] %>% group_by(hg19) %>% filter(n() == 1) %>% ungroup()
+```
+Note- lables are wrong, multiallelic should be indel.
+
+Now merge the two:
+```{r}
+ukbb.1KG.gtex <- inner_join(ukbb_1kg.bed, gtex.joined, by = "hg38")
+#diagnostic <- left_join(ukbb_1kg.bed, gtex.joined, by = "hg38")
+```
+check alignment of ref/alt
+```{r}
+#TODO: this is one source of our error. This assigned true  to G == TAG. I think something is wrong with the way I have written u pthe R logic
+#Indeed, I just demonstrated this is not correct. Weird as f.
+#apparently & yields the right result, but && janks it.
+ukbb.1KG.gtex <- ukbb.1KG.gtex %>% select(-chr, -start, -end) %>% mutate("aligned" = ifelse( (hg19_ref == hg38_ref)  & (hg19_alt == hg38_alt), TRUE, FALSE)) %>% mutate("dup_hg38" = duplicated(hg38), "dup_hg19" = duplicated(hg19))
+final.ukbb.1KG.gtex <- ukbb.1KG.gtex %>% filter(aligned == TRUE, dup_hg38 == FALSE, dup_hg19 == FALSE)
+if(sum(!final.ukbb.1KG.gtex $aligned) == 0)
+{
+  message("Proceed to write out")
+} else {
+  message("mismatched alleles in here yo")
+}
+#
+write_tsv(final.ukbb.1KG.gtex %>% select(-aligned, -dup_hg38, -dup_hg19, -hg38_ref,-hg38_alt) %>% rename("ref" = hg19_ref, "alt" = hg19_alt), "/work-zfs/abattle4/ashton/reference_data/ukbb_1KG_gtex.intersected.no_ambig.no_multi.no_indel.tsv")
+```
+**up to the above has been redone on Nov 3 with mu;ti corection*
+**the steps above also redone on 12/14/2021 due to missing chromosomes**
+**The steps following are different approaches we took- the code sort of branches here**
+
+## Random SNP Pruned approach:
+
+Run plink pruning
+```{bash}
+tail -n +2 /work-zfs/abattle4/ashton/reference_data/ukbb_1KG_gtex.intersected.no_ambig.no_multi.no_indel.tsv | cut -f 1 > hg19.intersected.all
+
+plink2 --bfile /work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/ref --extract hg19.intersected.all --indep-pairwise 500kb 0.1 --out ./pruned_snp_sets/500kb_0.1r2 --exclude /work-zfs/abattle4/ashton/prs_dev/prs_tools/long_range_ld_removal.hg19.tsv
+
+plink2 --bfile /work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/ref --extract hg19.intersected.all --indep-pairwise 500kb 0.05 --out ./pruned_snp_sets/500kb_0.05r2 --exclude /work-zfs/abattle4/ashton/prs_dev/prs_tools/long_range_ld_removal.hg19.tsv
+```
+
+### Extract these variants from both UKBB Neale Lab GWAS and GTEx eQTLs.
+These were run on `bigmem` screens
+#### GWAS Extract
+```{bash}
+mkdir -p gwas_extracts/500kb_0.05r2
+python /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/quickGWASIter.py  --type reg --output ./gwas_extracts/500kb_0.05r2/rand --gwas_list /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv --snp_list pruned_snp_sets/500kb_0.05r2.prune.in --extension ".both_sexes.tsv" --gwas_dir /work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/highly_heritable_traits_2/unzipped/ 
+
+mkdir -p gwas_extracts/500kb_0.1r2
+python /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/quickGWASIter.py  --type reg --output ./gwas_extracts/500kb_0.1r2/rand --gwas_list /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv --snp_list pruned_snp_sets/500kb_0.1r2.prune.in --extension ".both_sexes.tsv" --gwas_dir /work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/highly_heritable_traits_2/unzipped/ 
+```
+
+#### eQTL Extract
+```{bash}
+awk '(FNR == NR) {arr[$1]; next} ($1 in arr) {print $5":"$8":"$9}' pruned_snp_sets/500kb_0.1r2.prune.in ukbb_1KG_gtex.variants.tsv | sed 's/chr//g'  | sort -u > eqtl_extracts/500kb_0.1r2.hg38.lookup
+mkdir -p eqtl_extracts/500kb_0.1r2
+
+ml python/3.7-anaconda
+python3 gtexv8_extract.py eqtl_extracts/500kb_0.1r2.hg38.lookup eqtl_extracts/500kb_0.1r2/rand_  
+
+mkdir -p eqtl_extracts/500kb_0.05r2
+ml python/3.7-anaconda
+awk '(FNR == NR) {arr[$1]; next} ($1 in arr) {print $5":"$8":"$9}' pruned_snp_sets/500kb_0.05r2.prune.in ukbb_1KG_gtex.variants.tsv | sed 's/chr//g'  | sort -u > eqtl_extracts/500kb_0.05r2.hg38.lookup
+
+python3 gtexv8_extract.py eqtl_extracts/500kb_0.05r2.hg38.lookup eqtl_extracts/500kb_0.05r2/rand_  
+```
+
+Note that these python calls were initially run on `bigmem` but failed; I ended up having to rerun them with `sbatch gtex_extract.slurm.2.sh` and `sbatch gtex_extract.slurm.sh`
+
+These scripts were moved to `run_scripts/` after completion.
+
+The next steps now are to read in and analyze. This will be redundant for all methods, so the process is automated in `eqtl_gwas_joined/src/jointDecomp.R`.
+
+First: prep the tissue names, and reformat the trait names as needed
+```{bash}
+ls eqtl_extracts/500kb_0.05r2/ | cut -f 2- -d "_" | cut -f 1 -d "." > eqtl_extracts/tiss.names.txt
+paste /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv /work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.names.tsv gwas_extracts/trait.names.txt
+```
+Run the analysis on pruned sets:
+Inputs:
+ * Location of eQTL extract summary stats
+ * Location of GWAS extracted summary stats
+ * list of tissue names in eQTL studies
+ * list of study ids and study names in GWAS (both, needs to align)
+ * method for dealing with NAs (here, we just set to 0)
+```{bash}
+ml gcc/5.5.0
+ml R
+
+mkdir -p ./results/rand_500kb_0.1r2/
+Rscript ../src/jointDecomp.R --eqtl_source eqtl_extracts/500kb_0.1r2/ --gwas_source ./gwas_extracts/500kb_0.1r2/rand.z.tsv --gwas_names gwas_extracts/trait.names.txt --eqtl_names eqtl_extracts/tiss.names.txt --output ./results/rand_500kb_0.1r2/ --na_method "ZERO"
+
+mkdir -p ./results/rand_500kb_0.05r2/
+Rscript ../src/jointDecomp.R --eqtl_source eqtl_extracts/500kb_0.05r2/ --gwas_source ./gwas_extracts/500kb_0.05r2/rand.z.tsv --gwas_names gwas_extracts/trait.names.txt --eqtl_names eqtl_extracts/tiss.names.txt --output ./results/rand_500kb_0.05r2/ --na_method "ZERO"
+```
+
+
+
+
+
+## GWAS-centric approach
+Re-running on 12/14 after errors elsewhere.
+First, we need to take our unified list of SNPs and search them for p-values at some arbitrary threshold we set. We will try a few different ones, starting at 1e-5 then at 5e-8
+To make this possible, I had to tweak my `unionVariants.py` script to allow for a filtering list out  of the gates.
+```{bash}
+pwd
+```
+
+```{bash}
+cd /work-zfs/abattle4/ashton/snp_networks/scratch/eqtl_gwas_joined/fourth_pass_universal
+cut -f 1 /work-zfs/abattle4/ashton/reference_data/ukbb_1KG_gtex.intersected.no_ambig.no_multi.no_indel.tsv > hg19.intersected.ukbb_style.all.tmp
+
+python ../../../gwas_decomp_ldsc/src/unionVariants.py --gwas_list ../../../gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv --gwas_dir /work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/highly_heritable_traits_2/unzipped/ --pval 1e-5 --type std --snp_list hg19.intersected.ukbb_style.all.tmp --output ./gwas_snp_lists/gwas_centric_1e-5
+
+python ../../../gwas_decomp_ldsc/src/unionVariants.py --gwas_list ../../../gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv --gwas_dir /work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/highly_heritable_traits_2/unzipped/ --pval 5e-8 --type std --snp_list hg19.intersected.ukbb_style.all.tmp --output ./gwas_snp_lists/gwas_centric_5e-8.txt
+
+rm hg19.intersected.ukbb_style.all.tmp
+```
+Quick additional check to clean up the SNPs, I was unsure if things okay...
+```{bash}
+Rscript /work-zfs/abattle4/ashton/snp_utils/ambig_multi_indel_cleanup.R gwas_snp_lists/gwas_centric_1e-5.txt gwas_snp_lists/gwas_centric_1e-5.cleaned.txt
+
+Rscript /work-zfs/abattle4/ashton/snp_utils/ambig_multi_indel_cleanup.R gwas_snp_lists/gwas_centric_5e-8.txt gwas_snp_lists/gwas_centric_5e-8.cleaned.txt
+```
+Turns out they were just fine you poop.
+Next, we need to prune these down via plink, then go from there...
+#note: from here on out, this process is highly automatable. We could do it.
+```{bash}
+cut -f 1,2 -d ":" gwas_snp_lists/gwas_centric_5e-8.cleaned.txt > gwas_snp_lists/gwas_centric_5e-8.cleaned.ids.txt
+cut -f 1,2 -d ":" gwas_snp_lists/gwas_centric_1e-5.cleaned.txt > gwas_snp_lists/gwas_centric_1e-5.cleaned.ids.txt
+
+mkdir -p ./pruned_snp_sets/gwas_centric/
+
+plink2 --bfile /work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/ref --extract gwas_snp_lists/gwas_centric_5e-8.cleaned.ids.txt --indep-pairwise 500kb 0.1 --out ./pruned_snp_sets/gwas_centric/500kb_0.1r2_5e-8 --exclude /work-zfs/abattle4/ashton/prs_dev/prs_tools/long_range_ld_removal.hg19.tsv
+
+plink2 --bfile /work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/ref --extract gwas_snp_lists/gwas_centric_1e-5.cleaned.ids.txt --indep-pairwise 500kb 0.05 --out ./pruned_snp_sets/gwas_centric/500kb_0.05r2_1e-5 --exclude /work-zfs/abattle4/ashton/prs_dev/prs_tools/long_range_ld_removal.hg19.tsv
+```
+

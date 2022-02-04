@@ -1,0 +1,94 @@
+---
+title: "Joint factorization Yuan + GWAS"
+output: html_notebook
+---
+Here, I would like to do a quick analysis of joint PCA on the eQTL loading matrix and the GWAS SNP z-scores.
+The regression seemed to yield some hits, but I am not sure if the PCA would.
+Let's take a look:
+
+```{r setup, echo = FALSE}
+pacman::p_load(data.table, tidyr, dplyr, readr, ggplot2, stringr,stats, cowplot, glmnet)
+#source("./function_dossier.R")
+```
+
+#10/11
+
+```{r}
+gwas_out <-  fread("/work-zfs/abattle4/ashton/snp_networks/scratch/eqtl_gwas_reverse/gwas_extracts/snpsmp.z.tsv") %>% drop_na()
+l_matrix <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/eqtl_gwas_reverse/snspMF_matrix.clean.txt") %>% rename("hg38" = V2) %>% arrange(hg38)
+bed.conversion <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/eqtl_gwas_reverse/loadings.hg19.bed") %>% mutate("ids" = paste0(gsub(pattern = "chr", replacement = "", x = V1),":", V3)) %>% rename("hg38" = V4)
+colnames(bed.conversion) <- c("chr", "start", "end", "hg38", "ids")
+
+gwas_out <- left_join(gwas_out, bed.conversion, by = "ids") %>% arrange(hg38)
+
+#we need to expand GWAS out to include all the copies
+#Need to drop all the snps we don't have, maybe dropped due to something or other....
+l_matrix$hg38 <- gsub(x = l_matrix$hg38, pattern = "_", replacement = ":")
+filt.l <- l_matrix %>% filter((hg38 %in% gwas_out$hg38))
+dim(filt.l)
+```
+Take a look
+```{r}
+any(filt.l$hg38 != gwas_out$hg38) #perfectly ordered
+joint.mf.gwas <-cbind(filt.l, gwas_out %>% select(-hg38, -chr, -start, -end, -ids)) %>% select(-V1, -hg38)
+joint.mf.gwas.meta <- cbind(gwas_out %>% select(hg38, chr, start, end, ids), filt.l$V1)  
+
+#fix names
+gwas_names <-fread("../fourth_pass_universal/gwas_extracts/trait.names.txt", header = FALSE)
+head(gwas_names)
+any(colnames(joint.mf.gwas)[24:78] != gwas_names$V1) #names lined up?
+colnames(joint.mf.gwas) <- c(paste0("F", 1:23), gwas_names$V2)
+head(joint.mf.gwas)
+```
+
+
+Okay, so now we want to run the PCA analysis.
+```{r}
+#note: tons (500,000 ish) of NAs in the data. Where are they?
+#modification to remove at the beginning
+apply(joint.mf.gwas, 2, function(x) sum(is.na(x)))
+nas <- which(is.na(joint.mf.gwas$Lymphocyte_count))
+head(joint.mf.gwas[nas,])
+head(joint.mf.gwas.meta[nas,])
+#checking these out in the original files
+#Cursory look at this indicates they aren't actually present in the data. I should have dropped them from the get go you nimcompoop.
+
+```
+Psych, start with the correlation heatmap
+```{r}
+heatmap.joint <- sepCorHeatmap(abs(joint.mf.gwas), colnames(joint.mf.gwas), ngwas = 55, neqtl = 23, dtCluster = TRUE)
+ggsave(filename = "../snspMF_gwas_analysis/abs_heatmap.png",plot = heatmap.joint)
+```
+NOW, we can try the PCA
+```{r}
+first <- fullSpectralDecomp(joint.mf.gwas,byCol = TRUE, K = 20)
+first$scree
+save(first, file="../snspMF_gwas_analysis/joint.pca.RData")
+first$svd$v
+pca.heatmap.dense <- pcaPlotMaker(first$svd$v,joint.mf.gwas,  colnames(joint.mf.gwas), "Singular Vectors, joint PCA (std)", ngwas = 55, neqtl = 23)
+pca.heatmap.dense
+```
+Hmm, interesting. Some real overlap later on it seems.
+Let's look at the contributions?
+```{r}
+mix.snspmf <- mixtureAnalysis(first$svd$v, colnames(joint.mf.gwas), ngwas = 55, neqtl = 23)
+
+mix.snspmf$plot
+```
+Try the sparse one too
+```{r}
+snspmf.sparse <- sparseSpectralDecomp(joint.mf.gwas,byCol = TRUE, K = 20)
+save(snspmf.sparse,file = "../snspMF_gwas_analysis/sparsepca.RData")
+snspmf.sparse$scree
+
+pca.heatmap.sparse <- pcaPlotMaker(snspmf.sparse$svd$v,joint.mf.gwas,  colnames(joint.mf.gwas), "Singular Vectors, joint PCA (sparse)", ngwas = 55, neqtl = 23)
+pca.heatmap.sparse
+mix.snspmf.sparse <- mixtureAnalysis(snspmf.sparse$svd$v, colnames(joint.mf.gwas), ngwas = 55, neqtl = 23)
+mix.snspmf$plot
+
+pcaBarPlotMaker(snspmf.sparse$svd$v,joint.data.mat =joint.mf.gwas,all.names =colnames(joint.mf.gwas),ngwas = 55, neqtl = 23, "test" )
+
+```
+Really not sure of what to make of these.... honestly it seems like there isn't really a signal here at all.Humph
+
+What do the different factors represent?
