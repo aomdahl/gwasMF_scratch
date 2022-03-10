@@ -11,7 +11,7 @@ NEF calculated as ukbb heritabilty:
 ), otherwise is the sample size.
 
 ```{r setup, echo = FALSE}
-pacman::p_load(data.table, tidyr, dplyr, readr, ggplot2, stringr,stats, cowplot)
+pacman::p_load(data.table, tidyr, dplyr, ggplot2, stringr,stats, cowplot)
 ambig <- c("AT", "TA", "GC", "CG")
 ```
 
@@ -777,14 +777,73 @@ for(i in 1:length(file.names))
   zneg[zneg > 0] <- 0
   zneg <- zneg * -1
   tot.mat <- cbind(tot.mat, zpos, zneg)
+  #added mods to get the pure matrix out...
+  #tot.mat <- cbind(tot.mat, zpos)
   #all.names <- c(all.names, paste0(n, "_POS"), paste0(n, "_NEG"))
   all.names <- c(all.names, paste0(n_name, "_POS"), paste0(n_name, "_NEG"))
+  #all.names <- c(all.names, n_name)
 }
 rownames(tot.mat)  <- curr$SNP
 colnames(tot.mat) <- all.names
 head(tot.mat)[,1:5]
+#write.csv(data.frame(tot.mat), file = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/full_signed_matrix.tsv", col.names = TRUE, sep = '\t', quote = FALSE)
+```
+######################## Feb 4 aside ##############################
+Version to just get the normal snp data out.
+```{r}
+tot.mat.all <- NULL
+all.names.t <- c()
+for(i in 1:length(file.names))
+{
+  if(file.names[i] %in% file.drop){
+    print(paste0("skipping:", file.names[i]))
+    next
+    }
+
+  n <- gsub(x=gsub(x = file.names[i], pattern = ".txt", replacement = ""), pattern = ".tsv", replacement= "")
+  n_samp <- unlist((sample.sizes %>% filter(V1 == file.names[i]))$V2)
+  n_name <- unlist((sample.sizes %>% filter(V1 == file.names[i]))$V3)
+  curr = all.dat[[i]]
+    if(file.names[i] == "DIAGRAMv3.2012DEC17.txt")
+  {
+      zpos <- (log(abs(curr$effect_size))/curr$std_error)/sqrt(n_samp)
+    zneg <- (log(abs(curr$effect_size))/curr$std_error)/sqrt(n_samp)
+  #based on https://huwenboshi.github.io/data%20management/2017/11/23/tips-for-formatting-gwas-summary-stats.html
+  }else
+  {
+    zpos <- (curr$effect_size/curr$std_error)/sqrt(n_samp)
+  zneg <- (curr$effect_size/curr$std_error)/sqrt(n_samp)
+  }
+  
+  #zpos[zpos < 0] <- 0
+  #zneg[zneg > 0] <- 0
+  #zneg <- zneg * -1
+  #tot.mat <- cbind(tot.mat, zpos, zneg)
+  #added mods to get the pure matrix out...
+  tot.mat.all <- cbind(tot.mat.all, zpos)
+  #all.names <- c(all.names, paste0(n, "_POS"), paste0(n, "_NEG"))
+  #all.names.t <- c(all.names.t, paste0(n_name, "_POS"), paste0(n_name, "_NEG"))
+  all.names.t <- c(all.names.t, n_name)
+}
+rownames(tot.mat.all)  <- curr$SNP
+colnames(tot.mat.all) <- all.names.t
+head(tot.mat.all)[,1:5]
+#write.csv(data.frame(tot.mat.all), file = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/full_signed_matrix.tsv", col.names = TRUE, sep = '\t', quote = FALSE)
+```
+#2 / 4- flashr on just the entire subset. Yea.
+
+```{r}
+library(flashier)
+z_scores <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/full_signed_matrix.tsv")
+tot.allz <- as.matrix(z_scores[,-1])
+full.mat.all <- flashier::flash((tot.allz),backfit = TRUE, greedy.Kmax = 5)
+plotFactors(F = full.mat.all$loadings.pm[[2]],trait_names = colnames(tot.allz),title = "Flashr")  
+write.csv(data.frame("True" = colnames(tot.allz),full.mat.all$loadings.pm[[2]]),file = "/work-zfs/abattle4/ashton/snp_networks/p_gwasMF/flashR_udler_signed.csv",row.names = FALSE)
+
+
 ```
 
+########################
 THey don't say anything about OR or anything like that... so may need to revisit
 
 ## added scaling by sqrtN on 12/16
