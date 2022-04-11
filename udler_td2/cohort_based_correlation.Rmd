@@ -1,0 +1,240 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+Quick little side analysis- how related are these things by study? Is this an issue to be aware of?
+```{r}
+pacman::p_load(data.table, tidyr, dplyr, ggplot2, stringr,stats, cowplot, magrittr)
+source("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+```
+
+
+```{r}
+udler_n_scaled <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/full_signed_matrix.tsv")
+udler_Beta <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/processed_data/beta_signed_matrix.tsv")
+udler_se <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/processed_data/se_matrix.tsv")
+udler_n <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/processed_data/sample_counts_matrix.tsv") %>% print()
+```
+GEt cor, ploto with heatmaps
+Issue with the N scaled data, need to lok into this....
+make sure my inputs are valid...
+
+```{r}
+n_scaled_fix <- udler_Beta[,-1] / (udler_se[,-1] * sqrt(udler_n[,-1]))
+z <- udler_Beta[,-1] / (udler_se[,-1])
+n_scaled_fix$Type_2_Diabetes
+plotCorrelationHeatmap(cor(n_scaled_fix[,-24])) #drop diabetes, its wierd
+plotCorrelationHeatmap(cor(z[,-24]))
+```
+Why is the type2 diabaetes data so jacked up? I need to look back into this....
+These do not appear to be any different....
+Is there a cohort specific effect?
+```{r}
+sample.sizes <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/file.names.withcohorts.april.txt") %>% filter(Inclusion == 1) %>% print()
+library(reshape2)
+image.df <- melt(cor(z[,-24])) %>% rename("Trait" = Var1) %>% left_join(., sample.sizes, by = "Trait") %>% select(Trait, Var2, value, Cohort) %>% rename("Trait1" = Trait, "Cohort1" = Cohort) %>% rename('Trait' = Var2) %>% left_join(., sample.sizes, by = "Trait") %>% rename("Trait2" = Trait, "Cohort2" = Cohort) %>% print()
+```
+What is the average by group?
+Plain z-scores
+```{r}
+image.df %>% filter(Cohort1 == Cohort2) %>% group_by(Cohort1) %>% summarize("avg" = mean(value^2), "n" = n()) %>% filter(n > 1)
+message("Overall avg")
+print(mean(cor(z[,-24])^2))
+```
+By the corrected z-scores
+```{r}
+image.df.scaled <- melt(cor(n_scaled_fix[,-24])) %>% rename("Trait" = Var1) %>% left_join(., sample.sizes, by = "Trait") %>% select(Trait, Var2, value, Cohort) %>% rename("Trait1" = Trait, "Cohort1" = Cohort) %>% rename('Trait' = Var2) %>% left_join(., sample.sizes, by = "Trait") %>% rename("Trait2" = Trait, "Cohort2" = Cohort) %>% print()
+image.df.scaled %>% filter(Cohort1 == Cohort2) %>% group_by(Cohort1) %>% summarize("avg" = mean(value^2), "n" = n()) %>% filter(n > 1)
+message("Overall avg")
+print(mean(cor(n_scaled_fix[,-24])^2))
+```
+Scaling by N the way they do doesn't deal with this problem. No suprises there...
+Specify colors for plotting
+```{r}
+library(RColorBrewer)
+col <- brewer.pal(12, "Paired")
+colors <- sample.sizes %>% select(Cohort) %>% distinct() %>% 
+  mutate("color" = c(col[1:3], col[3], col[4:12])) %>% print()
+```
+
+
+Yea, they are totally enriched for correlation. But this is unsurprising- these studies all look at related phenotypes, so I'd expect them to be highly correlated.
+If we had 2 of the same traits from different cohorts in here, that would be helpful. Maybe that's what I need to include....
+```{r}
+  library(reshape2)
+#My version, vanilla hclust
+  cormat <- reorder_cormat(cor(n_scaled_fix[,-24]))
+  melted_cormat <- melt(cormat) %>% rename("Trait" = Var1) %>% left_join(., sample.sizes, by = "Trait") %>% select(Trait, Var2, value, Cohort) %>% rename("Trait1" = Trait, "Cohort1" = Cohort) %>% rename('Trait' = Var2) %>% left_join(., sample.sizes, by = "Trait") %>% rename("Trait2" = Trait, "Cohort2" = Cohort)
+melted_cormat$Trait1 <- factor(melted_cormat$Trait1, levels = colnames(cormat))
+melted_cormat$Trait2 <- factor(melted_cormat$Trait2, levels = colnames(cormat))
+one <- melted_cormat %>% select(Trait1, Cohort1) %>% set_colnames(c("Trait", "Cohort"))
+two <- melted_cormat %>% select(Trait2, Cohort2)%>% set_colnames(c("Trait", "Cohort"))
+rbind(one, two) %>% distinct()
+col_list <- melted_cormat %>% select(Trait1, Cohort1) %>% rename("Cohort" = Cohort1) %>% merge(.,colors, by = "Cohort") %>% mutate("Trait1" = factor(Trait1, levels = colnames(cormat))) %>% distinct() %>% arrange(Trait1) %>% print()
+  library(ggplot2)
+  ggplot(data = melted_cormat, aes(x=Trait1, y=Trait2, fill=value)) + 
+    geom_tile() +scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                                     midpoint = 0, limit = c(-1,1)) + theme_minimal(15) + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, color = col_list$color),
+          axis.text.y = element_text(color = col_list$color)) + xlab("") + ylab("")
+  
+  #oither version, based on heatmap's hclust:
+  
+  cormat <- reorder_cormat(cor(n_scaled_fix[,-24]), type = "heatmap.default")
+  melted_cormat <- melt(cormat) %>% rename("Trait" = Var1) %>% left_join(., sample.sizes, by = "Trait") %>% select(Trait, Var2, value, Cohort) %>% rename("Trait1" = Trait, "Cohort1" = Cohort) %>% rename('Trait' = Var2) %>% left_join(., sample.sizes, by = "Trait") %>% rename("Trait2" = Trait, "Cohort2" = Cohort)
+melted_cormat$Trait1 <- factor(melted_cormat$Trait1, levels = colnames(cormat))
+melted_cormat$Trait2 <- factor(melted_cormat$Trait2, levels = colnames(cormat))
+one <- melted_cormat %>% select(Trait1, Cohort1) %>% set_colnames(c("Trait", "Cohort"))
+two <- melted_cormat %>% select(Trait2, Cohort2)%>% set_colnames(c("Trait", "Cohort"))
+rbind(one, two) %>% distinct()
+col_list <- melted_cormat %>% select(Trait1, Cohort1) %>% rename("Cohort" = Cohort1) %>% merge(.,colors, by = "Cohort") %>% mutate("Trait1" = factor(Trait1, levels = colnames(cormat))) %>% distinct() %>% arrange(Trait1) %>% print()
+  
+  library(ggplot2)
+  ggplot(data = melted_cormat, aes(x=Trait1, y=Trait2, fill=value)) + 
+    geom_tile() +scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                                     midpoint = 0, limit = c(-1,1)) + theme_minimal(15) + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, color = col_list$color),
+          axis.text.y = element_text(color = col_list$color)) + xlab("") + ylab("")
+  
+```
+Well these are quite different. Maybe we should do a really good hclust before all this shiz.
+
+```{r}
+correlationHeatmapFullData <- function(din, abs = TRUE, title = "Correlation heatmap ordered by unsigned euclidian distance.")
+{
+  if(abs){
+     distmat <- dist(t(abs(din)))
+  } else
+  { distmat <- dist(t((din)))}
+ 
+o <- hclust(distmat)$order
+cormat <- cor(din)
+ melted_cormat <- melt(cormat) %>% rename("Trait" = Var1) %>% left_join(., sample.sizes, by = "Trait") %>% select(Trait, Var2, value, Cohort) %>% rename("Trait1" = Trait, "Cohort1" = Cohort) %>% rename('Trait' = Var2) %>% left_join(., sample.sizes, by = "Trait") %>% rename("Trait2" = Trait, "Cohort2" = Cohort)
+melted_cormat$Trait1 <- factor(melted_cormat$Trait1, levels = colnames(cormat)[o])
+melted_cormat$Trait2 <- factor(melted_cormat$Trait2, levels = colnames(cormat)[o])
+#one <- melted_cormat %>% select(Trait1, Cohort1) %>% set_colnames(c("Trait", "Cohort"))
+#two <- melted_cormat %>% select(Trait2, Cohort2)%>% set_colnames(c("Trait", "Cohort"))
+#rbind(one, two) %>% distinct()
+col_list <- melted_cormat %>% select(Trait1, Cohort1) %>% rename("Cohort" = Cohort1) %>% merge(.,colors, by = "Cohort") %>% mutate("Trait1" = factor(Trait1, levels = colnames(cormat)[o])) %>% distinct() %>% arrange(Trait1)
+  
+  library(ggplot2)
+  ggplot(data = melted_cormat, aes(x=Trait1, y=Trait2, fill=value)) + 
+    geom_tile() +scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                                     midpoint = 0, limit = c(-1,1)) + theme_minimal(15) + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, color = col_list$color),
+          axis.text.y = element_text(color = col_list$color)) + xlab("") + ylab("") + ggtitle(title)
+  
+}
+
+```
+Now run it...
+```{r}
+correlationHeatmapFullData(n_scaled_fix[,-24], abs = TRUE, title ="Correlation heatmap ordered by unsigned euclidian distance." )
+
+correlationHeatmapFullData(n_scaled_fix[,-24], abs = FALSE, title ="Correlation heatmap ordered by signed euclidian distance." )
+```
+
+Alright. Well from these alone its hard to determine effects of cohort overlap, especially since my estimates may not be correct. Certainly there is osme of that, but also we see evidence of vertical plieotropy.
+
+Is this effect reduced or magnified in the standard data? I expect no difference...
+
+```{r}
+correlationHeatmapFullData(z[,-24], abs = TRUE, title ="Correlation heatmap ordered by unsigned z-scores" )
+
+correlationHeatmapFullData(z[,-24], abs = FALSE, title ="Correlation heatmap ordered by signed z-scores" )
+```
+ Of course this isn't going to inform me on what I want... we need an experiment
+ How about this- look at stroke results and others from the UKBB. Do they cluster more closely with UKBB or their actual trait friends?
+```{bash}
+cd /work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/data
+#Stroke:
+wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/6150_3.gwas.imputed_v3.both_sexes.tsv.bgz -O 6150_3.gwas.imputed_v3.both_sexes.tsv.bgz
+
+#HDL:
+wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/30760_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz -O 30760_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz
+
+#LDL:
+wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/30780_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz -O 30780_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz
+
+#Cholesterol:
+wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/30690_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz -O 30690_irnt.gwas.imputed_v3.both_sexes.varorder.tsv.bgz
+
+```
+ 
+Now, the overall procedure to get the SNPs out from the UKBB versions.
+```{bash}
+ls data/*.gwas.imputed_v3.both_sexes*.tsv.bgz > data/ukbb_test.traits.txt
+for f in `cat data/ukbb_test.traits.txt`; do
+filename=`basename $f`
+OUT="${filename%.*}"
+echo $OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14}')) > analysis_data/$OUT
+done
+
+#SPECIAL CASE because stroke is not continusou:
+f="data/6150_3.gwas.imputed_v3.both_sexes.tsv.bgz"
+filename=`basename $f`
+OUT="${filename%.*}"
+echo $OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$12"\t"$13"\t"$15}')) > analysis_data/$OUT
+```
+Cool, easy peasy in fact.
+Now then, pull it in, harmonize and add it to matrix...
+(copied from repro notebook)
+```{r}
+var.list.true <- fread("./variant_lists/udler_final_list.csv",sep = "," )
+std <- var.list.true %>% arrange(Variant) %>% select(Position_alleles, `Risk allele`, Variant) %>% rename("effect" =`Risk allele`, "SNP" = Variant) %>% separate(Position_alleles,into = c("chr", "pos", "a1", "a2"), sep = "_") 
+#For some reason, this is missing one risk allele- not clear if its its T or G, we should just pick one to be consistent
+std[50,]$effect = "T"
+std <- std %>% mutate("other" = ifelse(a1 == effect, a2, a1))  %>% select(SNP, effect, other)
+std
+
+```
+Harmonizing step...
+```{r}
+file.list <- scan("data/ukbb_test.traits.txt", what= character()) %>% gsub(x=., pattern = "data", replacement = "analysis_data") %>%
+  gsub(x=., pattern = ".bgz", replacement = "")
+all.dat <- lapply(file.list, function(x) fread(x) %>% mutate("effect" = toupper(effect), "other" = toupper(other)))
+
+for(i in 1:length(all.dat))
+{
+  curr =  all.dat[[i]] %>% arrange(SNP) %>% select(SNP, effect, other)
+  if((dim(curr)[1] == dim(std)[1])){
+    print("Dimensions correct...")
+    if(all(curr == std)){
+    print("perfectly aligned match")
+    } else{
+    print("Misaligned directions:")
+    all.dat[[i]] <- harmonizeEasyEffectOnly(all.dat[[i]], std)
+    }
+  } else{
+    print("Issues for:")
+    print(i)
+    all.dat[[i]] <- harmonizeEasyEffectOnly(all.dat[[i]], std)
+  }
+  
+}
+```
+Okay. Phew. Now can we insert? Order correct?
+```{r}
+stopifnot(all(all.dat[[1]]$SNP == udler_Beta$SNP))
+joined <- cbind(z[,-24], data.frame(sapply(all.dat, function(x) x$effect_size/x$std_error)) %>% set_colnames(c("cholesterol_2", "HDL_2", "LDL_2", "Stroke_2")))
+correlationHeatmapFullData(joined, abs = F, title ="Correlation heatmap ordered by signed z_scores." )
+
+
+correlationHeatmapFullData(joined, abs = TRUE, title ="Correlation heatmap ordered by unsigned z_scores." )
+```
+Well based on this, the cohort-specific effect is pretty minor. What about in PCA?
+```{r}
+pca <- svd(joined,nv = 10)
+#get teh colors we like....
+ct <- sample.sizes %>% merge(., colors, by = "Cohort") %>% mutate("Trait" = factor(Trait, levels = colnames(joined))) %>% arrange(Trait)
+plotFactors(pca$v, trait_names = colnames(joined), title = "", colors = ct$color)
+```
+```{r}
+pca2 <- prcomp(joined,rank. = 10,center = TRUE, scale. = TRUE)
+plot(pca2$x[,1], pca2$x[,2], col=ct$color)
+
+plot(pca2$x[,2], pca2$x[,3], col = ct$color, pch = 19)
+```
+
