@@ -1,0 +1,76 @@
+---
+title: "FastAsset Plieotropy"
+output: html_notebook
+---
+
+4/12/2022
+The purpose of this notebook is to test a differnet method for determining plieotropy based on Guanghao's "FastAsset"
+I also want to get a better idea of possible methods to account for sample overlap...
+
+```{r}
+library(ASSET)
+?fast_asset() 
+```
+Well, based on this we need:
+1. SNP Id [v]
+2. Trait names [v]
+3. beta.hat [v]
+4. sigma.hat [v]
+5. Sample size
+6. Correlation of zstaitsitcs under null hypothesis.
+Technically, we also want the correct for overlap sharing, do this in LDSC correlation version blah blah blah.
+```{r}
+source("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/src/quickLoadData.R")
+dat.gwas<- quickLoadFactorization("B_SE", "MARCC")
+trait.list <- colnames(dat.gwas$X)
+```
+Need to make tweaks to get the sample size. Fine
+Also need to run ldsc as below to get the fudging correlation
+Many of these are already done, in the UKBB manifest so don't need to
+```{r}
+neal.cor <- fread("/work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/genetic_correlations/geno_correlation.r2.tsv")
+head(neal.cor)
+neal.cor$p1 <- gsub(x=(neal.cor$p1), replacement = "", pattern = "../../results/UKbb/ldsc-additive-export/sumstats-files/") %>% gsub(x=., replacement = "", pattern = ".ldsc.imputed_v3.both_sexes.tsv.bgz")
+neal.cor$p2 <- gsub(x=(neal.cor$p2), replacement = "", pattern = "../../results/UKbb/ldsc-additive-export/sumstats-files/") %>% gsub(x=., replacement = "", pattern = ".ldsc.imputed_v3.both_sexes.tsv.bgz")
+filtered <- neal.cor %>% filter(p1 %in% trait.list & p2 %in% trait.list)
+missing <- which(!(trait.list %in% neal.cor$p1) & !(trait.list %in% neal.cor$p2))
+trait.list[missing]
+```
+The LDSC calls we need to make to finish the matrix....
+We have 990/2970 we should have
+Note that it has to be with every trait pairwise, so yea.
+```{bash}
+bash r2g_all.sh 
+for i in *_irnt.log; do
+
+  grep -A 2000 -m1 -e "Summary of Genetic Correlation Results" ${i}   | grep -v "Analysis finished" | grep -v "Total time" | sed 's/\/work-zfs\/abattle4\/lab_data\/UKBB\/GWAS_Neale\/highly_heritable_traits_2\/ldsr_format\/\///g' | sed 's/.imputed_v3.ldsc.both_sexes.tsv.bgz//g' | sed 's/.ldsc.imputed_v3.both_sexes.tsv.bgz//g' > ${i}.TSV
+  
+  
+  done
+```
+
+
+FINALLY, here to wiun
+```{r}
+fl <- list.files(path = "/work-zfs/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/new_r2g_calculations/", pattern = "*.TSV")
+res.new <- lapply(fl, function(x) fread(paste0("/work-zfs/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/new_r2g_calculations/", x)))
+full_list <- rbind(filtered, do.call("rbind", res.new))
+overlap.mat <- full_list %>% select(p1, p2, gcov_int) %>% pivot_wider(values_from = gcov_int, names_from =p2) %>% arrange(p1) %>% print()
+```
+Sadly, missing several of the runs. Need to find out which they are...
+```{r}
+head(full_list)
+```
+
+```{r}
+dat.gwas$vars
+fast_asset("rs12035706", traits.lab = dat.gwas$names, beta.hat = dat.gwas$X[1,], 
+           sigma.hat = dat.gwas$W[1,], dat.gwas$nanmes)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

@@ -1,0 +1,410 @@
+---
+title: "Simulations on meta-analyzing many traits"
+output: html_notebook
+---
+The idea here is in general, if I can estimate a reasonable correlation between these traits,
+##key links:
+[Thesis outlining the METAL method for estimating the effective sample overlap] (https://deepblue.lib.umich.edu/bitstream/handle/2027.42/143992/sebanti_1.pdf?sequence=1)
+[Method for correcting summary stats] (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6019513/#CR12)
+
+## Goals:
+We wish to answer the following questions:
+1) Do GWAS summary statics coming from overlapping cohorts have an effect on factorization analysis? (yes/no)
+2) If so, can we correct for these using principles from meta-analysis?
+
+We first examine *1*
+
+## 
+
+```{r echo = FALSE}
+pacman::p_load(data.table, tidyr, dplyr, ggplot2, stringr, Xmisc, cowplot)
+source("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+
+```
+Extract actual minor allele frequencies across SNPs
+```{r}
+thou.g.mafs <- fread("/work-zfs/abattle4/ashton/prs_dev/1000genomes_refLD/plink.frq")
+thou.g.pruned <- fread("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/gwas_extracts/seed2_thresh0.9_h2-0.1_vars1e-5/500kb.0.04r2.prune.in", header = F)
+thou.g.mafs.sub <- thou.g.mafs %>% filter(SNP %in% thou.g.pruned$V1)
+thou.g.mafs.use <- thou.g.mafs.sub
+rm(thou.g.mafs)
+```
+## Key helper functions:
+```{r}
+#generate genotypes based on a number of SNPs and existing MAFs
+genGenotypes <- function(n.snps, mafs)
+{
+  paternal <- rbinom(n.snps, 1, mafs)
+  maternal <- rbinom(n.snps, 1, mafs)
+  paternal + maternal
+}
+```
+
+
+Generate genotypes
+```{r}
+N_tot <- 10000
+genotypes.all <- lapply(1:N_tot, function(x) genGenotypes(nrow(thou.g.mafs.use), thou.g.mafs.use$MAF))
+genotypes.tab <- t(do.call("cbind", genotypes.all))
+rm(genotypes.all)
+```
+We now have a 10,000 x 20,000 matrix of SNPs for every individual. Now we want to run some GWAS on it. First, the null gwas...
+*Generate the NULL phenotypes*
+```{r}
+y_null <-  rnorm(N_tot)
+```
+
+*Specify the cohort numbers*
+```{r}
+n.snps <- 1000 #start here, work your way up
+N1 <- 1:3000 #1st 3000 are in cohort 1 only
+N2<- 7000:10000 #last 3000 are in cohort 2 only
+N_o <- 3001:6999  #from 3001 - 6999 are shared in both
+N1_o <- 1:6999
+N2_o <- 3001:10000
+```
+*Run the GWAS*
+Here, these are the same trait, just from different cohorts... (to replicates plots in the paper)
+```{r}
+#cohort group 1:
+cohort.1.null <- sapply(1:n.snps, function(i) summary(lm(y_null[N1_o] ~ genotypes.tab[N1_o, i]))$coef[8])
+cohort.2.null <- sapply(1:n.snps, function(i) summary(lm(y_null[N2_o] ~ genotypes.tab[N2_o, i]))$coef[8])
+```
+Plots like the paper...
+```{r}
+hist(cohort.1.null,breaks = 30, main = "p-values of study 1")
+hist(cohort.2.null, breaks = 30, main = "p-values of study 2")
+hist(cohort.2.null[cohort.1.null < 0.05], breaks = 30, main = "Meta-analysis: p-values in study 2 given p_1 < 0.05")
+```
+
+
+ Clearly we see it. Now, let's do this in the factorization context...? As in, we factorize summary stats?
+ First test: no genetic or phenotypic effects
+ Modify first cohort- get z scores, different traits:
+```{r}
+#cohort group 1- unrelated
+c1.g1.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N1_o)) ~ genotypes.tab[N1_o, i]))$coef[6])
+c2.g1.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N2_o)) ~ genotypes.tab[N2_o, i]))$coef[6])
+```
+ 
+ 
+ *Create cohort group 2, different set of traits, also null*
+```{r}
+N_tot <- 10000
+genotypes.all.2 <- lapply(1:N_tot, function(x) genGenotypes(nrow(thou.g.mafs.use), thou.g.mafs.use$MAF))
+genotypes.tab.2 <- t(do.call("cbind", genotypes.all.2))
+rm(genotypes.all.2)
+#y_null.2 <-  rnorm(N_tot)
+```
+Let's say we have 3 different null phenotypes which are unrelated:
+```{r}
+n.snps <- 1000
+N1 <- 1:2000 #1st 2000 are in cohort 1 only
+N2<- 2001:4000 #2nd 2000 are in cohort 2 only
+N3 <- 4001:6000  #3rd 2000 are in cohort 3 only
+No <- 6000:10000 #remaining 4000 in all 3
+N1o <- c(N1, No)
+N2o <- c(N2, No)
+N3o <- c(N3, No)
+c1.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N1o)) ~ genotypes.tab.2[N1o, i]))$coef[6])
+c2.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N2o)) ~ genotypes.tab.2[N2o, i]))$coef[6])
+c3.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N3o)) ~ genotypes.tab.2[N3o, i]))$coef[6])
+```
+Then generate for 2 groups of 5, and factorize.
+
+Let's see what the first few PCs show... flashr?
+```{r}
+gwasmat <- cbind(c1.g2.null,c2.g2.null,c3.g2.null,c1.g1.null,c2.g1.null)
+library(flashier)
+t <- flashier::flash(gwasmat)
+plotFactors(t$loadings.pm[[2]],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"), "Null gwas")
+#plot(t$loadings.pm[[2]][,1], t$loadings.pm[[2]][,2], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+#plot(t$loadings.pm[[2]][,1], t$loadings.pm[[2]][,3], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+plotFactorsBarplot(t$loadings.pm[[2]],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "t")
+
+group_assigns <- c(1,1,1,0,0)
+cor(t$loadings.pm[[2]], group_assigns)
+
+```
+Notably, flashR doesn't detect anything. That is telling- its all random noise
+PCA?
+```{r}
+pca <- svd(gwasmat)
+plot(pca$d^2/sum(pca$d^2))
+plotFactors(pca$v,trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"), "Null gwas")
+plot(pca$v[,1], pca$v[,2], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+plot(pca$v[,1], pca$v[,3], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+plotFactorsBarplot(pca$v,trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "t",cluster = FALSE,colors = c("G1", "G1", "G2", "G2","G2"))
+```
+Pretty clearly NO pattern going on here. As we would expect.
+WOW. Maybe that's a fluke, but seems pretty clear...
+We could test this more intensely- repeat the simulation a bunch of times, and see what the correlation is.
+I guess to do that, we would need to repeat the procedure, and get the p-values on the correlations every time.
+I really don't expect there to be anything though...
+```{r}
+group_assigns <- c(1,1,1,0,0)
+sapply(1:5, function(x) cor.test(pca$v[,x], group_assigns))
+```
+Okay- so its basically just random noise here...
+Let's modulate teh amount of overlap between the cohorts and see what happens.....
+```{r}
+nullOverlap <- function(n.snps, n.overlap, n.groups, N.tot = 10000, genotypes=genotypes.tab.2)
+{
+  No <- 1:n.overlap
+  interval_size = floor((N.tot-n.overlap)/n.groups)
+  g <- list()
+  t = n.overlap
+  if(t >= n.snps)
+  {
+    t = n.overlap
+  }
+  for(i in 1:n.groups)
+  {
+    message(paste0("group " , i))
+    if(interval_size > 0)
+    {
+      cohort_length <- c(No, (t+1):(t+interval_size))
+    } else
+    {
+      cohort_length  <- No
+    }
+    y = rnorm(length(cohort_length))
+    g[[i]] <- sapply(1:n.snps, function(j) summary(lm(y ~ genotypes[cohort_length, j]))$coef[6])
+    t= t+interval_size
+  }
+  return(do.call("cbind", g))
+}
+  
+#overlap ranging from 1 to all
+biter <- list()
+for(i in seq(1,10000, by = 1000))
+{
+  biter[[i]] <- nullOverlap(1000, i, 3)
+}
+
+```
+
+Cool. We have this based on the amount of overlap for each one. Now do we see a shift in how related they are?
+This is a test of 3 phenotypes that are not genetically dependent at all- a null.
+THe studies have overlap with each other- they each share some n number of SNPs.
+```{r}
+overall <- sapply(seq(1,10000, by = 1000), function(x) sum(cor(biter[[x]]) - diag(c(1,1,1)))^2)
+plot(seq(1,10000, by = 1000), overall, main="Cohort overlap has no effect on \noverall genetic correlation for null traits", xlab = "# overlapping samples")
+```
+This is to be expected- totally null traits.
+But what if the traits are related **somewhat**? Will that get inflated?
+Let's say we have 3 traits, 1 2 and 3, where 3 is a linear combination of 1 and 2.
+```{r}
+#snp.weights- which snps are active?
+#
+phenotypeBuilder <- function(snp.weights, genotype, noise, type = "1+2=3")
+{
+  ret.pheno = list()
+  if(type == "1+2=3")
+  {
+    #If 3 is a linear combination of 1 and 2
+    #Model 1 and 2 as independent
+    ret.pheno[[1]] = genotype %*% snp.weights[[1]] + rnorm(nrow(genotype), 0, sd = noise)
+    ret.pheno[[2]] = genotype %*% snp.weights[[2]] + rnorm(nrow(genotype), 0, sd = noise)
+    ret.pheno[[3]] = 0.5*ret.pheno[[1]] +  0.5*ret.pheno[[2]] + rnorm(nrow(genotype), 0 ,sd = noise)
+  }
+  if(type == "1,2,3") #allows for some overwlapping snps between them.
+  {
+    #If 3 is a linear combination of 1 and 2
+    #Model 1 and 2 as independent
+    ret.pheno[[1]] = genotype %*% snp.weights[[1]] + rnorm(nrow(genotype), 0 ,sd = noise)
+    ret.pheno[[2]] = genotype %*% snp.weights[[2]] + rnorm(nrow(genotype), 0 ,sd = noise)
+    ret.pheno[[3]] = genotype %*% snp.weights[[3]] + rnorm(nrow(genotype), 0 ,sd = noise)
+  }
+  return(ret.pheno)
+}
+
+relatedOverlap <- function(n.snps, n.overlap, n.groups, N.tot = 10000, genotypes=genotypes.tab.2)
+{
+  genotypes <- genotypes[,1:n.snps]
+  if(n.overlap > 0)
+  {
+      No <- 1:n.overlap
+  }else
+  {
+    No <- NULL
+  }
+interval_size = floor((N.tot-n.overlap)/n.groups)
+  message(interval_size)
+  g <- list()
+  t = n.overlap
+  if(t >= n.snps)
+  {
+    t = n.overlap
+  }
+  active.snps <- list()
+  active.snps[[1]] <- c(rep(0.5, 20), rep(0, n.snps-20))
+  active.snps[[2]] <- c(rep(0, 20), rep(0.5, 20), rep(0, n.snps-40))
+  active.snps[[3]] <- c(rep(0, n.snps))
+  y = phenotypeBuilder(active.snps, genotypes, 0.5,  type = "1+2=3") #this returns a list of all phenotypes for all individuals.
+  #the number of phenotypes must correspond with the number of traits.
+  
+  for(i in 1:n.groups)
+  {
+    message(paste0("group " , i))
+    if(interval_size > 0)
+    {
+      cohort_length <- c(No, (t+1):(t+interval_size))
+    } else
+    {
+      cohort_length  <- No
+    }
+    g[[i]] <- sapply(1:n.snps, function(j) summary(lm(y[[i]][cohort_length] ~ genotypes[cohort_length, j]))$coef[6])
+    t= t+interval_size
+  }
+  return(do.call("cbind", g))
+}
+
+test <- relatedOverlap(1000, 0, 3, N.tot = 10000, genotypes=genotypes.tab.2)
+
+```
+Okay- hopefully this works, hard to test.
+Need to go through and debug
+```{r}
+biter.genetic <- list()
+for(i in seq(1,10000, by = 1000))
+{
+  biter.genetic[[i]] <- relatedOverlap(1000, i, 3, N.tot = 10000, genotypes=genotypes.tab.2)
+}
+
+overall <- sapply(seq(1,10000, by = 1000), function(x) sum(cor(biter.genetic[[x]]) - diag(c(1,1,1)))^2)
+plot(seq(1,10000, by = 1000), overall, main="Cohort overlap affects correlation", xlab = "# overlapping samples")
+
+```
+
+
+
+SECOND TEST- no genotypic effects, but traits are related (i.e. 1 is a function of 2 and 3)
+
+```{r}
+#which snps matter in this trait?
+t1.genetic.effects <- c(rep(10, 5), rep(0, 1000-5))
+#phenotypes for group 1
+y_g.c1.g1 <- genotypes.tab[,1:1000] %*% t1.genetic.effects
+y.c2.g1 <- rnorm(N_tot)
+
+#phenotypes for group 2
+y_g.c1.g2 <- genotypes.tab.2[,1:1000] %*% t1.genetic.effects #a strong genetic component
+y.c2.g2 <- rnorm(N_tot) #No genetic component
+y.c3.g2 <- rnorm(N_tot)
+
+#z-scores for each group:
+#grop 1:
+c1.g1.t1 <- sapply(1:n.snps, function(i) summary(lm(y_g.c1.g1[N1_o] ~ genotypes.tab[N1_o, i]))$coef[6]) #genetic trait
+c2.g1.t1 <- sapply(1:n.snps, function(i) summary(lm(y.c2.g1[N2_o] ~ genotypes.tab[N2_o, i]))$coef[6])
+
+#group 2:
+c1.g2.t1 <- sapply(1:n.snps, function(i) summary(lm(y_g.c1.g2[N1o] ~ genotypes.tab.2[N1o, i]))$coef[6]) #genetic trait
+c2.g2.t1 <- sapply(1:n.snps, function(i) summary(lm(y.c2.g2[N2o] ~ genotypes.tab.2[N2o, i]))$coef[6])
+c3.g2.t1 <- sapply(1:n.snps, function(i) summary(lm(y.c3.g2[N3o] ~ genotypes.tab.2[N3o, i]))$coef[6])
+
+```
+Sanity check: do we pick up on the effects we are looking for?
+```{r}
+plot(c1.g1.t1[1:100])
+plot(c1.g2.t1[1:100])
+```
+
+Here, we expect that c1.g2 and c1.g1 should group together, because they are the same trait.
+Also I added no noise on them so that should really help
+We are looking for a relationship between traits C1.G1.T1 and C1.G2.T1
+```{r}
+gwas.t1 <- cbind(c1.g1.t1, c2.g1.t1, c1.g2.t1, c2.g2.t1, c3.g2.t1)
+pca <- svd(gwas.t1)
+plotFactors(pca$v,trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"), "Null gwas")
+plot(pca$v[,1], pca$v[,2], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+plot(pca$v[,1], pca$v[,3], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
+plotFactorsBarplot(pca$v[,1:3],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "t",cluster = FALSE, colors = c("G1", "G1", "G2", "G2","G2"))
+```
+Phew. There it is. Right where we wanted it.
+NOw then, we can add some more nuance to it... try more polygenic traits...
+```{r}
+#Function to easily do this
+simpleTwoPhenoSim <- function(genetic.effects.1, s.dat, N=1000, genetic.effects.2 = NULL)
+{
+  #which snps matter in this trait?
+#phenotypes for group 1
+  y_g.c1.g1 <- s.dat$genotypes.tab[,1:N] %*% genetic.effects.1
+  y.c2.g1 <- rnorm(s.dat$N_tot)
+  
+  #phenotypes for group 2
+  if(is.null(genetic.effects.2))
+  {
+    y_g.c1.g2 <- s.dat$genotypes.tab.2[,1:N] %*% genetic.effects.1 #a strong genetic component
+  } else
+  {
+    y_g.c1.g2 <- s.dat$genotypes.tab.2[,1:N] %*% genetic.effects.2 #can make so not exactly the same snps.
+  }
+  
+  y.c2.g2 <- rnorm(s.dat$N_tot) #No genetic component
+  y.c3.g2 <- rnorm(s.dat$N_tot)
+  
+  #z-scores for each group:
+  #grop 1:
+  c1.g1.t1 <- sapply(1:s.dat$n.snps, function(i) summary(lm(y_g.c1.g1[s.dat$N1_1] ~ genotypes.tab[s.dat$N1_1, i]))$coef[6]) #genetic trait
+  c2.g1.t1 <- sapply(1:s.dat$n.snps, function(i) summary(lm(y.c2.g1[s.dat$N2_1] ~ genotypes.tab[s.dat$N2_1, i]))$coef[6])
+  
+  #group 2:
+  c1.g2.t1 <- sapply(1:s.dat$n.snps, function(i) summary(lm(y_g.c1.g2[s.dat$N1_2] ~ genotypes.tab.2[s.dat$N1_2, i]))$coef[6]) #genetic trait
+  c2.g2.t1 <- sapply(1:s.dat$n.snps, function(i) summary(lm(y.c2.g2[s.dat$N2_2] ~ genotypes.tab.2[s.dat$N2_2, i]))$coef[6])
+  c3.g2.t1 <- sapply(1:s.dat$n.snps, function(i) summary(lm(y.c3.g2[s.dat$N3_2] ~ genotypes.tab.2[s.dat$N3_2, i]))$coef[6])
+  cbind("C1.G1" = c1.g1.t1, "C2.G1" =c2.g1.t1, "C1.G2" =c1.g2.t1, "C2.G2" =c2.g2.t1, "C3.G2" =c3.g2.t1)
+}
+```
+Cool. Polygenic traits...?
+```{r}
+dat <- list("genotypes.tab" = genotypes.tab, "genotypes.tab.2" = genotypes.tab.2, "N1_1"=N1o, "N2_1"=N2_o, 
+            "N1_2"=N1o, "N2_2"=N2o, "N3_2"=N3o, "N_tot" = N_tot, "n.snps" = n.snps)
+poly_1 <- simpleTwoPhenoSim(c(rep(1, 100), rep(0, 1000-100)), dat)
+poly_0.5 <- simpleTwoPhenoSim(c(rep(0.5, 200), rep(0, 1000-200)), dat)
+poly_0.25 <- simpleTwoPhenoSim(c(rep(0.25, 300), rep(0, 1000-300)), dat)
+poly_0.1 <- simpleTwoPhenoSim(c(rep(0.1, 400), rep(0, 1000-400)), dat)
+```
+Visualize it:
+```{r}
+plotFactorsBarplot(svd(poly_1)$v[,1:5],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "Causal SNPs = 100",cluster = FALSE, colors = c("G1", "G1", "G2", "G2","G2"))
+plotFactorsBarplot(svd(poly_0.5)$v[,1:5],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "Causal SNPs = 200",cluster = FALSE, colors = c("G1", "G1", "G2", "G2","G2"))
+plotFactorsBarplot(svd(poly_0.25)$v[,1:5],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "Causal SNPs = 300",cluster = FALSE, colors = c("G1", "G1", "G2", "G2","G2"))
+plotFactorsBarplot(svd(poly_0.1)$v[,1:5],trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "Causal SNPs = 400",cluster = FALSE, colors = c("G1", "G1", "G2", "G2","G2"))
+```
+For more polygenic traits, it still appears here, huh. The 2nd pc..... This is telling.
+Let's say we have CAD and LDL in both cohorts- do they group by cohort or by trait?
+
+```{r}
+cor.test(svd(poly_0.25)$v[,2], c(0,0,1,1,1))
+t <- cor.test(svd(poly_0.25)$v[,1], c(0,0,1,1,1))
+t$p.value
+```
+
+Is it really even an issue at all? 
+Expected issue- p-values on SNPs more significant than if they werent....
+Let's look at factor 2 for evidence of this..
+
+Here is my proposed test:
+Simple case with 2 significant traits
+Vary the # causal snps and the SNP size
+Track the p-value of the correlation with label, see how it changes.....
+Also do it with varying overlap of sample size..
+Trait similarity
+```{r}
+poly_1 <- simpleTwoPhenoSim(c(rep(2, 50), rep(0, 1000-50)), dat)
+```
+
+Sample size overlap
+```{r}
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

@@ -1,0 +1,495 @@
+---
+title: "Pleiotropy in ubiq parameter"
+output: html_notebook
+---
+
+Previously, I had analyzed plieotropy in the ubiquitous factor, but sadly that code I think was lost with my computer crashing.
+This time, I am doing it better, differently.
+Specifically, I want to use the HOPS framework for calculating pleiotropy on my SNP sets, as well as a meaningful heuristic for picking which SNPs are in the top of a given set (i.e. Udler "long tail" approach, I have the code for that)
+
+**Setup and read in GWAS data**
+```{r}
+pacman::p_load(mvtnorm, stats, svMisc, Xmisc, data.table, magrittr, dplyr, tidyr, ggplot2)
+source("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/src/quickLoadData.R")
+dat <- quickLoadFactorization("B_SE", "MARCC" )
+dat$Z <- dat$X * dat$W
+```
+
+## 3/28 HOPS
+Install
+```{r eval = FALSE}
+if (!require("devtools")) { install.packages("devtools") } else {}
+devtools::install_github("rondolab/HOPS")
+```
+Import it AND RUN THE example
+```{r}
+library(HOPS)
+# Load a subset of the UK Biobank summary statistics
+data(UKBiobank_ZscoresSubset)
+# Apply the whitening procedure
+ZscoreMatrixWhitened_UKBB <- GetWhitenedZscores(ZscoreMatrix = ZscoreMatrix_UKBB, ZscoreCorMatrix = ZscoreCorMatrix_UKBB)
+print(head(ZscoreMatrix_UKBB))
+print(head(ZscoreCorMatrix_UKBB))
+```
+```{r}
+# Get the LD-corrected HOPS
+HOPS_UKBB <- GetHOPS(ZscoreWhitenedMatrix = ZscoreMatrixWhitened_UKBB, RSids = SNPinfo_UKBB$SNPid, LDCorrected = TRUE, POLYGENICITYCorrected = FALSE, GlobalTest = TRUE)
+GlobalTest_UKBB <- HOPS_UKBB[[1]]
+HOPS_UKBB <- HOPS_UKBB[[2]]
+print(HOPS_UKBB)
+#RunHOPSApp()
+```
+Okay, cool enough. Now I need to actually figure out how to run it...
+Based on the above, we need:
+1. A matrix of Z-scores
+2. a matrix of Correlations between the traits
+This can be generated with `GetCorrelationMatrix()`. Technically doesn't need to be specified (?)
+```{r}
+zscorecorr <- GetCorrelationMatrix(dat$Z)
+whitened_ukbb <- GetWhitenedZscores(ZscoreMatrix =dat$Z, ZscoreCorMatrix = zscorecorr )
+print(whitened_ukbb)
+```
+
+Well, I guess it doesn't like most of my traits here... gonna have to do some manual shenanigans...
+```{r}
+k <- zscorecorr
+diag(k) <- 0
+overkills <-apply(k, 1, function(x) which(abs(x) > 0.8))
+for(i in overkills)
+{
+  if(length(i) != 0) {print(i)}
+}
+```
+Quick lookup on these, `5257_irnt` has higher heritability so we drop `5256_irnt`
+```{r}
+modz <- dat$Z[,-which(colnames(dat$Z) == "5256_irnt")]
+zscorecorr <- GetCorrelationMatrix(modz)
+whitened_ukbb <- GetWhitenedZscores(ZscoreMatrix =modz, ZscoreCorMatrix = zscorecorr )
+print(whitened_ukbb)
+```
+Problem here is these will be enriched for pliotropy, won't they. So maybe projecting IS the way to go....
+Now do the correction crap.
+In order to do this, I need the rsid form of the SNPs. Let's get those freakin out.
+
+```{r}
+nonpolycorrect <- GetHOPS(whitened_ukbb, RSids = dat$vars$rsids, GlobalTest = TRUE, LDCorrected = TRUE)
+print(nonpolycorrect[[1]])
+print(nonpolycorrect[[2]] %>% arrange(RSids))
+
+```
+
+Okay! So let's recall- Pn is the "number of traits score", Pm is the "magnitude of effect score" From the text:
+"""
+the magnitude score Pm measures the *total pleiotropic effect* size of a variant across all traits, while the number of traits score Pn measures the *number of distinct pleiotropic effects* a variant has
+"""
+Let's visualize this...
+```{r}
+df.nonpoly.plieo <- nonpolycorrect[[2]]
+ggplot(data= df.nonpoly.plieo, aes(x = Pn)) + geom_histogram()
+ggplot(data= df.nonpoly.plieo, aes(x = Pm)) + geom_histogram()
+```
+I would like to look at polygenicity corrected scores too..
+```{r}
+polycorrect <- GetHOPS(whitened_ukbb, RSids = dat$vars$rsids, GlobalTest = TRUE, LDCorrected = TRUE, POLYGENICITYCorrected = TRUE)
+print(polycorrect[[1]])
+print(polycorrect[[2]] %>% arrange(RSids))
+```
+Visualize this
+```{r}
+df.plieo <- polycorrect[[2]]
+ggplot(data= df.plieo, aes(x = Pn)) + geom_histogram()
+ggplot(data= df.plieo, aes(x = Pm)) + geom_histogram()
+```
+Okay, let's save these out
+```{r}
+write.csv(x=df.plieo, file = "./hops_poly_and_ld_corrected.csv")
+write.csv(x=df.nonpoly.plieo, file = "./hops_poly_and_ld_corrected.csv")
+```
+
+##5/29
+**Read in factorization data**
+As of yesterday, I have actual projections I can look at (yay!)
+For some reason, it didn't save properly though...
+
+```{r}
+load("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/baselin_run_march28/factorization/runDat.RData")
+image(run_stats[[2]]$F)
+f.march29 <- fread("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/baselin_run_march28/factorization/99.3777532559486_203.958767523053.factors.txt")
+l.march29 <- fread("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/baselin_run_march28/factorization/99.3777532559486_203.958767523053.loadings.txt") %>% filter(snps %in% dat$vars$ids) %>% rename("ids" = snps) %>% merge(., dat$vars)
+l.march29
+```
+Now, we want to pick the "top" guys for F 1, but not clear how to do that. Could do udler style, if we remember how....
+Reflecting back on this, it seems like the Udler approach may not be best. Doing something like what Yuan did.....
+```{r}
+head(f.march29)
+p.values <- NULL
+for(row in 1:nrow(dat$Z))
+{
+  p.values <- rbind(p.values, summary(lm(as.matrix(dat$Z[row,]) ~ as.matrix(f.march29[,-1])))$coef[-1,4])
+}
+head(p.values)
+```
+Sanity checkes:..
+Significance in the 1st column? 
+```{r}
+hist(p.values[,1])
+```
+How does this compare to the overall magnitude of F1 in l?  That is, does size in F1 correspond directly to overall significance?
+(Would expect that larger sizes do correspond)
+```{r}
+hist(l.march29$X1)
+top.pvals <- p.values[,1][p.values[,1] < 0.05]
+top.pval.rsids <- l.march29$rsids[p.values[,1] < 0.05]
+top_scores <- l.march29 %>% arrange(-abs(X1)) %>% select(ids, rsids, X1)
+#top_scores[1:length(top.pvals),]
+top.pvals
+sum(top.pval.rsids %in% top_scores$rsids) / length(top.pval.rsids)
+c <- data.frame("rsids" = l.march29$rsids, "F1" = abs(l.march29$X1), "pval" = p.values[,1], "ltp" = -log10( p.values[,1]))
+summary(lm(data = c, ltp ~ F1 ))
+plot(c$F1,c$ltp, xlab = "abs(F1 loading)", ylab = "-log10(p)", main="Loading scores correspond to significance")
+abline(a =1.3055,b = 836.79, col= "blue")
+
+```
+100% overlap here. So this is an accurate representation of this set.
+Want to point out that the relative magnitude of F1 is far smaller than other factors....
+```{r}
+hist(l.march29$X2)
+hist(l.march29$X3)
+hist(l.march29$X4)
+plot(colMeans(abs(l.march29[,2:16])))
+```
+See? F1 is by far the lowest. Teeny small effects. Would hope they are broad but alas..
+
+### Simple regression test.
+Is F1 correlated at all with plieotropy? Based on the below, I suspect no.....
+```{r}
+nonpolycorrect[[2]]
+reg.dat <- c %>% rename("RSids" = rsids) %>% merge(.,nonpolycorrect[[2]], by = "RSids") 
+reg.dat
+summary(lm(Pn ~ abs(F1), data = reg.dat))
+```
+Hmmm. It seems there is some correlation, but its really quite weak. Let's compare across all factors then...
+```{r}
+l.abs <- cbind("ids" = l.march29$ids, "rsids" = l.march29$rsids, abs(l.march29[,2:16]))
+pleio.and.f <- l.abs %>% select(rsids, paste0("X", 1:15)) %>% rename("RSids" = rsids) %>% merge(.,nonpolycorrect[[2]], by = "RSids") %>% select(Pn, Pm, paste0("X", 1:15)) %>% scale(.)
+#summary(lm(Pn ~ abs(X1) + abs(X2) + abs(X3) + abs(X4) + abs(X5) +  abs(X6) +  abs(X7) +  abs(X8) +  abs(X9) +  abs(X10) +  abs(X11) +  abs(X12) +  abs(X13) +  abs(X14) +  abs(X15), data=data.frame(pleio.and.f)))
+summary(lm(Pn ~ X1 + X2 + X3 + X4 + X5 +  X6 +  X7 +  X8 +  X9 +  X10 +  X11 +  X12 +  X13 +  X14 +  X15, data=data.frame(pleio.and.f)))
+```
+Here we see it. So with respect to the other factors, not really. Huh. For Pm?
+```{r}
+#summary(lm(Pm ~ abs(X1) + abs(X2) + abs(X3) + abs(X4) + abs(X5) +  abs(X6) +  abs(X7) +  abs(X8) +  abs(X9) +  abs(X10) +  abs(X11) +  abs(X12) +  abs(X13) +  abs(X14) +  abs(X15), data=data.frame(pleio.and.f)))
+summary(lm(Pm ~ X1 + X2 + X3 + X4 + X5 +  X6 +  X7 +  X8 +  X9 +  X10 +  X11 +  X12 +  X13 +  X14 +  X15, data=data.frame(pleio.and.f)))
+```
+Some correspondencne with X1, cool. But the rest not so much.
+```{r}
+cor(pleio.and.f[, paste0("X", 1:15)])
+plotCorrelationHeatmap(cor(pleio.and.f[, paste0("X", 1:15)]))
+```
+
+
+I do have a concern though that our estimates of plieotropy aren't good, nmaybe we should use their broader ones?
+
+
+Are these significant SNPs enriched for plieotropy?
+That's the question
+```{r}
+sig.ubiq <- dat$vars[p.values[,1] < 0.05,]
+
+
+test <- nonpolycorrect[[2]] %>% filter(RSids %in% sig.ubiq$rsids) %>% mutate("sig" = "sig") %>% print()
+
+non.test <- nonpolycorrect[[2]] %>% filter(!(RSids %in% sig.ubiq$rsids)) %>% mutate("sig" = "non_sig") %>% print()
+```
+Okay, we got the basics here. What statistical test is right? Would a fisher exact test work? Or some kind of distributional test? (KS test?)
+Let's look at the distribution of top variants in each group, vs all remaining variants (non-top)
+```{r}
+df.plot <- rbind(test, non.test) 
+ggplot(df.plot, aes(x = Pn, fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") +ggtitle("Pn scores")
+t.test(test$Pn, non.test$Pn)
+
+ggplot(df.plot, aes(x = Pm, fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") + ggtitle("Pm scores")
+t.test(test$Pm, non.test$Pm)
+```
+Not significantly different it looks like. Except it appears we have lower Pm scores in this group than the rest.
+
+This would suggest that our top group has less-strong plieotropic effects. huh.
+A few things we can try- make the p-value cutoff more stringent (FDR correction), look at significant plieotropy scores, etc.
+
+## A more stringent cutoff
+```{r}
+cutoff = 0.01
+fdr.pvals <- p.adjust(p.values[,1], method = "fdr")
+fdr.pvals.df <- data.frame("fdr" = fdr.pvals,"MF_p" = p.values[,1], dat$vars) %>% set_colnames(c("FDR", "MF_p", "ids", "RSids"))
+joined.df <- data.frame(nonpolycorrect[[2]]) %>% left_join(., fdr.pvals.df, by = "RSids") %>% mutate("sig" = ifelse(FDR < cutoff, "sig", "nonsig"))
+joined.df
+write.csv(joined.df %>% filter(FDR < 0.05) %>% select(RSids, ids), "./fdr_0.05_L1_snps.csv",quote = F,row.names = F)
+write.csv(joined.df %>% filter(FDR < 0.01) %>% select(RSids, ids), "./fdr_0.01_L1_snps.csv",quote = F,row.names = F)
+getwd()
+```
+
+
+
+Now plot it...
+```{r}
+ggplot(joined.df, aes(x = Pm, fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") + theme_minimal() + ggtitle("Magnitude of plieotropy score")
+ggplot(joined.df, aes(x = Pn, fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") + theme_minimal() + ggtitle("Breadth of pliotropy score")
+
+f <- ggplot(joined.df, aes(x = sig, y = Pm, fill = sig)) + geom_boxplot() + theme_minimal() + 
+  ggtitle("Magnitude of plieotropy score (Pm)") + xlab(paste0("FDR < ", cutoff)) + labs(fill = "FDR") + scale_fill_manual(labels = c("> 0.01", "< 0.01"), values = c("red", "blue")) + theme(legend.position="none")
+s <- ggplot(joined.df, aes(y = Pn, x = sig, fill = sig)) + geom_boxplot() + theme_minimal() + 
+  ggtitle("Breadth of pliotropy score (Pn)")+ xlab(paste0("FDR < ", cutoff)) + labs(fill = "FDR") + scale_fill_manual(labels = c("> 0.01", "< 0.01"), values = c("red", "blue"))
+plot_grid(plotlist = list(f,s))
+```
+Wow. These look remarkably uninteresting.
+Looking at -log10pvalues
+```{r}
+ggplot(joined.df, aes(x = -log10(Pm_Pvalue), fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") + theme_minimal() + ggtitle("Magnitude of plieotropy score")
+ggplot(joined.df, aes(x = -log10(Pn_Pvalue), fill = sig, alpha = 0.5)) + geom_histogram(position = "identity") + theme_minimal() + ggtitle("Breadth of pliotropy score")
+ggplot(joined.df, aes(x = sig, y = -log10(Pm_Pvalue), fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Magnitude of plieotropy score")
+ggplot(joined.df, aes(y = -log10(Pn_Pvalue), x = sig, fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Breadth of pliotropy score")
+```
+Well. These metrics literally show they are identical.
+Trying with polygenicity corected:
+```{r}
+cutoff = 0.01
+joined.df.poly <- data.frame(polycorrect[[2]]) %>% left_join(., fdr.pvals.df, by = "RSids") %>% mutate("sig" = ifelse(FDR < cutoff, "sig", "nonsig"))
+joined.df.poly
+```
+Simple regression?
+```{r}
+pleio.poly.f <- l.march29 %>% select(rsids, paste0("X", 1:15)) %>% rename("RSids" = rsids) %>% merge(.,polycorrect[[2]], by = "RSids")  %>% select(Pn, Pm, paste0("X", 1:15)) %>% scale(.) %>% print()
+summary(lm(Pn ~ abs(X1) + abs(X2) + abs(X3) + abs(X4) + abs(X5) +  abs(X6) +  abs(X7) +  abs(X8) +  abs(X9) +  abs(X10) +  abs(X11) +  abs(X12) +  abs(X13) +  abs(X14) +  abs(X15), data=data.frame(pleio.poly.f)))
+summary(lm(Pn ~ X1 + X2 + X3 + X4 + X5 +  X6 +  X7 +  X8 +  X9 +  X10 +  X11 +  X12 +  X13 +  X14 +  X15, data=data.frame(pleio.poly.f)))
+```
+And for pm...
+```{r}
+summary(lm(Pm ~ abs(X1) + abs(X2) + abs(X3) + abs(X4) + abs(X5) +  abs(X6) +  abs(X7) +  abs(X8) +  abs(X9) +  abs(X10) +  abs(X11) +  abs(X12) +  abs(X13) +  abs(X14) +  abs(X15), data=data.frame(pleio.poly.f)))
+summary(lm(Pm ~ X1 + X2 + X3 + X4 + X5 +  X6 +  X7 +  X8 +  X9 +  X10 +  X11 +  X12 +  X13 +  X14 +  X15, data=data.frame(pleio.poly.f)))
+```
+Well. We are 
+Plots
+```{r}
+ggplot(joined.df.poly, aes(x = sig, y = Pm, fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Magnitude of plieotropy score")
+ggplot(joined.df.poly, aes(y = Pn, x = sig, fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Breadth of pliotropy score")
+
+ggplot(joined.df.poly, aes(x = sig, y = -log10(Pm_Pvalue), fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Magnitude of plieotropy score")
+ggplot(joined.df.poly, aes(y = -log10(Pn_Pvalue), x = sig, fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Breadth of pliotropy score")
+```
+**Conclusion: F1 does not target plieotropic SNPs.** It may be targeting something else, maybe CNS snps or something. But not patterns corresponding to plieotropy.
+
+## Z-score distribution of these SNPs:
+```{r}
+z.score.dist <- data.frame(dat$Z) %>% set_colnames(colnames(dat$Z)) %>% mutate("MF_p"= p.values[,1], "FDR_p" = fdr.pvals) %>% mutate("sig" = ifelse(FDR_p < cutoff, "sig", "nonsig")) %>% pivot_longer(cols = colnames(dat$Z))
+z.score.dist
+```
+```{r}
+ggplot(z.score.dist, aes(x = sig, y = abs(value), fill = sig)) + geom_boxplot() + theme_minimal() + xlab(paste0("FDR < ", cutoff)) + labs(fill = "FDR") + scale_fill_manual(labels = c("> 0.01", "< 0.01"), values = c("red", "blue")) + ylab("| t_stat |") + ggtitle("GWAS T-stats across F1 SNPs")
+```
+Could be that looking at this set isn't right?? Maybe I need
+
+My intuition here is that this ubiquitous factor is not picking up on polygenic signals in the data, but on something else. Maybe the most variable? Maybe betas?
+```{r}
+se.score.dist <- data.frame(dat$W) %>% set_colnames(colnames(dat$Z)) %>% mutate("MF_p"= p.values[,1], "FDR_p" = fdr.pvals) %>% mutate("sig" = ifelse(FDR_p < cutoff, "sig", "nonsig")) %>% pivot_longer(cols = colnames(dat$Z))
+ggplot(se.score.dist, aes(x = sig, y = value, fill = sig)) + geom_boxplot() + theme_minimal() +ggtitle("SE distribution")
+
+beta.score.dist <- data.frame(dat$X) %>% set_colnames(colnames(dat$Z)) %>% mutate("MF_p"= p.values[,1], "FDR_p" = fdr.pvals) %>% mutate("sig" = ifelse(FDR_p < cutoff, "sig", "nonsig")) %>% pivot_longer(cols = colnames(dat$Z))
+ggplot(beta.score.dist, aes(x = sig, y = abs(value), fill = sig)) + geom_boxplot() + theme_minimal() + ggtitle("Beta distribution")
+```
+Not that either. Huh.
+How about MAF?
+```{r}
+avg.snpmaf <- data.table(rowMeans(dat$MAF), dat$vars) %>% set_colnames(c("avg_maf", "id", "rsid")) %>% mutate("MF_p"= p.values[,1], "FDR_p" = fdr.pvals) %>% mutate("sig" = ifelse(FDR_p < cutoff, "sig", "nonsig")) %>% print()
+ggplot(avg.snpmaf, aes(x = sig, y = avg_maf, color = sig)) + geom_boxplot() + theme_minimal()
+```
+
+
+Well, I don't think this is doing what I had hoped.
+* Validation test -are the most plieotropic larger z scores?*
+```{r}
+df.plot <- df.plot %>% mutate("pnsig" = ifelse(Pn_Pvalue < 0.01, "sig", "nonsig")) %>% print()
+ggplot(df.plot, aes(x = pnsig, y = Pn, color = pnsig)) + geom_boxplot()
+
+#What is the z-score dist of these?
+pnsiglist <- (df.plot %>% filter(Pn_Pvalue < 0.01))$RSids
+z.score.dist.pn <- data.frame(dat$Z) %>% set_colnames(colnames(dat$Z)) %>% mutate("rsids" = l.march29$rsids) %>% mutate("sig" = ifelse(rsids %in% pnsiglist, "sig", "nonsig")) %>% pivot_longer(cols = colnames(dat$Z)) %>%  print()
+ggplot(z.score.dist.pn, aes(x = sig, y = abs(value))) + geom_boxplot()
+```
+So the effect size distribution isn't necessarily a good metric either. Huh.
+```{r}
+data.frame(dat$Z) %>% set_colnames(colnames(dat$Z)) %>% mutate("MF_p"= p.values[,1], "FDR_p" = fdr.pvals,"rsids" = l.march29$rsids ) %>% arrange(FDR_p) %>% select(FDR_p, MF_p, rsids)
+Observing all of these are high in
+```
+
+Different directions I could go with this...
+1) Do a broad search across all SNP annotations- which ones does this correspond closely to? (S-LDSC type of thing, as done in the past)
+2) Force the top factor to be associated with plieotropic SNPs-  initialize them all as Pn scores. Would be interesting to see what comes out of that.....
+
+huh. Replicating their analysis....
+Which traits correlate most highly with the plieotropy scores?
+Are these the ones most strongly loaded in F?
+If so, we are estimating pleiotropy.
+```{r}
+all.z.scores <- data.frame(dat$vars, dat$Z) %>% rename("RSids" = rsids) %>% arrange(RSids)
+joined.df <- joined.df %>% arrange(RSids)
+drop_nas <- !(is.na(joined.df$Pn))
+all.z.scores.no_na <- all.z.scores[drop_nas,]
+joined.df.no_na <- joined.df[drop_nas,]
+stopifnot(all(all.z.scores.no_na$RSids == joined.df.no_na$RSids))
+cor.trait <- cor(abs(all.z.scores.no_na[,3:57]), joined.df.no_na$Pn)
+cor.trait
+```
+
+Does this correspond with F at all?
+```{r}
+cordat <- data.frame(cor.trait, "study" = rownames(cor.trait) %>% gsub(x = ., pattern  = "X", replacement = ""))
+namdat <- data.frame("study" = scan("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.studies.tsv", what = character()),"rownames" = scan("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/trait_selections/seed2_thresh0.9_h2-0.1.names.tsv", what = character()) )
+plieo_cor_f <- merge(merge(cordat, namdat, by = "study"), f.march29, by = "rownames")
+print(plieo_cor_f)
+```
+Okay, so column `cor.trait` tells me how much the z-scores of the study correpond to the Pm scores
+Column 'X1' is our F loading on that trait.
+Do these match at all?
+```{r}
+cor(plieo_cor_f$cor.trait, plieo_cor_f$X1)
+cor(plieo_cor_f$cor.trait, abs(plieo_cor_f$X1))
+```
+Errr not that compelling.
+About 3% of the variance in X1 by each trait has to do with that trait's contribution to overall plieotropy.
+```{r}
+plotFactors(plieo_cor_f %>% select(cor.trait, X1), trait_names = plieo_cor_f$rownames, title = "test")
+```
+
+## Final pass: upload variant to openCravat:
+ASIDE: Write out the data for queyr in openCravat:
+```{r}
+#install.packages("rsnps")
+library("rsnps")
+out <- joined.df %>% filter(FDR < 0.01) %>% select(RSids, ids) %>% separate(ids, into = c("chr", "pos"), sep =":") %>% mutate("chr" = paste0("chr", chr), strand = "+")
+#snp.dat <- ncbi_snp_query(unlist(out$RSids))
+```
+Of course,faster to do it locally:
+```{bash}
+awk '(FNR == NR) {arr[$1];next} ($1 in arr) {print $0}' <(cut -f 2 -d "," fdr_0.01_L1_snps.csv ) /work-zfs/abattle4/ashton/reference_data/UKBB_NEALE_variants.tsv |  cut -f 2 | tr ":" "\t" | sed 's/^/chr/g' > top_f1.tsv
+```
+
+```{r}
+t <- fread("./top_f1.tsv") %>% mutate("strand" = "+", "v" = "s0", "var" = out$RSids) %>% select(V1, V2, strand, V3, V4, v, var)
+write.table(t, "./fdr_0.01_L1_snps.tsv", sep = "\t", quote = F, row.names = F, col.names = F)
+```
+
+Downloaded locally, then up to OpenCravat. Running presently.
+Rerport available there
+
+## A new hypothesis
+After some thinking, I think that F1 is more likely to be detecing effects of vertical plieotropy, given how its initialized, rather than horizontal plieotropy. Given that horizontal pleiotropy is what remains when vertical plieotropy is removed,  it may be capturing the directions of vertical plieotropy across each variant.
+Not entirely sure how to test this, but one idea is to regress Z-scores against Pn and Pm + F1. If F1 has a non-zero p-value in this context, perhaps ..?
+```{r}
+plotCorrelationHeatmap(cor(dat$Z))
+svdcor <- svd(cor(dat$Z))
+which.max(abs(svdcor$u[,1]))
+max(abs(svdcor$u[,1]))
+colnames(dat$Z)[which.max(abs(svdcor$u[,1]))]
+which.max(rowSums(abs(cor(dat$Z))))
+```
+Ideas on how to test:
+* compare the overall correlation across this set of snps and the general set of snps. On average, traits are more correlated along these SNPs than others (?)
+* THey cature vertical pleitropy- we remove those effects from the z scores, we better explain horizontal pleiotropy
+
+If I want to capture horizontal pleiotropy, I should try something different....
+
+```{r}
+subsets <- list("0.1" = dat$Z[fdr.pvals < 0.1,],"0.01" = dat$Z[fdr.pvals < 0.01,],"0.5" = dat$Z[fdr.pvals < 0.5,],"0.001" = dat$Z[fdr.pvals < 0.001,])
+subsets.cor <- lapply(subsets, cor)
+#frob <- lapply(subsets.cor, function(x) norm(x, "f"))
+r.squared <- lapply(subsets.cor, function(x) mean(x^2))
+plotCorrelationHeatmap(subsets.cor$`0.5`) + annotate("text",x = 7, y = 53, label = paste0("R2: ", round(r.squared$`0.5`, digits = 3), size = 5))
+plotCorrelationHeatmap(subsets.cor$`0.1`)+ annotate("text",x = 7, y = 53, label = paste0("R2: ", round(r.squared$`0.1`, digits = 3), size = 5))
+plotCorrelationHeatmap(subsets.cor$`0.01`)+ annotate("text",x = 7, y = 53, label = paste0("R2:: ", round(r.squared$`0.01`, digits = 3), size = 5))
+plotCorrelationHeatmap(subsets.cor$`0.001`)+ annotate("text",x = 7, y = 53, label = paste0("R2: ", round(r.squared$`0.001`, digits = 3), size = 5))
+
+#for pp:
+plotCorrelationHeatmap((subsets.cor$`0.001`))+ annotate("text",x = 48, y = 3, size = 6, label = paste0("Mean R2: ", round(r.squared$`0.001`, digits = 3))) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(),axis.text.y=element_blank(), axis.ticks.y=element_blank()) + 
+  ggtitle("FDR < 0.001") + ylab("GWAS traits") + labs(value = "Correlation")
+
+plotCorrelationHeatmap(subsets.cor$`0.5`) + annotate("text",x = 48, y = 3, size = 6, label = paste0("Mean R2: ", round(r.squared$`0.5`, digits = 3))) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.ticks.y = element_blank(), axis.text.y = element_blank()) +
+  ggtitle("FDR < 0.5") + ylab("GWAS traits") + labs(value = "Correlation")
+```
+
+This seems to suggest that the net correlation grows as we pick the higher SNPs here- we are grabbing evidence of "vertical plieotropy"
+This is actually helpful, and makes sense with the CNS tissue- these are tissues that are likely to be associated with many traits (?)
+Pulling on the pattern...
+```{r}
+p <- seq(0.005, 1, by = 0.005)
+frob <- c()
+for(t in p)
+{
+  frob <- c(frob, norm(cor(dat$Z[fdr.pvals < t,]), "f"))
+}
+
+df.plot.p <- data.frame("p" = p, "fnorm" = frob)
+ggplot(df.plot.p, aes(x = p, y = frob)) + geom_point()
+```
+This pulls out the SNPs that explain the highest overall correlation amongst the traits- genetic correlation?
+To show this more rigorously, need to pick out MAF-matched SNPs for each subest and generate a background....
+```{r}
+frob <- c()
+p <- seq(0.01, 1, by = 0.01)
+avg.Mafs <- rowMeans(dat$MAF)
+snp.count <- c()
+for(t in p)
+{
+  real.mafs <- dat$MAF[fdr.pvals < t,] %>% rowMeans()
+  #sampled.ones
+  #frob <- c(frob, norm(cor(dat$Z[fdr.pvals < t,]), "f"))
+  frob <- c(frob, mean(cor(dat$Z[fdr.pvals < t,])^2))
+  snp.count <- c(snp.count, length(real.mafs))
+}
+#GET THE BACKGROUND, but only for select snps
+bg_settings <- c(0.01,0.05, 0.1,0.25, 0.5, 0.9)
+niter = 100
+bg_dat <- matrix(0, nrow = niter, ncol = length(bg_settings))
+nsnps <- c()
+for(s in bg_settings)
+{
+  si = which(bg_settings == s)
+  real.mafs <- dat$MAF[fdr.pvals < s,] %>% rowMeans()
+  nsnps <- c(nsnps, length(real.mafs))
+  #get ther
+  bgrange <- lapply(real.mafs, function(m) which((avg.Mafs < (m + 0.01)) & (avg.Mafs > (m - 0.01))))
+  #Depending on how many iterations for each one....
+    for(n in 1:niter)
+    {
+      choices <- unlist(lapply(bgrange, function(x) sample(x, 1)))
+      #bg_dat[n,si] <- norm(cor(dat$Z[choices,]), "f")
+      bg_dat[n,si] <- mean(cor(dat$Z[choices,])^2)
+    }
+    message(paste("Iter", s,"done!"))
+}
+
+for(s in bg_settings)
+{
+  si = which(bg_settings == s)
+  real.mafs <- dat$MAF[fdr.pvals < s,] %>% rowMeans()
+  nsnps <- c(nsnps, length(real.mafs))
+}
+
+```
+Okay, so now I have something decent...
+```{r}
+bg_snpcount <- data.frame("threshold" = bg_settings, "snp_count" = nsnps)
+bg_plot <- data.frame(bg_dat) %>% set_colnames(bg_settings) %>% mutate("niter" = 1:niter) %>% pivot_longer(cols = as.character(bg_settings), names_to = "threshold", values_to = "r2") %>% merge(., bg_snpcount, by = "threshold") %>% mutate("threshold" = as.numeric(threshold)) %>% print()
+f1.plot <- data.frame("threshold" = p, "r2" = frob, "snp_count" = snp.count ) %>% print()
+
+ggplot(bg_plot, aes(x = as.factor(threshold), y= r2)) + geom_boxplot()
+ggplot(f1.plot, aes(x = snp.count, y = r2, color = -threshold)) + geom_point()
+```
+Now, combined...
+```{r}
+ggplot() + geom_point(data = f1.plot, aes(x = snp_count, y= r2, color = -threshold)) + geom_boxplot(data = bg_plot, aes(x = snp_count, y= r2, group = as.factor(snp_count), fill = "black")) + xlab("SNP count")  + ylab(expression(Average_R^2)) + theme_minimal(15) +  labs(color = "F1 SNP \nFDR", fill="") + ggtitle("F1 captures SNPs explaining overall correlation") + scale_fill_manual(labels = c("MAF-matched \nsimulated null"), values = c("black"))
+
+```
+Wow. THis is beautiful.
+I wonder how this corresponds with other factors. I mean that would be the real question, right. Since they are emphasizing only particular traits, I don't expect this pattern to be quite as pronounced....
