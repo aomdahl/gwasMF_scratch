@@ -17,7 +17,7 @@ We first examine *1*
 ## 
 
 ```{r echo = FALSE}
-pacman::p_load(data.table, tidyr, dplyr, ggplot2, stringr, Xmisc, cowplot)
+pacman::p_load(data.table, tidyr, dplyr, ggplot2, stringr, Xmisc, cowplot, magrittr)
 source("/work-zfs/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
 
 ```
@@ -83,8 +83,11 @@ hist(cohort.2.null[cohort.1.null < 0.05], breaks = 30, main = "Meta-analysis: p-
  Modify first cohort- get z scores, different traits:
 ```{r}
 #cohort group 1- unrelated
-c1.g1.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N1_o)) ~ genotypes.tab[N1_o, i]))$coef[6])
-c2.g1.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N2_o)) ~ genotypes.tab[N2_o, i]))$coef[6])
+nullc1p1 <- rnorm(nrow(genotypes.tab))
+nullc1p2 <- rnorm(nrow(genotypes.tab))
+
+c1.g1.null <- sapply(1:n.snps, function(i) summary(lm(nullc1p1[N1_o] ~ genotypes.tab[N1_o, i]))$coef[6])
+c2.g1.null <- sapply(1:n.snps, function(i) summary(lm(nullc1p2[N2_o] ~ genotypes.tab[N2_o, i]))$coef[6])
 ```
  
  
@@ -106,9 +109,12 @@ No <- 6000:10000 #remaining 4000 in all 3
 N1o <- c(N1, No)
 N2o <- c(N2, No)
 N3o <- c(N3, No)
-c1.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N1o)) ~ genotypes.tab.2[N1o, i]))$coef[6])
-c2.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N2o)) ~ genotypes.tab.2[N2o, i]))$coef[6])
-c3.g2.null <- sapply(1:n.snps, function(i) summary(lm(rnorm(length(N3o)) ~ genotypes.tab.2[N3o, i]))$coef[6])
+nullp1 <- rnorm(10000)
+nullp2 <- rnorm(10000)
+nullp3 <- rnorm(10000)
+c1.g2.null <- sapply(1:n.snps, function(i) summary(lm(nullp1[N1o] ~ genotypes.tab.2[N1o, i]))$coef[6])
+c2.g2.null <- sapply(1:n.snps, function(i) summary(lm(nullp2[N1o]  ~ genotypes.tab.2[N2o, i]))$coef[6])
+c3.g2.null <- sapply(1:n.snps, function(i) summary(lm(nullp3[N1o]  ~ genotypes.tab.2[N3o, i]))$coef[6])
 ```
 Then generate for 2 groups of 5, and factorize.
 
@@ -136,7 +142,11 @@ plot(pca$v[,1], pca$v[,2], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "b
 plot(pca$v[,1], pca$v[,3], xlab = "F1", ylab = "F2", pch = 19,col = c("blue", "blue", "blue", "red", "red"))
 plotFactorsBarplot(pca$v,trait_names = c("C1.G2", "C2.G2", "C3.G2", "C1.G1", "C2.G1"),title = "t",cluster = FALSE,colors = c("G1", "G1", "G2", "G2","G2"))
 ```
-Pretty clearly NO pattern going on here. As we would expect.
+Pretty clearly NO pattern going on here. As we would expect. What is the clustering pattern? This is what I'm interested in.
+```{r}
+plot(hclust(dist(pca$v[,1:3])))
+```
+
 WOW. Maybe that's a fluke, but seems pretty clear...
 We could test this more intensely- repeat the simulation a bunch of times, and see what the correlation is.
 I guess to do that, we would need to repeat the procedure, and get the p-values on the correlations every time.
@@ -190,13 +200,15 @@ THe studies have overlap with each other- they each share some n number of SNPs.
 ```{r}
 overall <- sapply(seq(1,10000, by = 1000), function(x) sum(cor(biter[[x]]) - diag(c(1,1,1)))^2)
 plot(seq(1,10000, by = 1000), overall, main="Cohort overlap has no effect on \noverall genetic correlation for null traits", xlab = "# overlapping samples")
+
 ```
 This is to be expected- totally null traits.
 But what if the traits are related **somewhat**? Will that get inflated?
 Let's say we have 3 traits, 1 2 and 3, where 3 is a linear combination of 1 and 2.
 ```{r}
 #snp.weights- which snps are active?
-#
+#build your phenotypes using specified snps and genotypes
+#4/29- added option for null phenotype
 phenotypeBuilder <- function(snp.weights, genotype, noise, type = "1+2=3")
 {
   ret.pheno = list()
@@ -216,11 +228,35 @@ phenotypeBuilder <- function(snp.weights, genotype, noise, type = "1+2=3")
     ret.pheno[[2]] = genotype %*% snp.weights[[2]] + rnorm(nrow(genotype), 0 ,sd = noise)
     ret.pheno[[3]] = genotype %*% snp.weights[[3]] + rnorm(nrow(genotype), 0 ,sd = noise)
   }
+    if(type == "1,2") #allows for some overwlapping snps between them.
+  {
+    #If 3 is a linear combination of 1 and 2
+    #Model 1 and 2 as independent
+    ret.pheno[[1]] = genotype %*% snp.weights[[1]] + rnorm(nrow(genotype), 0 ,sd = noise)
+    ret.pheno[[2]] = genotype %*% snp.weights[[2]] + rnorm(nrow(genotype), 0 ,sd = noise)
+    }
+  if(substr(type,1,1) == "0")
+  {
+    s = str_split(type,pattern = ",")[[1]]
+    for(i in 1:length(s))
+    {
+      if(s[i] == "0")
+      {
+        ret.pheno[[i]] = rnorm(nrow(genotype),0,noise)
+      }else
+      {
+        message("not yet implemented")
+      }
+      
+    }
+  }
   return(ret.pheno)
 }
 
-relatedOverlap <- function(n.snps, n.overlap, n.groups, N.tot = 10000, genotypes=genotypes.tab.2)
+
+relatedOverlap <- function(n.snps, n.overlap, n.groups, N.tot = 10000, genotypes=genotypes.tab.2, fixed.count = 5000, pheno = "1+2=3")
 {
+  print(N.tot)
   genotypes <- genotypes[,1:n.snps]
   if(n.overlap > 0)
   {
@@ -229,8 +265,8 @@ relatedOverlap <- function(n.snps, n.overlap, n.groups, N.tot = 10000, genotypes
   {
     No <- NULL
   }
-interval_size = floor((N.tot-n.overlap)/n.groups)
-  message(interval_size)
+  interval_size = floor((N.tot-n.overlap)/n.groups)
+  #message(interval_size)
   g <- list()
   t = n.overlap
   if(t >= n.snps)
@@ -238,29 +274,64 @@ interval_size = floor((N.tot-n.overlap)/n.groups)
     t = n.overlap
   }
   active.snps <- list()
+  if(pheno =="1+2=3" )
+  {
+      
   active.snps[[1]] <- c(rep(0.5, 20), rep(0, n.snps-20))
   active.snps[[2]] <- c(rep(0, 20), rep(0.5, 20), rep(0, n.snps-40))
   active.snps[[3]] <- c(rep(0, n.snps))
-  y = phenotypeBuilder(active.snps, genotypes, 0.5,  type = "1+2=3") #this returns a list of all phenotypes for all individuals.
-  #the number of phenotypes must correspond with the number of traits.
-  
-  for(i in 1:n.groups)
+  } else if(pheno == "1,2,3") #case with overlap- 2 similar traits
   {
-    message(paste0("group " , i))
-    if(interval_size > 0)
-    {
-      cohort_length <- c(No, (t+1):(t+interval_size))
-    } else
-    {
-      cohort_length  <- No
-    }
-    g[[i]] <- sapply(1:n.snps, function(j) summary(lm(y[[i]][cohort_length] ~ genotypes[cohort_length, j]))$coef[6])
-    t= t+interval_size
+    active.snps[[1]] <- c(rep(1, 40), rep(0, n.snps-40))
+    active.snps[[2]] <- c(rep(0, 20), rep(1, 40), rep(0, n.snps-60))
+    active.snps[[3]] <- c(rep(0, n.snps))
+  } else if(pheno == "1,2") #case with overlap- 2 similar traits
+  {
+    active.snps[[1]] <- c(rep(1, 40), rep(0, n.snps-40))
+    active.snps[[2]] <- c(rep(0, 20), rep(1, 40), rep(0, n.snps-60))
+  }else{
+    message("You suck")
   }
+  
+  y = phenotypeBuilder(active.snps, genotypes, 0.5,  type = pheno) #this returns a list of all phenotypes for all individuals.
+  #the number of phenotypes must correspond with the number of traits.
+  if(fixed.count  == 0)
+  {
+    for(i in 1:n.groups)
+    {
+      message(paste0("group " , i))
+      if(interval_size > 0)
+      {
+        cohort_length <- c(No, (t+1):(t+interval_size))
+        print(length(cohort_length))
+      } else
+      {
+        cohort_length  <- No
+      }
+      g[[i]] <- sapply(1:n.snps, function(j) summary(lm(y[[i]][cohort_length] ~ genotypes[cohort_length, j]))$coef[6])
+      t= t+interval_size
+    }
+  }else #fixed count implies that each cohort has the exact same number of indivudals
+  {
+    No <- 1:n.overlap
+    add <- fixed.count - n.overlap
+    for(i in 1:n.groups)
+    {
+      start_point = (i-1) * fixed.count 
+      cohort_length <- c(No, start_point:(start_point + add))
+      if(cohort_length[fixed.count] > N.tot)
+      {
+        print("Error")
+      }
+      print(length(cohort_length))
+      g[[i]] <- sapply(1:n.snps, function(j) summary(lm(y[[i]][cohort_length] ~ genotypes[cohort_length, j]))$coef[6])
+    }
+  }
+
   return(do.call("cbind", g))
 }
 
-test <- relatedOverlap(1000, 0, 3, N.tot = 10000, genotypes=genotypes.tab.2)
+#test <- relatedOverlap(1000, 0, 3, N.tot = 10000, genotypes=genotypes.tab.2)
 
 ```
 Okay- hopefully this works, hard to test.
@@ -395,16 +466,133 @@ Trait similarity
 poly_1 <- simpleTwoPhenoSim(c(rep(2, 50), rep(0, 1000-50)), dat)
 ```
 
-Sample size overlap
+
+#4/18- better
+*Simple*- same cohort overlap
+Generate 2 related traits, with some overlapping snps. Then baseline R2 of the phenotypes will be r_p, R2 of the z-scores will be r2_z, when there is NO sample overlap.
+Then gradually increase the sample overlap for the z-scores of these populations, and see how r2_z changes.
+In context of factorization- look at factor loadings on SNPs as overlap grows. Do the significant SNPs change?
+
+IF more SNPS are called as significant (?) than were previously, then yes, we have an issue. Top loaded SNPS should be those that overlap between the phenotypes.
+How do the loading scores of NON-SIGNIFICANT snps shift?
+Make a bigger test set, pattern is too msall on current one...
 ```{r}
+N_tot <- 50000
+genotypes.all.3 <- lapply(1:N_tot, function(x) genGenotypes(nrow(thou.g.mafs.use), thou.g.mafs.use$MAF))
+genotypes.tab.3 <- t(do.call("cbind", genotypes.all.3))
+rm(genotypes.all.3)
+```
+
+```{r}
+simple.two <- list()
+#keep sample size fixed- iterate it down
+n.snps = 1500
+y <- relatedOverlapPheno(1500, 2, N.tot = N_tot, genotypes=genotypes.tab.3, pheno = "1,2", size = 0.5, active_snps = 30, overlap_snps = 25)
+overlap.list <- c(1,1000,2000,3000,4000,5000,6000,10000,12000,15000,17500, 20000)
+for(i in overlap.list)
+{
+  #simple.two[[i]] <- relatedOverlap(n.snps, i, 2, N.tot = (10000-i), genotypes=genotypes.tab.2, pheno = "1,2,3")
+  print(i)
+  simple.two[[i]] <- relatedOverlapBETTER(n.snps, i, 2, y, N.tot = 50000, 
+                           genotypes=genotypes.tab.3, fixed.count = 25000)
+}
+
+overall <- sapply(overlap.list, function(x) cor(simple.two[[x]][,1],simple.two[[x]][,2])^2)
+plot(overlap.list, overall, main="Cohort overlap affects correlation", xlab = "# overlapping samples", ylab = expression(R^2))
+
+
+```
+Now, in factor analysis conte
+```{r}
+overall.svd <- lapply(overlap.list, function(x) svd(scale(simple.two[[x]][,1:2])))
+#Whch SNPs are the ones that matter? THe snps 10:20 are overlapping
+ov <- c(rep("black", 5), rep("red", 25), rep("black", 1500-30))
+#par(mfrow = c(3,4), col.axis = "white", col.lab = "white", tck = 0)
+par(mfrow = c(3,4))
+for(i in 1:12)
+{
+  plot(overall.svd[[i]]$u[,1], col = ov, ylab = "SNP loading 1", main =paste0("N Overlap ", overlap.list[i]))
+    #plot(overall.svd[[i]]$u[,2], col = ov, ylab = "SNP loading 2", main =paste0("N Overlap ", overlap.list[i]))
+  #plot(overall.svd[[i]]$u[,1], overall.svd[[i]]$u[,2], col = ov, ylab = "SNP loading 2", main =paste0("N Overlap ", overlap.list[i]))
+    
+}
+
+
+
+```
+Next simulation:
+2 traits from cohort 1, as above
+3rd trait from another cohort, with some overlapping snps, some non-overlapping snps.
+As the sample overlap between the 2 in the same increases, the SNPs they have overlapping effects in just the 2 will appear to be inflated (?)
+```{r}
+external.y <- genotypes.tab.2[,1:1500] %*% c(rep(0, 10), rep(0.5, 20), rep(0,1500-35), rep(0.25, 5)) + rnorm(nrow(genotypes.tab.2), 0 ,sd = 0.5)
+external.z <- sapply(1:1500, function(j) summary(lm(external.y ~ genotypes.tab.2[, j]))$coef[6])
+joined.svd <- lapply(overlap.list, function(x) svd(scale(cbind(simple.two[[x]][,1:2], external.z))))
+
+ov <- c(rep("skyblue", 5), rep("blue",5), rep("red", 20), rep("black", 1500-35), rep("green",5))
+#par(mfrow = c(3,4), col.axis = "white", col.lab = "white", tck = 0)
+par(mfrow = c(3,4))
+for(i in 1:12)
+{
+ 
+  plot(joined.svd[[i]]$u[,1], overall.svd[[i]]$u[,2], col = ov, ylab = "SNP loading 2", main =paste0("N Overlap ", overlap.list[i]))
+    
+}
+
+heatmap(joined.svd[[i]]$v)
+image(joined.svd[[i]]$v)
+plotFactors(joined.svd[[1]]$v,trait_names = c("g1.t1", "g1.t2", "g2.t1"), cluster = FALSE, title = "Groups")
+plotFactors(joined.svd[[3]]$v,trait_names = c("g1.t1", "g1.t2", "g2.t1"), cluster = FALSE, title = "Groups")
+plotFactors(joined.svd[[5]]$v,trait_names = c("g1.t1", "g1.t2", "g2.t1"), cluster = FALSE, title = "Groups")
+plotFactors(joined.svd[[12]]$v,trait_names = c("g1.t1", "g1.t2", "g2.t1"), cluster = FALSE, title = "Groups")
+#red- shared cross all
+#dark blue: 
 
 ```
 
+OKay, this isn't working, may not be an issue
+*More complex*- 2 different groups...
+G1: P1, P2 = P1 + SNPs
+G2: P2
+Baseline PCA- relates P2 together, and then P1 and P2 together.
+As overlap increases, what happens to the SNPS noted as s significant for these 2 factors?
+
+# 4/29
+Revisiting some of the null stuff....
+Her
+```{r}
+#population 1
+overlap.list <- c(1,1000,2000,3000,4000,5000)
+pop1.null <- list()#genotypes.tab
+y1.null <- phenotypeBuilder(NULL, genotypes.tab, 1, type = "0,0,0")
+pop2.null <- list() #genotypes.tab.2
+y2.null <- phenotypeBuilder(NULL, genotypes.tab.2, 1, type = "0,0,0")
+n.snps <- 1000
+#start with 2 groups for simplicity in overlapping
+for(i in overlap.list)
+{
+  print(i)
+  pop1.null[[i]] <- relatedOverlapBETTER(n.snps, i, 2, y1.null, N.tot = 10000, 
+                           genotypes=genotypes.tab, fixed.count = 5000)
+    pop2.null[[i]] <- relatedOverlapBETTER(n.snps, i, 2, y2.null, N.tot = 10000, 
+                           genotypes=genotypes.tab.2, fixed.count = 5000)
+}
+
+```
+
+Good. Now for each of these, we are interested in seeing if they truly distribute randomly or vary with increasing overlap
+```{r}
+library(fossil)
+pca.each <- lapply(overlap.list, function(i) svd(scale(cbind(pop1.null[[i]], pop2.null[[i]]))))
+groups <- list()
+for(i in seq_along(pca.each))
+{
+  p <- pca.each[[i]]
+  plot(hclust(dist(p$v[,1:2])))
+  groups[[i]] <- cutree(tree = hclust(dist(p$v[,1:2])), k = 2)
+  print(adj.rand.index(groups[[i]], c(0,0,1,1)))
+}
 
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
-
+```
+Well it looks like in general higher overlap results in more differentiation by cohort, but I'm not clear on that. We need to increase our genotype etc.
