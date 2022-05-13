@@ -8,13 +8,13 @@ for f in files
         call to mung 
 """
 
-n_options =['N','NCASE','CASES_N','N_CASE', 'N_CASES','N_CONTROLS','N_CAS','N_CON','N_CASE','NCONTROL','CONTROLS_N','N_CONTROL']
+n_options =['N','NCASE','CASES_N','N_CASE', 'N_CASES','N_CONTROLS','N_CAS','N_CON','N_CASE','NCONTROL','CONTROLS_N','N_CONTROL', "N_SAMPLES"]
 snp_options = ["MARKER"] 
 a1_options = ["RISK_ALLELE"] #effect allele
 a2_options = ["OTHER_ALLELE"] #alternate allele
 sum_stats = ["MAINEFFECTS"]
 se_options = ["MAINSE"]
-pval_options = ["MAINP"]
+pval_options = ["MAINP", "P_GC"]
 labels = {"n" : n_options, "snp" : snp_options, "a1" : a1_options, "a2" :a2_options, "ss" : sum_stats, "se" :se_options, "p" : pval_options}
 import sys
 import argparse
@@ -82,11 +82,20 @@ def labelSpecify(header, checkfor, labels):
         "n" : " --N-col ",
         "a1": " --a1 ",
         "a2": " --a2 ",
-        "ss": " --signed-sumstats "
+        "ss": " --signed-sumstats ",
+        "p" : " --p "
     }
+    #Check- is the header one of the aberrant ones?
     relevant_col = which([x.upper() in labels[checkfor] for x in header])
     if(len(relevant_col) > 0):
-        ret_snp = str_map[checkfor] + str(header_dat[snp_col[0]]) + " "
+        header_label = str(header[relevant_col[0]])
+        ret_snp = str_map[checkfor] + header_label
+        #Special case for providing sum stats, need to know what the null value is
+        if checkfor == "ss":
+            size_options = {"OR":"1", "BETA":"0", "MAINEFFECTS":"0", "EFFECTS":"0", "B":"0", "ZSCORE":"0", "Z":"0"}
+            ret_snp = ret_snp + "," + size_options[header_label.upper()]
+
+        ret_snp = ret_snp + " "
     else: 
         ret_snp = ""
     return ret_snp
@@ -100,7 +109,7 @@ def filePeek(readin):
     """
     fpath = readin[0]
     pheno = readin[1]
-    
+    cleanup_protocol = ""
     ret_n = ""
     try:
         with openFileContext(fpath) as istream:
@@ -118,7 +127,7 @@ def filePeek(readin):
                 cleanup_protocol = cleanup_protocol + "GIANT"
                 return cleanup_protocol, ret_n
 
-            header_dat = header.split()
+            header_dat = header.split(delim)
             if header_dat[0] == "variant" and header_dat[-1] == "pval": #we suspect this is UKBB full format file.
                 if isVariantID(first[0]):
                     print("The current file at", fpath, "appears to be a full Neale Lab UKBB file. We don't recommend using this at this stage, use the LDSC pre-formatted one available onlinel")
@@ -132,22 +141,16 @@ def filePeek(readin):
                 cleanup_protocol = cleanup_protocol + "TO_RSID_1"
 
             #Get the sample size if its there...
-            ret_n =""
-            if any([x.upper() in labels["n"] for x in header_dat]):
-                next #n will be detected by munge
-            else:
-                #N will not be detected by it...
-                if any(["N_SAMPLES" in x.upper() for x in header_dat]):
-                #Specify the column for N
-                    ret_n = labelSpecify(header_dat, "n", labels)
-                else: #specify the input from the file,
-                    ret_n = " --N " + dat[3]
+            ret_n = labelSpecify(header_dat, "n", labels)
+            if ret_n == "": #specify the input from the file,
+                ret_n = " --N " + dat[3]
 
             #Check for the marker data
-                ret_a1 = labelSpecify(header_dat, "a1", labels)
-                ret_a2 = labelSpecify(header_dat, "a2", labels)
-                ret_ss = labelSpecify(header_dat, "ss", labels)
-                ret_snp = labelSpecify(header_dat, "snp", labels)
+            ret_a1 = labelSpecify(header_dat, "a1", labels)
+            ret_a2 = labelSpecify(header_dat, "a2", labels)
+            ret_ss = labelSpecify(header_dat, "ss", labels)
+            ret_snp = labelSpecify(header_dat, "snp", labels)
+            ret_p = labelSpecify(header_dat, "p", labels)
 
     except FileNotFoundError:
         print("Specified path does not exist")
@@ -155,15 +158,21 @@ def filePeek(readin):
     
     if cleanup_protocol == "": #nothing to change.
         cleanup_protocol = "NONE"
-    return cleanup_protocol, [ret_a1, ret_a2, ret_ss, ret_snp, ret_n] 
+
+    return cleanup_protocol, [ret_a1, ret_a2, ret_ss, ret_snp, ret_n, ret_p] 
 
 def makeInterFileName(fpath, protocol):
     """
     If no change to be made, don't modify the file.
     """
+    remakes = ["TO_RSID", "GIANT", "CSV"]
     #os.path.basename()
-    if "TO_RSID" in protocol or "GIANT" in protocol :
-        return os.path.splitext(fpath)[0] + ".INTERMEDIATE" + os.path.splitext(fpath)[1]
+    if any([x in protocol for x in remakes]):
+        r = os.path.splitext(fpath)[0] + ".INTERMEDIATE" + os.path.splitext(fpath)[1]
+        if ".csv" in fpath:
+            return r.replace("csv", "tsv")
+        else:
+            return r
     else:
         return fpath
 
@@ -188,6 +197,7 @@ def doCleanup(readin, protocol, rsids):
     fpath = readin[0]
     intermediate_file_name = makeInterFileName(fpath, protocol)
     delim = ""
+    T='\t'
     if "GIANT" in protocol :
         #remove the first few lines of the file
         #done_header="\"MarkerName\\tChr\\tPos\\tAllele1\\tAllele2\\tFreqAllele1HapMapCEU\\tb\\tse\\tp\\tN\""
@@ -234,17 +244,13 @@ def doCleanup(readin, protocol, rsids):
         #determine which columnes have the info we need, look it up, and convert it.
     
     if "CSV" in protocol:
-        if "TO_RSID" in protocol: #we have had to modify other things too..
-            #nothing to change, it was edited above
-            break
-        else:
+        if "TO_RSID" not in protocol:
             print("Changing CSV to TSV...")
             with openFileContext(fpath) as istream:
                 with outFileContext(intermediate_file_name) as ostream:
                     for i, line in enumerate(istream):
                         line = fh(line.strip(), fpath)
-                        ostream.write(T.join(line.split()) + '\n')                    
-            input(("Check comma conversion"))
+                        ostream.write(line.replace(",", T) + '\n')                    
         
 
     return intermediate_file_name
