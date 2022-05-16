@@ -40,6 +40,12 @@ def isVariantID(text):
         return False
 
 
+def mergeAlleles(argin):
+    if argin == "":
+        return ""
+    else:
+        return " --merge-alleles " + argin
+
 def openFileContext(path):
     if path[-3:] == ".gz" or path[-4:] == ".bgz":
         return gzip.open(path, 'rb')
@@ -273,6 +279,7 @@ parser = argparse.ArgumentParser(description = "Quick script to get many GWAS su
 parser.add_argument("--study_list", help = "list of studies to work on. Columns are study path, phenotype name, genome build, N samples. Last 2 columns not required, in which case we assume hg37 and that N is in the data. Note that if N is in the data, that is prioritized above a specified N.")
 parser.add_argument("--rsid_ref", help = "path to the RSID reference")
 parser.add_argument("--ldsc_path", help = "path to LDSC code", default="/work-zfs/abattle4/ashton/genomics_course_2020/project_2/ldsc/")
+parser.add_argument("--merge_alleles", help = "Path to set up a predefined allele reference; if is empty string, then none used", default = "/work-zfs/abattle4/ashton/reference_data/hm3_snps_ldsc_ukbb.tsv")
 parser.add_argument("--output", help = "output path")
 args = parser.parse_args()
 
@@ -300,12 +307,11 @@ with open(args.study_list ,'r') as istream:
             intermediate_file = doCleanup(dat, fix_instructions,build_dict)
             #build commands for it
             if fix_instructions != "UKBB" and fix_instructions != "ERROR":
-                lc = "python2 " + args.ldsc_path + "munge_sumstats.py --sumstats " + intermediate_file + " --out " + buildOutName(args.output, dat[0], dat[1]) + "".join(fixed_labels)
+                lc = "python2 " + args.ldsc_path + "munge_sumstats.py --sumstats " + intermediate_file + " --out " + buildOutName(args.output, dat[0], dat[1]) + "".join(fixed_labels) + mergeAlleles(args.merge_alleles)
                 ostream.write(lc + '\n')
             print()
         
 
-       
 
 
 
