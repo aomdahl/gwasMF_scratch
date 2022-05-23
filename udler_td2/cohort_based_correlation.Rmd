@@ -145,7 +145,7 @@ correlationHeatmapFullData(z[,-24], abs = FALSE, title ="Correlation heatmap ord
 ```
  Of course this isn't going to inform me on what I want... we need an experiment
  How about this- look at stroke results and others from the UKBB. Do they cluster more closely with UKBB or their actual trait friends?
-```{bash}
+```{bash, eval = FALSE, echo = FALSE}
 cd /work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/data
 #Stroke:
 wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/6150_3.gwas.imputed_v3.both_sexes.tsv.bgz -O 6150_3.gwas.imputed_v3.both_sexes.tsv.bgz
@@ -162,13 +162,16 @@ wget https://broad-ukb-sumstats-us-east-1.s3.amazonaws.com/round2/additive-tsvs/
 ```
  
 Now, the overall procedure to get the SNPs out from the UKBB versions.
-```{bash}
+(5/5- want to check the MAF....)
+```{bash, eval = FALSE, echo = FALSE}
 ls data/*.gwas.imputed_v3.both_sexes*.tsv.bgz > data/ukbb_test.traits.txt
 for f in `cat data/ukbb_test.traits.txt`; do
 filename=`basename $f`
 OUT="${filename%.*}"
 echo $OUT
-cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14}')) > analysis_data/$OUT
+#cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14}')) > analysis_data/$OUT
+
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval\tMAF") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$11"\t"$12"\t"$14"\t"$6}')) > analysis_data/$OUT
 done
 
 #SPECIAL CASE because stroke is not continusou:
@@ -176,13 +179,15 @@ f="data/6150_3.gwas.imputed_v3.both_sexes.tsv.bgz"
 filename=`basename $f`
 OUT="${filename%.*}"
 echo $OUT
-cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$12"\t"$13"\t"$15}')) > analysis_data/$OUT
+cat <(echo -e "SNP\teffect\tother\teffect_size\tstd_error\tpval\tMAF") <(awk '(FNR == NR) {arr[$1]=$2;next} ($1 in arr) {print arr[$1]"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7}' lookup_snps_hg37.format.txt  <(zcat $f | tr "\t" ":" | awk -F ":" '{print $1":"$2"\t"$4"\t"$3"\t"$12"\t"$13"\t"$15"\t"$6}')) > analysis_data/$OUT
 ```
+(note: checkd on MAF, appears correct.)
 Cool, easy peasy in fact.
 Now then, pull it in, harmonize and add it to matrix...
 (copied from repro notebook)
 ```{r}
-var.list.true <- fread("./variant_lists/udler_final_list.csv",sep = "," )
+getwd()
+var.list.true <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/variant_lists/udler_final_list.csv",sep = "," )
 std <- var.list.true %>% arrange(Variant) %>% select(Position_alleles, `Risk allele`, Variant) %>% rename("effect" =`Risk allele`, "SNP" = Variant) %>% separate(Position_alleles,into = c("chr", "pos", "a1", "a2"), sep = "_") 
 #For some reason, this is missing one risk allele- not clear if its its T or G, we should just pick one to be consistent
 std[50,]$effect = "T"
@@ -192,6 +197,7 @@ std
 ```
 Harmonizing step...
 ```{r}
+source("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/harmonizeGWAS.R")
 file.list <- scan("data/ukbb_test.traits.txt", what= character()) %>% gsub(x=., pattern = "data", replacement = "analysis_data") %>%
   gsub(x=., pattern = ".bgz", replacement = "")
 all.dat <- lapply(file.list, function(x) fread(x) %>% mutate("effect" = toupper(effect), "other" = toupper(other)))
@@ -219,8 +225,8 @@ Okay. Phew. Now can we insert? Order correct?
 ```{r}
 stopifnot(all(all.dat[[1]]$SNP == udler_Beta$SNP))
 joined <- cbind(z[,-24], data.frame(sapply(all.dat, function(x) x$effect_size/x$std_error)) %>% set_colnames(c("cholesterol_2", "HDL_2", "LDL_2", "Stroke_2")))
-correlationHeatmapFullData(joined, abs = F, title ="Correlation heatmap ordered by signed z_scores." )
-
+correlationHeatmapFullData(joined, abs = FALSE, title ="Correlation heatmap clustered by signed z_scores." )
+#order seems correct....
 
 correlationHeatmapFullData(joined, abs = TRUE, title ="Correlation heatmap ordered by unsigned z_scores." )
 ```
@@ -228,13 +234,358 @@ Well based on this, the cohort-specific effect is pretty minor. What about in PC
 ```{r}
 pca <- svd(joined,nv = 10)
 #get teh colors we like....
-ct <- sample.sizes %>% merge(., colors, by = "Cohort") %>% mutate("Trait" = factor(Trait, levels = colnames(joined))) %>% arrange(Trait)
+ct <- sample.sizes %>% left_join(., colors, by = "Cohort") %>% filter(Trait %in% colnames(joined)) %>% mutate("Trait" = factor(Trait, levels = colnames(joined))) %>% arrange(Trait)
 plotFactors(pca$v, trait_names = colnames(joined), title = "", colors = ct$color)
 ```
+Grouping on stroke
 ```{r}
-pca2 <- prcomp(joined,rank. = 10,center = TRUE, scale. = TRUE)
-plot(pca2$x[,1], pca2$x[,2], col=ct$color)
+ct$shape <- ifelse(grepl(pattern = "Stroke", x = ct$Trait),22,19)
+pca2 <- prcomp(t(joined),rank. = 10,center = TRUE, scale. = TRUE)
+plot(pca2$x[,1], pca2$x[,2], col=ct$color, pch = ct$shape)
 
-plot(pca2$x[,2], pca2$x[,3], col = ct$color, pch = 19)
+plot(pca2$x[,2], pca2$x[,3], col = ct$color, pch = ct$shape)
 ```
+Issue with this test- only across 94 SNPs that are significant for T2D. So might just be the strong signal here....
+Test on the LDL/triglcerides ones
+```{r}
+ct$shape2 = ifelse(grepl(pattern = "cholesterol", x = ct$Trait),19,1)
+ct$shape2[(ct$Trait == "hdl" | ct$Trait == "HDL_2")] <- 15
+ct$shape2[(ct$Trait == "ldl" | ct$Trait == "LDL_2")] <- 17
+
+plot(pca2$x[,1], pca2$x[,2], col=ct$color, pch = ct$shape2, xlab = "PC1", ylab = "PC2")
+
+plot(pca2$x[,2], pca2$x[,3], col = ct$color, pch = ct$shape2)
+```
+TODO: try with more snps.s
+
+#5/05
+Try in flashr
+```{r}
+original.flash <- flashier::flash(as.matrix(z[,-24]))
+with.added.flash <- flashier::flash(as.matrix(joined))
+```
+Visualize- I want a barplot colored by cohort.
+```{r}
+col_list <- melted_cormat %>% select(Trait1, Cohort1) %>% rename("Cohort" = Cohort1) %>% merge(.,colors, by = "Cohort")  %>% distinct() %>% arrange(Trait1) %>% print()
+
+
+ordered.colors <- col_list %>% mutate("traits.ordered" = factor(Trait1, levels = colnames(z[,-24]))) %>% arrange(traits.ordered)
+plotFactorsBarplot(original.flash$loadings.pm[[2]], colnames(z[,-24]), "Colors",colors = ordered.colors$Cohort)
+
+plotFactors(original.flash$loadings.pm[[2]], trait_names = colnames(z[,-24]), title = "", colors = ordered.colors$color)
+```
+
+Now adding in the other traits. Do they group by trait or by cohort?
+```{r}
+#ordered.colors <- col_list %>% mutate("traits.ordered" = factor(Trait1, levels = colnames(joined))) %>% arrange(traits.ordered)
+col_list$Trait1 <- as.character(col_list$Trait1)
+col_list.joined <- rbind(col_list, c("UKBB", "cholesterol_2","#1F78B4"), c("UKBB", "HDL_2","#1F78B4"), c("UKBB", "LDL_2","#1F78B4"), c("UKBB", "Stroke_2","#1F78B4"))
+ordered.colors <- col_list.joined  %>% mutate("traits.ordered" = factor(Trait1, levels = colnames(joined))) %>% arrange(traits.ordered)
+plotFactorsBarplot(with.added.flash$loadings.pm[[2]], colnames(joined), "With added UKBB traits", colors = ordered.colors$Cohort)
+
+plotFactors(with.added.flash$loadings.pm[[2]], trait_names = colnames(joined), title = "With added UKBB traits", colors = ordered.colors$color)
+```
+
+I guess the real question is how does it cluster them?
+```{r}
+K =length(unique(col_list$Cohort))
+small.group <- hclust(dist(original.flash$loadings.pm[[2]]))
+plot(small.group)
+clust_assigns <- cutree(small.group, K)
+hclust.intuit <- data.frame("Trait1" = names(clust_assigns), "Group" = clust_assigns) %>% merge(col_list, by = "Trait1")
+ggplot(hclust.intuit, aes(x = as.factor(Group), y = Cohort, color = Cohort, label = as.character(Trait1)))  + geom_jitter(position = position_jitter(seed = 1)) + geom_text(position = position_jitter(seed = 1), angle = 45, hjust = 1, vjust = -1) + theme_minimal(15) + xlab("Clustered group") 
+
+
+ggplot(hclust.intuit, aes(x = as.factor(Group), y = Cohort, color = Cohort, label = as.character(Trait1)))  + geom_jitter(width = 0.2, height = 0.3)  + theme_minimal(15) + xlab("Clustered group") 
+
+```
+Now, with the added in thing....
+```{r}
+K =length(unique(col_list.joined$Cohort))
+full.group <- hclust(dist(with.added.flash$loadings.pm[[2]]))
+plot(full.group)
+clust_assigns <- cutree(full.group, K)
+relevant_labels <- c("ldl", "LDL_2", "Stroke_2", "HDL_2", "Stroke_LVD", "total_cholesterol", "hdl", "cholesterol_2", "Stroke_SVD")
+hclust.intuit <- data.frame("Trait1" = names(clust_assigns), "Group" = clust_assigns) %>% merge(col_list.joined, by = "Trait1") %>% mutate("labs" = ifelse(as.character(Trait1) %in% relevant_labels, as.character(Trait1), ""))
+
+
+ggplot(hclust.intuit, aes(x = as.factor(Group), y = Cohort, color = Cohort, label = as.character(labs)))  + geom_jitter(position = position_jitter(seed = 1)) + geom_text(position = position_jitter(seed = 1), angle = 45, hjust = 1, vjust = -1) + theme_minimal(15) + xlab("Clustered group") 
+
+
+ggplot(hclust.intuit, aes(x = Cohort, y = as.factor(Group), color = Cohort, label = as.character(labs)))  + geom_jitter(position = position_jitter(seed = 1,height = 0.2)) + geom_text(position = position_jitter(seed = 1, height = 0.3),hjust = 0.5, vjust = -0.5)  + xlab("GWAS Cohort") + theme_minimal(15) + theme(panel.grid.major.x = element_blank(), axis.text.x=element_text(angle = 45, hjust = 0.5),panel.grid.minor.y = element_line()) + ylab("Clustered group")
+
+
+ggplot(hclust.intuit, aes(x = as.factor(Group), y = Cohort, color = Cohort, label = as.character(Trait1)))  + geom_jitter(width = 0.2, height = 0.3)  + theme_minimal(15) + xlab("Clustered group") 
+```
+
+
+Sanity check: are the z score the same direction for these 2?
+```{r}
+joined %>% select("LDL_2", "ldl") %>% mutate("same_dir" = ifelse(sign(LDL_2) == sign(ldl), TRUE, FALSE)) %>% group_by(same_dir) %>% summarize("count" = n())
+
+joined %>% select("HDL_2", "hdl") %>% mutate("same_dir" = ifelse(sign(HDL_2) == sign(hdl), TRUE, FALSE)) %>% group_by(same_dir) %>% summarize("count" = n())
+
+joined %>% select("Stroke_2", "Ischemic_Stroke", "Stroke_SVD") %>% mutate("same_dir" = ifelse(sign(Stroke_2) == sign(Ischemic_Stroke) | sign(Stroke_2) == sign(Stroke_SVD), TRUE, FALSE)) %>% group_by(same_dir) %>% summarize("count" = n())
+```
+Well, that's not good. Large proportions of these don't even go the same direction. Did I mix up the traits?
+Checking this. Looks like the numbers are associated correctly..
+Are the MAFs way different?
+```{r}
+/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/data
+```
+
+
+How about PVE? Do these differ on just the first significant ones?
+
+```{r}
+K =length(unique(col_list.joined$Cohort))
+sig_factors <- sum(with.added.flash$pve > (1/with.added.flash$n.factors))
+full.group <- hclust(dist(with.added.flash$loadings.pm[[2]][,1:3]))
+plot(full.group)
+clust_assigns <- cutree(full.group, K)
+relevant_labels <- c("ldl", "LDL_2", "Stroke_2", "HDL_2", "Stroke_LVD", "total_cholesterol", "hdl", "cholesterol_2", "Stroke_SVD")
+hclust.intuit <- data.frame("Trait1" = names(clust_assigns), "Group" = clust_assigns) %>% merge(col_list.joined, by = "Trait1") %>% mutate("labs" = ifelse(as.character(Trait1) %in% relevant_labels, as.character(Trait1), ""))
+
+ggplot(hclust.intuit, aes(x = Cohort, y = as.factor(Group), color = Cohort, label = as.character(labs)))  + geom_jitter(position = position_jitter(seed = 1,height = 0.2)) + geom_text(position = position_jitter(seed = 1, height = 0.3),hjust = 0.5, vjust = -0.5)  + xlab("GWAS Cohort") + theme_minimal(15) + theme(panel.grid.major.x = element_blank(), axis.text.x=element_text(angle = 45, hjust = 0.5),panel.grid.minor.y = element_line()) + ylab("Clustered group")
+
+```
+
+
+One option is to test the residuals, eh?
+"What i should have done from the get-go...."
+As in, are the residuals for a certain cohort random, or do they have some kind of structure?
+
+```{r}
+with.added.flash$loadings.pm[[1]]
+
+#testing L"
+lm(as.matrix(joined[,..col]) ~ as.matrix(with.added.flash$loadings.pm[[1]]))
+   #testing F
+summary.f <- lapply(1:nrow(joined), function(row) lm(as.matrix(unlist(joined[row,])) ~ as.matrix(with.added.flash$loadings.pm[[2]])))
+residuals.f <- sapply(summary.f, function(x) resid(x))
+fitted.f <- sapply(summary.f, function(x) fitted(x))
+plot(as.vector(residuals.f),as.vector(fitted.f))
+```
+Looks like appretty decent fit to me. I think we would need to color by cohort though to be sure....
+Or do by cohort, huh
+```{r}
+cohorts <- unique(col_list.joined$Cohort)
+for(c in cohorts)
+{
+ukbb <- (filter(col_list.joined, Cohort == c))$Trait1
+ print(plot(as.vector(residuals.f[ukbb,]),as.vector(fitted.f[ukbb,]), main = c))
+}
+```
+
+This overall looks pretty good to me. I think in a case like this, maybe we don't need to correct?
+then again, maybe for some of these.... get a cook's stat or something?
+
+
+
+
+Note- good chat with surya, diptavo, a few thigns to try:
+1) can I really amplify that R2 effect? What makes it go? what can I do to amp it up? Use that simulation.
+With surya- we want ot scale by root N for sure
+#5/18
+Try the real deal whitening.
+```{r}
+ldsc.r2g.data <- list.files("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/ldsr_results",pattern = "*rg_report.tsv")
+inter <- lapply(ldsc.r2g.data, function(x) fread(paste0("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/ldsr_results/", x)) %>% mutate("Source" = x))
+joined.main <- do.call("rbind", inter)
+```
+With this, I need to make a matrix that has the `gcov_int` as an entry for every p1/p2 combo.
+We have done a terrible job keeping the naming consistent, so the whole thing is straight up mangled.
+Really sucks.
+
+I got fed up with all this and just typed out all the names of the input files and the traits they coorrespond to.
+On my desktop as thenamesofthedead.
+this should help out with this crab.
+```{r}
+overlap.mat <- joined.main %>% select(p1, p2, gcov_int) %>% mutate("id" = paste0(p1, ":", p2)) %>% distinct_at(vars(id), .keep_all = TRUE) %>% select(-id) %>% pivot_wider(values_from = gcov_int, names_from =p1) %>% arrange(p2) %>% print()
+
+#which ons are missing?
+colnames(overlap.mat)[!(colnames(overlap.mat) %in% overlap.mat$p2)]
+overlap.mat$p2[!(overlap.mat$p2 %in% colnames(overlap.mat))]
+#Squareify it.
+new_mat <- list()
+names_list <- c()
+for(i in 2:ncol(overlap.mat))
+{
+  curr_frick <- colnames(overlap.mat)[i]
+  names_list <- c(names_list, curr_frick)
+  if(curr_frick %in% overlap.mat$p2)
+  {
+    new_mat[[i-1]] <- overlap.mat[which(overlap.mat$p2 == curr_frick),]
+  }else{
+    print("missing this...")
+    print(curr_frick)
+  }
+}
+#Make this into a matrix, then add in the missing ones as a new row and nuew column
+new.overlap.mat <- data.frame(do.call("rbind", new_mat))
+colnames(new.overlap.mat) <- colnames(overlap.mat)
+missing.entries <- which(!(overlap.mat$p2 %in% colnames(overlap.mat)))
+for (m in missing.entries)
+{
+  new.overlap.mat <- rbind(new.overlap.mat, overlap.mat[m,])
+  str.name <- unlist(overlap.mat[m,1]$p2)
+  new.overlap.mat <- cbind(new.overlap.mat, c(t(overlap.mat[m,-1]), 1))
+  last.entry <- ncol(new.overlap.mat)
+  colnames(new.overlap.mat)[last.entry] <- str.name
+}
+```
+
+I think this is right!
+Let's check and then fix the diags
+```{r}
+stopifnot(all(colnames(new.overlap.mat)[-1] == new.overlap.mat$p2))
+ldscintmatrix <- as.matrix(new.overlap.mat[,-1])
+diag(ldscintmatrix) <- 1
+```
+
+Now, I want to just get the names right
+```{r}
+curr.names <- gsub(colnames(ldscintmatrix), pattern = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/", replacement = "")
+new.names <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/files_to_traits.ldsc.csv", fill=TRUE, header =  TRUE) 
+head(new.names)
+if(all(curr.names == new.names$LDSCPath)) {
+  colnames(ldscintmatrix) <- new.names$LDSCPath
+  rownames(ldscintmatrix) <- new.names$LDSCPath
+}
+ldscintmatrix[is.na(ldscintmatrix)] <- 0
+plotCorrelationHeatmap(ldscintmatrix,typin='heatmap.default')
+```
+Phew. I think we are there!
+
+
+Below: stinkhy code
+```{r}
+#need to do some cleanup to get the names all lined up...
+sample.sizes <- sample.sizes %>% mutate("adj.names" = gsub(sample.sizes$Name, pattern = ".txt|.tsv", replacement = ""))
+all.names <- data.frame("raw" = unique(c(joined.main$p1, joined.main$p2)))
+all.names$Name <- basename(tools::file_path_sans_ext(all.names$raw)) %>% 
+  gsub(., pattern = "ldsc.imputed_v3.both_sexes.tsv", replacement = "") %>% gsub(., pattern = "imputed_v3.ldsc.both_sexes.tsv", replacement = "")
+new.names <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/pheno_try.txt", fill=TRUE) %>% mutate("Name" = tools::file_path_sans_ext(gsub(x=V1, pattern = "data\\/", replacement = "")))
+#Get them assigned to the right dataset...
+library(fuzzyjoin); library(dplyr);
+filename.conversion <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/files_to_traits.csv")
+
+
+ t <- stringdist_join(sample.sizes, all.names,
+                by = "Name",
+                mode = "left",
+                ignore_case = FALSE, 
+                method = "jw", 
+                max_dist = 99, 
+                distance_col = "dist") %>%
+  group_by(Name.y) %>%
+  slice_min(order_by = dist, n = 1) %>% ungroup() %>% filter(Name.y != "CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats")
+
+dim(overlap.mat %>% filter(p2 %in% t$raw))
+duplicates <- duplicated(overlap.mat$p2)
+overlap.mat %>% distinct()
+#Something is missing, what is it?
+overlap.mat$p2[(!(overlap.mat$p2 %in% t$raw))]
+colnames(overlap.mat)[(!(colnames(overlap.mat) %in% t$raw))]
+
+t$raw[!(t$raw %in% overlap.mat$p2)]
+t$raw[(!(t$raw %in% colnames(overlap.mat)))] #missing combined WHR from the matrix columne names
+
+
+overlap.mat <- overlap.mat %>% 
+  select(-`/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats.gz`) %>%
+  filter(p2 != "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats.gz")
+
+
+#the other one....
+
+
+new.overlap.mat$whr_adj_bmi <- t(as.vector(new.overlap.mat[60,]))
+row.names.finally <- c((t %>% filter(raw %in% new.overlap.mat$p2) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =new.overlap.mat$p2)))$Trait, "whr_adj_bmi")
+
+new.overlap.mat$p2 <- row.names.finally
+#seemes like some of the trait assignments are incorrect. Huh. Really a bummer here I think...
+colnames(new.overlap.mat) <- c("Trait", row.names.finally)
+colnames(new_mat)
+colnames(overlap.mat) <- c("p2", (t %>% filter(raw %in% colnames(overlap.mat)) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =colnames(overlap.mat) )) %>% arrange(raw_ordered))$Trait)
+
+overlap.mat$p2 <- (t %>% filter(raw %in% overlap.mat$p2) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =overlap.mat$p2)) %>% arrange(raw_ordered))$Trait
+```
+That was excruciating. Now I can generate the whitenin gmatrix
+```{r}
+#https://github.com/gqi/fastASSET/blob/main/R/fastASSET.R
+overlap.mat #we need to get this in the same order as everything
+ordered <- if(overlap.mat$p2 %in% colnames(overlap.mat)
+              colnames(overlap.mat) %in% overlap.mat$p2 
+
+
+
+#For NA entries, we make them 0:
+ldscint.mat <- as.matrix(overlap.mat[,-1])
+ldscint.mat[is.na(ldscint.mat)] <- 0
+```
+CODE from fastASset
+```{r}
+#ensure diagonals are 1
+ldscintmat = solve(diag(sqrt(diag(ldscint.mat)))) %*% ldscint.mat %*% solve(diag(sqrt(diag(ldscint.mat))))
+colnames(ldscintmat) = rownames(ldscintmat) = traits
+# Hierarchical clustering
+corrdist = as.dist(1-abs(ldscintmat))
+hc = hclust(corrdist)
+htree = cutree(hc, h=0.8) # Criterion: corr>0.2
+block = as.integer(names(table(htree))[table(htree)>=2])
+block = lapply(block, function(x) names(htree)[htree==x])
+
+
+corrected.z.scores <- lapply(1:nrow(all.combs), function(j) {i=all.combs[j,]; t(solve(t(chol(whitener.matrices[[j]]))) %*%
+                                                         t(cbind(pop1.condition[[i[1]]], pop2.condition[[i[2]]])))})
+```
+
+
+#missing one, but tbh don't care. Just want to get this done oh my gosh.
+overlap.mat <- overlap.mat %>% select(c(p2, as.character(t$raw )))
+col_order <- colnames(overlap.mat)
+
+t$raw <- factor(t$raw, levels = col_order[-1])
+t <- t %>% arrange(raw)
+
+colnames <- lapply(basename(colnames(overlap.mat)), function(x) str_split(x, pattern = "\\.")[[1]][1])
+rnames <- lapply(basename(overlap.mat$p2), function(x) str_split(x, pattern = "\\.")[[1]][1])
+
+
+if(colnames[2:length(colnames)] != rnames)
+{
+  
+}
+colnames[2]
+colnames(overlap.mat)
+mat <- matrix(NA, nrow = length(trait.list), ncol = length(trait.list))
+colnames(mat) <- trait.list
+rownames(mat) <- trait.list
+for(t in trait.list)
+{
+  for(t2 in trait.list){
+    i = which(trait.list == t)
+    j = which(trait.list == t2)
+    lookup <- overlap.mat %>% filter(p1 == t) %>% select(!!sym(t2))
+    if(i ==j)
+    {
+      mat[i,j] <- 1
+    } else if(nrow(lookup) == 0 | is.na(lookup[1,1]))
+    {
+      #mat[i,j] <- NA
+      next
+    } else
+    {
+      mat[i,j] <- unlist(lookup)[1]
+      mat[j,i] <- unlist(lookup)[1]
+    }
+  }
+}
+write.table(data.frame(mat),file = "./ldsc_intercepts.cor.tsv",quote = FALSE,sep = '\t',row.names = FALSE, col.names = T)
+fread("./ldsc_intercepts.cor.tsv")
+getwd()
+```
+
+
 
