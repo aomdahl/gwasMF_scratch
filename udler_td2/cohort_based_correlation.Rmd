@@ -123,7 +123,7 @@ col_list <- melted_cormat %>% select(Trait1, Cohort1) %>% rename("Cohort" = Coho
                                      midpoint = 0, limit = c(-1,1)) + theme_minimal(15) + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, color = col_list$color),
           axis.text.y = element_text(color = col_list$color)) + xlab("") + ylab("") + ggtitle(title)
-  
+  col_list
 }
 
 ```
@@ -386,6 +386,7 @@ then again, maybe for some of these.... get a cook's stat or something?
 Note- good chat with surya, diptavo, a few thigns to try:
 1) can I really amplify that R2 effect? What makes it go? what can I do to amp it up? Use that simulation.
 With surya- we want ot scale by root N for sure
+Reasoning?
 #5/18
 Try the real deal whitening.
 ```{r}
@@ -407,40 +408,52 @@ overlap.mat <- joined.main %>% select(p1, p2, gcov_int) %>% mutate("id" = paste0
 colnames(overlap.mat)[!(colnames(overlap.mat) %in% overlap.mat$p2)]
 overlap.mat$p2[!(overlap.mat$p2 %in% colnames(overlap.mat))]
 #Squareify it.
-new_mat <- list()
-names_list <- c()
-for(i in 2:ncol(overlap.mat))
-{
-  curr_frick <- colnames(overlap.mat)[i]
-  names_list <- c(names_list, curr_frick)
-  if(curr_frick %in% overlap.mat$p2)
-  {
-    new_mat[[i-1]] <- overlap.mat[which(overlap.mat$p2 == curr_frick),]
-  }else{
-    print("missing this...")
-    print(curr_frick)
-  }
-}
-#Make this into a matrix, then add in the missing ones as a new row and nuew column
-new.overlap.mat <- data.frame(do.call("rbind", new_mat))
-colnames(new.overlap.mat) <- colnames(overlap.mat)
+#Simple approach
+matrix.fetch.you <- as.matrix(overlap.mat[,-1])
+rownames(matrix.fetch.you) <- overlap.mat$p2
+colnames(matrix.fetch.you) <- colnames(overlap.mat)[-1]
+name.order <- colnames(matrix.fetch.you)
+matrix.fetch.you.correct <- matrix.fetch.you[name.order, name.order]
+#Add on the missing dumb column
 missing.entries <- which(!(overlap.mat$p2 %in% colnames(overlap.mat)))
-for (m in missing.entries)
+for(m in missing.entries)
 {
-  new.overlap.mat <- rbind(new.overlap.mat, overlap.mat[m,])
-  str.name <- unlist(overlap.mat[m,1]$p2)
-  new.overlap.mat <- cbind(new.overlap.mat, c(t(overlap.mat[m,-1]), 1))
-  last.entry <- ncol(new.overlap.mat)
-  colnames(new.overlap.mat)[last.entry] <- str.name
+  oldnames <- colnames(matrix.fetch.you.correct)
+  matrix.fetch.you.correct <- rbind(matrix.fetch.you.correct, matrix.fetch.you[m,name.order] )
+  rownames(matrix.fetch.you.correct) <- c(oldnames, overlap.mat$p2[m])
+  matrix.fetch.you.correct <- cbind(matrix.fetch.you.correct, c(matrix.fetch.you[m,name.order], 1))
+  colnames(matrix.fetch.you.correct) <- c(oldnames, overlap.mat$p2[m])
 }
+diag(matrix.fetch.you.correct) <- 1
+#fillifyMatrix(matrix.fetch.you.correct) 
+image(matrix.fetch.you.correct)
+isSymmetric(matrix.fetch.you.correct)
+#need to check symmetry ast this point. urg.
 ```
+Wwe have an issue here- 2 of these have a correlation greater than one, and large sample size and I think are highly heritable.
+The exact condition where we expect inflation to occur. Poop.
+To adjust, we follow the guideline in https://www.biorxiv.org/content/10.1101/310565v1.full.pdf, which accounts for Fst2, population size and correlation estimate:
+(traits are LDL and Cholesterol from the UKBB.
+/work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/ldsr_format/30690_irnt.imputed_v3.ldsc.both_sexes.tsv.gz
+/work-zfs/abattle4/lab_data/UKBB/GWAS_Neale/ldsr_format/30780_irnt.imputed_v3.ldsc.both_sexes.tsv.gz
+```{r}
+rg.mat <- ldscTableToMatrix(joined.main, "rg")
+ps <- unlist(rg.mat[4,6])
+Fst <- 0.001 #from https://humgenomics.biomedcentral.com/articles/10.1186/s40246-022-00380-5#Sec10, the min.
+N1 <- 343621
+N2 <-344278
+adjusted.gcovint <- matrix.fetch.you.correct[4,6] - (ps * Fst^2 * sqrt(N1 * N2))
+matrix.fetch.you.correct[4,6] <- adjusted.gcovint
+matrix.fetch.you.correct[6,4] <- adjusted.gcovint
+
+```
+
 
 I think this is right!
 Let's check and then fix the diags
 ```{r}
 stopifnot(all(colnames(new.overlap.mat)[-1] == new.overlap.mat$p2))
-ldscintmatrix <- as.matrix(new.overlap.mat[,-1])
-diag(ldscintmatrix) <- 1
+ldscintmatrix <- matrix.fetch.you.correct
 ```
 
 Now, I want to just get the names right
@@ -449,68 +462,192 @@ curr.names <- gsub(colnames(ldscintmatrix), pattern = "/work-zfs/abattle4/ashton
 new.names <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/files_to_traits.ldsc.csv", fill=TRUE, header =  TRUE) 
 head(new.names)
 if(all(curr.names == new.names$LDSCPath)) {
-  colnames(ldscintmatrix) <- new.names$LDSCPath
-  rownames(ldscintmatrix) <- new.names$LDSCPath
+  colnames(ldscintmatrix) <- new.names$Trait
+  rownames(ldscintmatrix) <- new.names$Trait
 }
 ldscintmatrix[is.na(ldscintmatrix)] <- 0
-plotCorrelationHeatmap(ldscintmatrix,typin='heatmap.default')
+
+#set up the colors
+new.colors.joined <- left_join(new.names, colors, by = "Cohort")
+stopifnot(all(new.colors.joined$LDSCPath == new.names$LDSCPath))
+plotCorrelationHeatmap(ldscintmatrix,colors = new.colors.joined, typin = "heatmap.default")
 ```
 Phew. I think we are there!
-
-
-Below: stinkhy code
+Also need the r2g to compare....
 ```{r}
-#need to do some cleanup to get the names all lined up...
-sample.sizes <- sample.sizes %>% mutate("adj.names" = gsub(sample.sizes$Name, pattern = ".txt|.tsv", replacement = ""))
-all.names <- data.frame("raw" = unique(c(joined.main$p1, joined.main$p2)))
-all.names$Name <- basename(tools::file_path_sans_ext(all.names$raw)) %>% 
-  gsub(., pattern = "ldsc.imputed_v3.both_sexes.tsv", replacement = "") %>% gsub(., pattern = "imputed_v3.ldsc.both_sexes.tsv", replacement = "")
-new.names <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/pheno_try.txt", fill=TRUE) %>% mutate("Name" = tools::file_path_sans_ext(gsub(x=V1, pattern = "data\\/", replacement = "")))
-#Get them assigned to the right dataset...
-library(fuzzyjoin); library(dplyr);
-filename.conversion <- fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/files_to_traits.csv")
+rg.mat <- ldscTableToMatrix(joined.main, "rg")
+#Name check
+curr.names <- gsub(colnames(rg.mat), pattern = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/", replacement = "")
+if(all(curr.names == new.names$LDSCPath)) {
+  colnames(rg.mat) <- new.names$Trait
+  rownames(rg.mat) <- new.names$Trait
+}
+plotCorrelationHeatmap(rg.mat,colors = new.colors.joined, typin = "heatmap.default")
 
-
- t <- stringdist_join(sample.sizes, all.names,
-                by = "Name",
-                mode = "left",
-                ignore_case = FALSE, 
-                method = "jw", 
-                max_dist = 99, 
-                distance_col = "dist") %>%
-  group_by(Name.y) %>%
-  slice_min(order_by = dist, n = 1) %>% ungroup() %>% filter(Name.y != "CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats")
-
-dim(overlap.mat %>% filter(p2 %in% t$raw))
-duplicates <- duplicated(overlap.mat$p2)
-overlap.mat %>% distinct()
-#Something is missing, what is it?
-overlap.mat$p2[(!(overlap.mat$p2 %in% t$raw))]
-colnames(overlap.mat)[(!(colnames(overlap.mat) %in% t$raw))]
-
-t$raw[!(t$raw %in% overlap.mat$p2)]
-t$raw[(!(t$raw %in% colnames(overlap.mat)))] #missing combined WHR from the matrix columne names
-
-
-overlap.mat <- overlap.mat %>% 
-  select(-`/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats.gz`) %>%
-  filter(p2 != "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/CKD_overall_EA_JW_20180223_nstud23.dbgap.CKD.sumstats.gz")
-
-
-#the other one....
-
-
-new.overlap.mat$whr_adj_bmi <- t(as.vector(new.overlap.mat[60,]))
-row.names.finally <- c((t %>% filter(raw %in% new.overlap.mat$p2) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =new.overlap.mat$p2)))$Trait, "whr_adj_bmi")
-
-new.overlap.mat$p2 <- row.names.finally
-#seemes like some of the trait assignments are incorrect. Huh. Really a bummer here I think...
-colnames(new.overlap.mat) <- c("Trait", row.names.finally)
-colnames(new_mat)
-colnames(overlap.mat) <- c("p2", (t %>% filter(raw %in% colnames(overlap.mat)) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =colnames(overlap.mat) )) %>% arrange(raw_ordered))$Trait)
-
-overlap.mat$p2 <- (t %>% filter(raw %in% overlap.mat$p2) %>% select(Trait, raw) %>% mutate("raw_ordered" = factor(as.character(raw), levels =overlap.mat$p2)) %>% arrange(raw_ordered))$Trait
 ```
+I'm thinking that the pairs of traits with really low h2 estimates are the ones that are problmeatic (r2 estimates that are too high)
+In the case of na, those are for sure those with low h2, or negative h2
+```{r}
+problematic.too.high <- which(apply(rg.mat, 2, function(x) sum(x > 1)) != 0)
+problematic.too.high.pairwise <- apply(rg.mat, 1, function(x) which(x > 1))
+
+problematic.na <- which(rowSums(rg.mat) == 1)
+length(unique(joined.main$p2))
+ordered.by.h2 <- joined.main %>% group_by(p2) %>% slice(which.min(h2_obs_se)) %>%  ungroup() %>% arrange(h2_obs) %>% select(p2, h2_obs, h2_obs_se) %>% 
+  mutate("LDSCPath" = gsub(x = p2, pattern = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/", replacement = "")) %>%
+  left_join(., new.names, by = "LDSCPath") %>% select(-p2, -LDSCPath) %>% print()
+#problematic.na
+names(problematic.too.high)
+new.names
+
+```
+We can see that those with low heritability estimates usually aren't able to get good correlation estimates.
+Those with reall
+```{r}
+df.plot.h2 <- ordered.by.h2 %>% mutate("coloration1" = ifelse(Trait %in% names(problematic.too.high), "False", "True"), "coloration2" = ifelse(Trait %in% names(problematic.na), "False", "True"))
+ggplot(df.plot.h2, aes(x = reorder(Trait, h2_obs), y = h2_obs, color = coloration1)) + geom_point() + 
+  xlab("Trait") + ylab(expression(h^2)) + theme_classic() + ggtitle("Studies with irregular correlation estimates") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+ggplot(df.plot.h2, aes(x = reorder(Trait, h2_obs), y = h2_obs, color = coloration2)) + geom_point() +   xlab("Trait") + ylab(expression(h^2)) + theme_classic() + ggtitle("Studies lacking correlation estimates") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(color = "rg estimate") 
+
+
+ggplot(df.plot.h2, aes(x = h2_obs_se, y = h2_obs, color = coloration1)) + geom_point() + 
+  xlab("h2_se") + ylab(expression(h^2)) + theme_classic() + ggtitle("Studies with irregular correlation estimates")
+ggplot(df.plot.h2, aes(x = h2_obs_se, y = h2_obs, color = coloration2)) + geom_point() + 
+  xlab("h2_se") + ylab(expression(h^2)) + theme_classic() + ggtitle("Studies lacking correlation estimates")
+
+```
+Need to look at them pairwise too....
+Why are these traits so sucky?
+```{r}
+problematic.too.high.pairwise <- apply(rg.mat, 1, function(x) which(x > 1))
+pairwise <- NULL
+for(i in 1:length(problematic.too.high.pairwise))
+{
+  n <- names(problematic.too.high.pairwise)[i]
+  if(length(problematic.too.high.pairwise[[i]]) > 0)
+  {
+    for(entry in names(problematic.too.high.pairwise[[i]]))
+    {
+      pairwise <- rbind(pairwise, c(n, entry))
+    }
+  }
+}
+pairwise.ids <- data.frame(pairwise) %>% mutate("uid" = paste0(X1, ":", X2))
+#get the data for these...
+pairwise.errors <- joined.main %>% mutate("LDSCPath" = gsub(x = p2, pattern = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/", replacement = "")) %>%  left_join(., new.names, by = "LDSCPath") %>% rename("Trait1" = Trait) %>% select(-LDSCPath) %>% mutate("LDSCPath" = gsub(x = p1, pattern = "/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/munged_sumstats/", replacement = "")) %>%  left_join(., new.names, by = "LDSCPath") %>% rename("Trait2" = Trait) %>% select(Trait1, Trait2, rg, se, z, p, h2_obs,h2_obs_se,h2_int, h2_int_se,gcov_int,gcov_int_se) %>% mutate("uid" = paste0(Trait1, ":", Trait2)) %>% mutate("coloration" = ifelse(uid %in% pairwise.ids$uid, "ingroup", "regular")) %>% drop_na()
+pairwise.errors
+
+ggplot(pairwise.errors, aes(x = h2_obs_se, y = rg, color = coloration)) + geom_point() + 
+  xlab("h2_se") + ylab("Rg") + theme_classic() + ggtitle("Studies with correlation estimates > 1")
+
+ggplot(pairwise.errors, aes(x = h2_obs, y = rg, color = coloration)) + geom_point() + 
+  xlab(expression(h^2)) + ylab("Rg") + theme_classic()  + ggtitle("Studies with correlation estimates > 1")
+
+ggplot(pairwise.errors, aes(x = gcov_int, y = rg, color = coloration)) + geom_point() + 
+  xlab("gcov intercept") + ylab("Rg") + theme_classic()  + ggtitle("Studies with correlation estimates > 1")
+
+
+ggplot(pairwise.errors, aes(x = gcov_int_se, y = rg, color = coloration)) + geom_point() + 
+  xlab("gcov intercept se") + ylab("Rg") + theme_classic()  + ggtitle("Studies with correlation estimates > 1")
+```
+
+With this kind of done, we want to see how well the intrecept group actually groups by known cohort overlap, and identifies potential new cohort overlap...
+Following the same procedure as in `fastAsset`
+```{r}
+#ldscintmatrix[ldscintmatrix > 1] <- 1 #for these, need to adjust with FST, rg, and sample size...
+#ldscintmatrix[ldscintmatrix < -1] <- -1
+if(!isSymmetric(ldscintmatrix))
+{
+  ldscintmatrix <- fullifyMatrix(ldscintmatrix)
+}
+names_order <- colnames(ldscintmatrix)
+#ensure diagonals are 1
+ldscintmatrix = solve(diag(sqrt(diag(ldscintmatrix)))) %*% ldscintmatrix %*% solve(diag(sqrt(diag(ldscintmatrix))))
+rownames(ldscintmatrix) <- names_order
+colnames(ldscintmatrix) <- names_order
+# Hierarchical clustering
+corrdist = as.dist(1-abs(ldscintmatrix))
+hc = hclust(corrdist)
+library(dendextend)
+dend <- as.dendrogram(hc)
+labels_colors(dend) <- new.colors.joined$color[order.dendrogram(dend)]
+
+plot(dend)
+```
+
+We have a few different options to see what our tree looks like...
+```{r}
+#few different options- could just go by cohort, and see what we get...
+
+htree = cutree(hc, h=0.8) # Criterion: corr>0.2
+block = as.integer(names(table(htree))[table(htree)>=2]) #only include clusters with at least 2 traits in them
+block = lapply(block, function(x) names(htree)[htree==x]) #get the corresponding names
+```
+
+With this made, we only do correction within those groups.
+Are the groups of concern pupt together?
+Now, I need to just get the results for those blocks, and clear out all else.
+```{r}
+traits_i <- colnames(ldscintmatrix)
+  #already done above    
+#traits_i_block = sapply(block, function(x) traits_i[traits_i%in%x])
+    #traits_i_block = block[sapply(block,length)>=2]
+  #Guanghao then corrects block by block, since the rest shouldn't be touched, huh...
+o <- order(block[[1]])
+#For each block, whiten the snps.
+ldscint.whitening <- diag(1, nrow = nrow(ldscintmatrix) )
+rownames(ldscint.whitening) <- rownames(ldscintmatrix)
+colnames(ldscint.whitening) <- colnames(ldscintmatrix)
+for(b in block)
+{
+  ldscint.whitening[b,b] <- ldscintmatrix[b,b]
+}
+plotCorrelationHeatmap(ldscint.whitening, colors = NA, title = "Matrix for whitening")
+```
+Get the orders and everythign updated
+```{r}
+data.order <-  fread("/work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/ldsc_name_mapping_again.csv", header = FALSE)
+o <- rownames(with.added.flash$loadings.pm[[2]])
+data.order$V1 <- factor(data.order$V1, levels = o)
+data.order <- data.order %>% filter(V1 != "") %>% arrange(V1)
+final.selected.whitening <- ldscint.whitening[data.order$V2,data.order$V2 ]
+```
+
+
+Noe doing whitening like guanhao does....
+```{r, echo = FALSE, eval = FALSE}
+t <- svd(final.selected.whitening)
+Ui <- solve(chol(final.selected.whitening))
+z.o <- t(as.matrix(Ui) %*% t(as.matrix(joined)))
+image(as.matrix(joined))
+image(z.o)
+```
+Now then, let's go ahead and do the test weve been waiting for....
+
+
+```{r}
+whitened.flash <- flashier::flash(as.matrix(z.o))
+```
+Factor plot
+```{r}
+plotFactors(whitened.flash$loadings.pm[[2]], trait_names = rownames(whitened.flash$loadings.pm[[2]]), title = "", colors = ordered.colors$color)
+```
+
+
+```{r}
+K =length(unique(col_list.joined$Cohort))
+full.group <- hclust(dist(whitened.flash$loadings.pm[[2]]))
+plot(full.group)
+clust_assigns <- cutree(full.group, K)
+relevant_labels <- c("LDL", "LDL_UKBB", "Stroke_UKBB", "HDL_UKBB", "Stroke_LVD", "Cholesterol_UKBB", "HDL", "total_cholesterol", "Stroke_SVD")
+hclust.intuit <- data.frame("Trait" = names(clust_assigns), "Group" = clust_assigns) %>% merge(new.colors.joined, by = "Trait") %>% select(-LDSCPath) %>% mutate("labs" = ifelse(as.character(Trait) %in% relevant_labels, as.character(Trait), ""))
+
+ggplot(hclust.intuit, aes(x = Cohort, y = as.factor(Group), color = Cohort, label = as.character(labs)))  + geom_jitter(position = position_jitter(seed = 1,height = 0.2)) + geom_text(position = position_jitter(seed = 1, height = 0.3),hjust = 0.5, vjust = -0.5)  + xlab("GWAS Cohort") + theme_minimal(15) + theme(panel.grid.major.x = element_blank(), axis.text.x=element_text(angle = 45, hjust = 0.5),panel.grid.minor.y = element_line()) + ylab("Clustered group")
+```
+Well there ya go. Whitening does not appear to fix the fetching problem, huh.
+Try with correfcting for N, try on the hm3 dataset.
+
+#still stinky code
 That was excruciating. Now I can generate the whitenin gmatrix
 ```{r}
 #https://github.com/gqi/fastASSET/blob/main/R/fastASSET.R
@@ -586,6 +723,37 @@ write.table(data.frame(mat),file = "./ldsc_intercepts.cor.tsv",quote = FALSE,sep
 fread("./ldsc_intercepts.cor.tsv")
 getwd()
 ```
+
+#sad code: trying to work on the list stuff to make the matrix
+for(i in 2:ncol(overlap.mat))
+{
+  curr_frick <- colnames(overlap.mat)[i]
+  names_list <- c(names_list, curr_frick)
+  if(curr_frick %in% overlap.mat$p2)
+  {
+    new_mat[[i-1]] <- overlap.mat[which(overlap.mat$p2 == curr_frick),]
+  }else{
+    print("missing this...")
+    print(curr_frick)
+  }
+}
+#Make this into a matrix, then add in the missing ones as a new row and nuew column
+new_mat <- list()
+names_list <- c()
+
+
+new.overlap.mat <- data.frame(do.call("rbind", new_mat))
+colnames(new.overlap.mat) <- colnames(overlap.mat)
+
+for (m in missing.entries)
+{
+  new.overlap.mat <- rbind(new.overlap.mat, overlap.mat[m,])
+  str.name <- unlist(overlap.mat[m,1]$p2)
+  new.overlap.mat <- cbind(new.overlap.mat, c(t(overlap.mat[m,-1]), 1))
+  last.entry <- ncol(new.overlap.mat)
+  colnames(new.overlap.mat)[last.entry] <- str.name
+}
+
 
 
 
