@@ -4,8 +4,8 @@
 #Required input: X (original Z score data), L (factors to detect pleiotropy on), p (path to pleiotropy data), SNPs (corresponding SNP list)
 ########################
 pacman::p_load(tidyr, dplyr, ggplot2, stringr, data.table, cowplot, magrittr, doParallel, Xmisc, logr, coop)
-source("/work-zfs/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/helper_functions_plieo.R")
-source("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/src/pve.R")
+source("/scratch16/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/helper_functions_plieo.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/pve.R")
 parser <- ArgumentParser$new()
 parser$add_description("Script to quickly assess the plieotropy of enriched SNPs")
 parser$add_argument("--Z", type = 'character', help = "Path to file with original Z scores for testing against", default = "SEED2")
@@ -13,7 +13,7 @@ parser$add_argument("--snp_list", type = 'character', help = "List of SNPS and "
 parser$add_argument("--L_mat", type = 'character', help = "Path to L matrix. Assumes the same order as Z")
 parser$add_argument("--F_mat", type = 'character', help = "Path to F matrix. Assumes the same order as Z")
 parser$add_argument("--fa_reference", type = 'character', help = "Human readable trait names, used for plotting. Ensure order is the same as the orderr in the input tables.", 
-                    default = "/work-zfs/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/fastAssetScores_0.1p/")
+                    default = "scratch16/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/fastAssetScores_0.1p/")
 parser$add_argument("--alpha", type = 'numeric', help = "alpha threshold", 
                     default = 0.01)
 parser$add_argument("--maf", type = 'character', help = "specify where the MAFs can be found. An ordered column will do.", 
@@ -28,10 +28,10 @@ message("Please make sure the first column of input data is SNP/RSIDs.")
 
 debug = args$debug_mode
 look_path <- args$fa_reference
-#look_path <- "/work-zfs/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/fastAssetScores_0.1p/"
+#look_path <- "scratch16/abattle4/ashton/snp_networks/scratch/gwasMF_pleiotropy/fastAssetScores_0.1p/"
 if(args$Z == "SEED2" | debug)
 {
-  source("/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/src/quickLoadData.R")
+  source("scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/quickLoadData.R")
   dat.gwas<- quickLoadFactorization("B_SE", "MARCC")
   trait.list <- colnames(dat.gwas$X)
   Z <- dat.gwas$X * dat.gwas$W
@@ -45,16 +45,16 @@ if(args$Z == "SEED2" | debug)
 
 if(debug)
 {
-  l.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.loadings.txt"
-  f.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.factors.txt"
-  args$output <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE"
+  l.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.loadings.txt"
+  f.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.factors.txt"
+  args$output <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE"
   
-  #l.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio_L/factorization/A2.14_L4806.343_B_SE.loadings.txt"
-  #f.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio_L/factorization/A2.14_L4806.343_B_SE.factors.txt"
+  #l.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio_L/factorization/A2.14_L4806.343_B_SE.loadings.txt"
+  #f.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio_L/factorization/A2.14_L4806.343_B_SE.factors.txt"
   
-  l.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_gold_standard/factorization/"
-  f.path <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.factors.txt"
-  args$output <- "/work-zfs/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE"
+  l.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_gold_standard/factorization/"
+  f.path <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE.factors.txt"
+  args$output <- "scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/seed2_pleio/factorization/A2.14_L961.269_B_SE"
   
 } else {
   l.path <- args$L_mat
