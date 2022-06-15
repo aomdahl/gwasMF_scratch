@@ -10,7 +10,7 @@ while getopts ":h" option; do
           echo -e "\t2: the destination output directory. PLease use the FULL path."
           echo -e "\t3: Number of output files to write to."
           echo "Example command:"
-          echo "bash src/all_pairwise_r2g.sh ldsr_all/pairwise.traits.txt /work-zfs/abattle4/ashton/snp_networks/scratch/udler_td2/ldsr_all/ldsr_results/ 10"
+          echo "bash src/all_pairwise_r2g.sh ldsr_all/pairwise.traits.txt /data/abattle4/aomdahl1/snp_networks/scratch/udler_td2/ldsr_all/ldsr_results/ 10"
          exit;;
    esac
 done
@@ -44,8 +44,9 @@ while read p; do
 done < $FILE
 
 for ((i=0;i<$NUMO;i++)); do
-     echo "cd /work-zfs/abattle4/ashton/reference_data/ldsc_ref/" > ${ODIR}_ldsc.run.${i}.sh
+     echo "cd /data/abattle4/aomdahl1/reference_data/ldsc_ref/" > ${ODIR}_ldsc.run.${i}.sh
      echo "set -euo pipefail" >> ${ODIR}_ldsc.run.${i}.sh
+     echo "ml anaconda; source activate py27" >> ${ODIR}_ldsc.run.${i}.sh
 done
 
 #Counts per file:
@@ -59,7 +60,7 @@ while read p; do
      
      QUERY=`echo $p | sed -r 's/\s+//g'`
      ID=`sed -n "${LN}p" runids.tmp`
-     echo "python2  /work-zfs/abattle4/ashton/genomics_course_2020/project_2/ldsc/ldsc.py \
+     echo "python2  ~/.bin/ldsc/ldsc.py \
     --rg $QUERY \
     --ref-ld-chr eur_w_ld_chr/ \
     --w-ld-chr eur_w_ld_chr/ \
