@@ -10,15 +10,15 @@ for f in files
 #NOTE that using effectivee sample size isn't recommended for Ldsc, but whatever.
 n_options =["N_SAMPLES", "EFFSAMPLESIZE", "N_COMPLETE_SAMPLES", "NEFF"]
 n_options_LDSC=['N','NCASE','CASES_N','N_CASE', 'N_CASES','N_CONTROLS','N_CAS','N_CON','N_CASE','NCONTROL','CONTROLS_N','N_CONTROL', "NSTUDY", "N_STUDY", "NSTUDIES", "N_STUDIES"] #These are ones in LDSC
-snp_options = ["MARKER",  "VARIANT_ID", "SNP-ID"] 
-a1_options = ["RISK_ALLELE"] #effect allele
-a2_options = ["OTHER_ALLELE"] #alternate allele
-sum_stats = ["MAINEFFECTS", "ESTIMATE"]
+snp_options = ["MARKER",  "VARIANT_ID", "SNP-ID", "RSIDS"] 
+a1_options = ["RISK_ALLELE", "ALT"] #effect allele
+a2_options = ["OTHER_ALLELE", "REF"] #non-effect allele
+sum_stats = ["MAINEFFECTS", "ESTIMATE", "ODDS_RATIO"]
 se_options = ["MAINSE"]
 pval_options = ["MAINP", "P_GC"]
 PVAL_FULL=["MAINP", "P_GC", "P", "PVALUE", "P_VALUE", "PVAL", "P_VAL", "GC_PVALUE"]
-IDM={"chr_opts" : ["CHR", "CHROMOSOME"], "pos_opts" :["POS", "base_pair_location".upper(), "BP"], "snpid_opts":["VARIANT_ID", "VARIANT", "SNP"]}
-
+IDM={"chr_opts" : ["CHR", "CHROMOSOME"], "pos_opts" :["POS", "base_pair_location".upper(), "BP"], "snpid_opts":["VARIANT_ID", "VARIANT", "SNP", "NAME"]}
+#chromosome	base_pair_location
 labels = {"n" : n_options, "snp" : snp_options, "a1" : a1_options, "a2" :a2_options, "ss" : sum_stats, "se" :se_options, "p" : pval_options, "n_existing" : n_options_LDSC}
 import sys
 import argparse
@@ -30,6 +30,7 @@ import shlex
 import csv
 import numpy as np
 import re
+import pdb
 
 which = lambda lst:list(np.where(lst)[0])
 def any_in(x,y):
@@ -112,7 +113,7 @@ def labelSpecify(header, checkfor, labels):
         ret_snp = str_map[checkfor] + header_label
         #Special case for providing sum stats, need to know what the null value is
         if checkfor == "ss":
-            size_options = {"OR":"1", "BETA":"0", "MAINEFFECTS":"0", "EFFECTS":"0", "B":"0", "ZSCORE":"0", "Z":"0", "ESTIMATE":"0"}
+            size_options = {"OR":"1", "ODDS_RATIO": "1","BETA":"0", "MAINEFFECTS":"0", "EFFECTS":"0", "B":"0", "ZSCORE":"0", "Z":"0", "ESTIMATE":"0"}
             ret_snp = ret_snp + "," + size_options[header_label.upper()]
         ret_snp = ret_snp + " "
     else:
@@ -181,10 +182,9 @@ def filePeek(readin):
             if ":" in first and "RS" not in first.upper(): #No rsid but likely something else
                 cleanup_protocol = cleanup_protocol + "TO_RSID_1"
             #Get the sample size if its there...
-            print("Checking n....")
             ret_n = labelSpecify(header_dat, "n", labels)
-            if ret_n == "USE_PROVIDED": #specify the input from the file,
-                ret_n =  processN(dat[3])
+            if ret_n == "USE_PROVIDED": 
+                ret_n =  processN(readin[3])
             #Check for the marker data
             ret_a1 = labelSpecify(header_dat, "a1", labels)
             ret_a2 = labelSpecify(header_dat, "a2", labels)
@@ -194,7 +194,9 @@ def filePeek(readin):
 
     except FileNotFoundError:
         print("Specified path does not exist")
+        
         cleanup_protocol = "ERROR"
+        return cleanup_protocol, [fpath]
     
     if cleanup_protocol == "": #nothing to change.
         cleanup_protocol = "NONE"
@@ -244,6 +246,13 @@ def doCleanup(readin, protocol, rsids, correct_files):
         return intermediate_file_name
     delim = ""
     T='\t'
+    if protocol == "ERROR":
+        print("Print unable to process current file")
+        return ""
+    if protocol != "NONE":
+        print("Changes being made to", fpath)
+        print("Updated file name is ", intermediate_file_name)
+        print("File change protocol code is ", protocol)
     if "GIANT" in protocol :
         #remove the first few lines of the file
         #done_header="\"MarkerName\\tChr\\tPos\\tAllele1\\tAllele2\\tFreqAllele1HapMapCEU\\tb\\tse\\tp\\tN\""
@@ -260,9 +269,39 @@ def doCleanup(readin, protocol, rsids, correct_files):
                         ostream.write(done_header)
                         print_switch = True
         fpath = intermediate_file_name #changes updated
+    if "UKBB" in protocol:
+        adjacent=False
+        with openFileContext(fpath) as istream:
+            with outFileContext(intermediate_file_name) as ostream:
+                for i, line in enumerate(istream):
+                    line = fh(line.strip(), fpath)
+                    if i == 0:
+                        header = line
+                        if("effect_allele" in header):
+                            print("This one is UKBB-like, but not the same")
+                            adjacent = True 
+                            #no change to header
+                        else:
+                            #header = header.replace("variant\t", "SNP\teffect_allele\tother_allele")
+                            header = re.sub('^variant\s', "SNP\teffect_allele\tother_allele\t", header)
+                        ostream.write(header + '\n')
+                    else:
+                        dat = line.split('\t')
+                        var_dat = dat[0].split(":")
+                        varid = var_dat[0] + ":" + var_dat[1]
+                        if varid in rsids:                     
+                            snp = rsids[varid]
+                            effect = var_dat[3]
+                            other = var_dat[2]
+                            if adjacent:
+                                ostream.write(snp + T + T.join(dat[1:]) + '\n')
+                            else:
+                                ostream.write(snp + T + effect + T + other + T + T.join(dat[1:]) + '\n')
+                        #otherwise we skip it
+        fpath = intermediate_file_name #changes updated
+
            
-    if "TO_RSID" in protocol:
-        print(protocol)
+    if "TO_RSID" in protocol and "UKBB" not in protocol:
         #If its TO_RSID, its a 2 column thing. if its TO_RSID_1 its a 1 column thing.
         dropped_snps = 0
         T='\t'
@@ -295,6 +334,8 @@ def doCleanup(readin, protocol, rsids, correct_files):
                             continue
         print(dropped_snps, "SNPs omitted.")
         fpath = intermediate_file_name #changes updated
+        if(protocol == 'UKBBTO_RSID_1'):
+            return fpath
     #For all remaining protocols, we don't do anything.                    
         #determine which columnes have the info we need, look it up, and convert it.
     
@@ -308,37 +349,6 @@ def doCleanup(readin, protocol, rsids, correct_files):
                         ostream.write(line.replace(",", T) + '\n') 
             fpath = intermediate_file_name #changes updated                   
         
-    if "UKBB" in protocol:
-        adjacent=False
-        with openFileContext(fpath) as istream:
-            with outFileContext(intermediate_file_name) as ostream:
-                for i, line in enumerate(istream):
-                    line = fh(line.strip(), fpath)
-                    if i == 0:
-                        header = line
-                        if("effect_allele" in header):
-                            print("This one is UKBB-like, but not the same")
-                            adjacent = True 
-                            #no change to header
-                        else:
-                            #header = header.replace("variant\t", "SNP\teffect_allele\tother_allele")
-                            header = re.sub('^variant\s', "SNP\teffect_allele\tother_allele\t", header)
-                        ostream.write(header + '\n')
-                    else:
-                        dat = line.split('\t')
-                        var_dat = dat[0].split(":")
-                        varid = var_dat[0] + ":" + var_dat[1]
-                        if varid in rsids:                     
-                            snp = rsids[varid]
-                            effect = var_dat[3]
-                            other = var_dat[2]
-                            if adjacent:
-                                ostream.write(snp + T + T.join(dat[1:]) + '\n')
-                            else:
-                                ostream.write(snp + T + effect + T + other + T + T.join(dat[1:]) + '\n')
-                        #otherwise we skip it
-        fpath = intermediate_file_name #changes updated
-
     if "HEADER_HM" in protocol: #just need to change the first line
         with openFileContext(fpath) as istream:
             with outFileContext(intermediate_file_name) as ostream:
@@ -351,7 +361,7 @@ def doCleanup(readin, protocol, rsids, correct_files):
                         ostream.write(line + '\n')
         fpath = intermediate_file_name #changes updated
 
-    if "FIRST_RSID" in protocol:
+    if "FIRST_RSID" in protocol and "UKBB" not in protocol:
         with openFileContext(fpath) as istream:
             with outFileContext(intermediate_file_name) as ostream:
                 for i, line in enumerate(istream):
@@ -376,7 +386,7 @@ def doCleanup(readin, protocol, rsids, correct_files):
     return intermediate_file_name
 
 
-def importRSDict(p):
+def importRSDict(p, invert = False):
     """
     By default uses a list of no hLA region hm3 snps
     """
@@ -385,9 +395,39 @@ def importRSDict(p):
         for line in istream:
             line = line.strip().split()
             #ret_dict[line[0] + ":" line[1]] = line[2]
-            ret_dict[line[0]] = line[1]
+            if not invert:
+                ret_dict[line[0]] = line[1]
+            else:
+                ret_dict[line[1]] = line[0]
     return ret_dict
 
+#Helper function to upldate the rference list if a sublist is submitted.
+def buildReferenceList(argsin):
+    if "," not in args.rsid_ref:
+        build_list = {"hg37":importRSDict(args.rsid_ref)}
+        
+        if argsin.rsid_ref != "/data/abattle4/aomdahl1/reference_data/hm3_nohla.snpids":
+            print("non-default list is entered; going to do a quick liftover to get hg38 too...")
+            temp_new = importRSDict("/data/abattle4/aomdahl1/reference_data/hm3_nohla.hg38.snpids", invert = True)
+            build_list["hg38"] = dict()
+            for i in build_list["hg37"].values():
+                if i in temp_new:
+                    build_list["hg38"][temp_new[i]] = i 
+            print("Converted list has", len(build_list["hg38"]), "entries")
+            print("Original list has", len(build_list["hg37"]), "entries")
+            #breakpoint()
+        else:
+            build_list["hg38"] = importRSDict("/data/abattle4/aomdahl1/reference_data/hm3_nohla.hg38.snpids")
+            build_list["hg36"] = None
+    else:
+        print("Multiple input references recieved. Assuming build is specified on each (i.e. HG37:PATH,HG38:PATH")
+        paths = args.rsid_ref.split(",")
+        build_list = dict()
+        for p in paths:
+            g = p.split(":")
+            build_list[g[0].lower()] = importRSDict(g[1])
+    #breakpoint()
+    return build_list
 
 parser = argparse.ArgumentParser(description = "Quick script to get many GWAS summary stats converted into an LDSC-friendly format. A nice wrapper for ldsc's munge script.")
 parser.add_argument("--study_list", help = "list of studies to work on. Columns are study path, phenotype name, genome build, N samples. Last 2 columns not required, in which case we assume hg37 and that N is in the data. Note that if N is in the data, that is prioritized above a specified N.")
@@ -400,11 +440,13 @@ parser.add_argument("--output", help = "output path")
 args = parser.parse_args()
 
 #get the hg37 build dict in memory....
-build_list = {"hg37":importRSDict(args.rsid_ref), "hg38":None, "hg36": None}
+build_list = buildReferenceList(args)
+
 snp_list_pval_opt = dict()
 with open(args.study_list ,'r') as istream:
     with open(args.output + "munge_sumstats.all.sh", 'w') as ostream:
         for line in istream:
+            CONVERT_GENOME_BUILD=False
             dat = line.strip().split()
             print("Currently processing file ", dat[0], "(", dat[1], ")")
             """
@@ -424,11 +466,13 @@ with open(args.study_list ,'r') as istream:
             #detect the genome build if needed....
             if (len(dat) > 2) and (dat[2] != "" )and ("TO_RSID" in fix_instructions):
                 print("Input specifies", dat[2], "build.")
-                if(dat[2] != "hg37" and dat[2] != "hg19"):
+                if(dat[2] == "hg36"):
                     print("not yet implemented")
                     continue
                 else:
-                    build_dict = build_list["hg37"]
+                    build_dict = build_list[dat[2]]
+                    if dat[2] not in ["hg37", "hg19"]:
+                            CONVERT_GENOME_BUILD = True
             else:
                 print("Assuming hg37 build, using hapmap3 SNPS only...")
                 build_dict = build_list["hg37"]
@@ -437,6 +481,10 @@ with open(args.study_list ,'r') as istream:
             if fix_instructions and fix_instructions != "ERROR":
                 lc = "python2 " + args.ldsc_path + "munge_sumstats.py --sumstats " + intermediate_file + " --out " + buildOutName(args.output, dat[0], dat[1]) + "".join(fixed_labels) + mergeAlleles(args.merge_alleles)
                 ostream.write(lc + '\n')
+            else:
+                print("Skipping for incorrect file path,", fixed_labels[0])
+                with open(args.output +"_errorlog.txt",'w') as ostream:
+                    ostream.write("File could not be found: " + fixed_labels[0] + '\n')
             print()
         
 
