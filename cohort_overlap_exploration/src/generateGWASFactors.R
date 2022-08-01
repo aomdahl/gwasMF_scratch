@@ -3,26 +3,34 @@
 
 library("optparse")
 library("data.table")
+library("ggplot2")
+library("magrittr")
 option_list <- list( 
-  make_option(c("-i", "--input"), default="",
+  make_option(c("-i", "--inputs"), default="",
               help="Path to input file handles"),
+  make_option(c("-s", "--seed"), default=22,
+              help="Set random seed, default is 22"),
   make_option(c("-o", "--output"), default = '', type = "character", 
               help=".Output dir")
 )
 args <- parse_args(OptionParser(option_list=option_list))
-    #args = c("--input=/Users/aomdahl/Library/CloudStorage/OneDrive-JohnsHopkins/Research_Ashton_MacBook_Pro/snp_network/scratch/cohort_overlap_exploration/babytest1"))
-
+set.seed(args$seed)
 #read in relevant things
-n_o <- as.matrix(fread(paste0(args$input, ".samp_overlap.csv")))
-#n <- fread(paste0(args$input, ".samples.csv")) #on the diagonal of n_o, not needed.   
-rho <- as.matrix(fread(paste0(args$input, ".pheno_corr.csv")))
-f <- as.matrix(fread(paste0(args$input, ".factors.csv")))
-l <- as.matrix(fread(paste0(args$input, ".loadings.csv")))
-se <- as.matrix(fread(paste0(args$input, ".se.csv")))
+#Maybe a better way would be to specify a parameter file, that has all of this information in it.
+#This way requires duplicates of each file in every simulation directory, which isn't what we want, is it.
+#Specify a setup file.
+yml <- fread(args$inputs,header = FALSE) %>% set_colnames(c("n", "p"))
+print(yml[which(yml$n == "samp_overlap"),2])
+n_o <- as.matrix(fread(unlist(yml[which(yml$n == "samp_overlap"),2])))
+
+rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2])))
+f <- as.matrix(fread(unlist(yml[which(yml$n == "factors"),2])))
+l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2])))
+se <- as.matrix(fread(unlist(yml[which(yml$n == "se"),2])))
 M <- nrow(n_o)
 N <- nrow(l)
 
-#First, calculate the corelation effect matrix
+#First, calculate the correlation effect matrix
 #C is m x m
 C <- matrix(NA, nrow = M, ncol = M)
 for(i in 1:nrow(n_o))
@@ -73,11 +81,9 @@ out.se <- data.frame("SNP" = paste0("rs", 1:N), round(se, digits = 5)) %>% set_c
 write.table(x = out.beta, file = paste0(args$output, ".effect_sizes.txt"), quote = FALSE, row.names = FALSE)
 write.table(x = out.se, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
 
+#Create an image with the correlation structure:
+source("/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+o <- plotCorrelationHeatmap(C, typin = "None", title = "Generated matrix of spurious covariance structure.")
+ggsave(plot = o, filename = paste0(args$output, ".spurious_covariance.png"))
 
-#case of interest.... what does this look like?
-#Clearly there is a strong effect we need to correct for...
-#t <- svd(l %*% t(f))
-#p <- svd(betas)
-#image(t(t$v[,1:2]))
-#image(t(p$v[,1:2]))
 
