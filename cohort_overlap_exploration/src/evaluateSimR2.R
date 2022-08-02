@@ -5,6 +5,8 @@
   #Sig_hits not considered 
 
 evaluteFactorConstruction <- function(trueL, trueF, lp, fp){
+  #make sure all are matrices
+  trueL <- as.matrix(trueL); trueF <- as.matrix(trueF); lp <- as.matrix(lp); fp <- as.matrix(fp)
   #fill in missing columns with 0s
   if(ncol(fp) < ncol(trueF)){
     message("missing factors, will set to 0...")
@@ -12,7 +14,7 @@ evaluteFactorConstruction <- function(trueL, trueF, lp, fp){
     fp = cbind(fp, matrix(rep(0, nrow(fp) * dif), ncol = dif))
     lp = cbind(lp, matrix(rep(0, nrow(lp) * dif), ncol = dif))
   }
-  rankK = ncol(trueF)
+  K = ncol(trueF)
   suppressWarnings(library('combinat'))
   if(K > 9)
   {
@@ -21,7 +23,7 @@ evaluteFactorConstruction <- function(trueL, trueF, lp, fp){
   }else
   {
     #get all possible permutations in F and L
-    ordering = permn(rankK)
+    ordering = permn(K)
     f_cor = rep(0, length(ordering))
     for(ord in seq(1, length(ordering))){
       f_cor[ord] = cor(as.vector(trueF), as.vector(fp[,ordering[[ord]]]))
