@@ -15,7 +15,7 @@ if(FALSE)
   fp=pred.factors
 }
 
-evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE){
+evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose = FALSE){
   if(is.null(lp) | length(lp) == 0)
   {
     message("empty table")

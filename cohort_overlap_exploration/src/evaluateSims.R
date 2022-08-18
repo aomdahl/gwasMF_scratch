@@ -15,14 +15,18 @@ option_list <- list(
   make_option(c("-p", "--plot"), default = FALSE, type = "logical", action = "store_true", 
               help="specify this if you want to plot."),
   make_option(c("-y", "--yaml"), default = '', type = "character", 
-              help="Path to the settings file.")
+              help="Path to the settings file."),
+  make_option(c("-w", "--whitened"), default = FALSE, type = "logical", 
+              help="Include whitened", action = "store_true")
 )
 
 #debug interactive
 t = c(
-  "--output=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k2/udler1_samp-overlap_no-correlation_noise1/summary",
-  "--yaml=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k2/udler1_samp-overlap_no-correlation_noise1/udler1_samp-overlap_no-correlation_noise1.yml",
-  "--sim_path=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k2/udler1_samp-overlap_no-correlation_noise1/factorization_results/")
+  "--output=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler5_half-overlap_r-75_noise2/summary",
+  "--yaml=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler5_half-overlap_r-75_noise2/udler5_half-overlap_r-75_noise2.yml",
+  "--sim_path=/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler5_half-overlap_r-75_noise2/factorization_results/", "-w")
+
+
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
 args <- parse_args(OptionParser(option_list=option_list))#, args = t)
@@ -49,6 +53,7 @@ s <- args$sim_path
 #sim_loadings and sim_factors file, and then files corresponding to the predictved outcome for several different methods.
 sim.performance <- NULL
 f_i =1
+nmethods = length(methods.run)
 for(m in methods.run)
 {
   r_performance <- matrix(NA, nrow = niter, ncol = 5)
@@ -62,6 +67,27 @@ for(m in methods.run)
   }
   sim.performance <- rbind(sim.performance, data.frame("method" = m, r_performance))
 }
+#Now, read in whitened if they are there....
+if(args$whitened)
+{
+  nmethods = length(methods.run) *2
+  for(m in methods.run)
+  {
+    r_performance <- matrix(NA, nrow = niter, ncol = 5)
+    for(i in 1:niter){
+      pred.loadings <- fread(paste0(s, "/sim",i, ".", "whitened.", m, ".loadings.txt"))
+      pred.factors <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".factors.txt"))
+      reconstruction <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".recon_error.txt"))
+      r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.factors),
+                             reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], i)
+      f_i = f_i+1
+    }
+    sim.performance <- rbind(sim.performance, data.frame("method" = paste0(m, "_whitened"), r_performance))
+  }
+}
+
+
+
 colnames(sim.performance) <- c("method", 'R2_L','R2_F',"RSE", "R2_X", "iter")
 #Now plot it, if desired
 write.table(sim.performance, file = paste0(args$output, ".tabular_performance.tsv"), quote = FALSE, row.names = FALSE)
@@ -70,19 +96,19 @@ if(args$plot)
   #Plots of F and L
   suppressMessages(library(ggplot2))
   l.perf <- ggplot(sim.performance, aes(x = method, y = R2_L, fill = method)) + geom_boxplot() + ylab(expression(R^2)) +   ggtitle("Loadings") + theme_classic(15) + 
-    scale_fill_manual(values=natparks.pals("Arches", length(methods.run))) +
+    scale_fill_manual(values=natparks.pals("Arches", nmethods)) +
     theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank()) 
   f.perf <- ggplot(sim.performance, aes(x = method, y = R2_F, fill = method)) + geom_boxplot() + ylab(expression(R^2)) + 
-    ggtitle("Factors") + theme_classic(15) + scale_fill_manual(values=natparks.pals("Arches", length(methods.run)))
+    ggtitle("Factors") + theme_classic(15) + scale_fill_manual(values=natparks.pals("Arches", nmethods))
   suppressMessages(library(cowplot))
   ggsave(plot_grid(plotlist = list(l.perf, f.perf), nrow = 2, ncol =1), filename = paste0(args$output, ".f_l_boxplot.png"))
   
     #plots of frobenious norm and overall R2
     frob <- ggplot(sim.performance, aes(x = method, y = RSE, fill = method)) + geom_boxplot() + ylab("Root squared error") +   ggtitle("Frobenius norm") + theme_classic(15) + 
-    scale_fill_manual(values=natparks.pals("Arches", length(methods.run))) +
+    scale_fill_manual(values=natparks.pals("Arches", (nmethods))) +
     theme(axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.title.x = element_blank()) 
   r2x <- ggplot(sim.performance, aes(x = method, y = R2_X, fill = method)) + geom_boxplot() + ylab(expression(R^2)) + 
-    ggtitle("Overall correlation") + theme_classic(15) + scale_fill_manual(values=natparks.pals("Arches", length(methods.run)))
+    ggtitle("Overall correlation") + theme_classic(15) + scale_fill_manual(values=natparks.pals("Arches", nmethods))
   ggsave(plot_grid(plotlist = list(frob, r2x), nrow = 2, ncol =1), filename = paste0(args$output, ".recon_boxplot.png"))
   
   

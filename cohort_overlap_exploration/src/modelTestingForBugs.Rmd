@@ -1,0 +1,100 @@
+---
+title: "Testing matrix based simulation framework..."
+output: html_notebook
+---
+
+Want to run some basic investigations and tests into the matrix-based framework. Does it do what I am expecting that it does, or is something else going on?
+
+##Question 0: Do these methods with no noise do as well as wi
+```{r}
+library(data.table)
+library(magrittr)
+library(dplyr)
+library(tidyr) 
+library(ggplot2)
+yml.in <- "/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler1_no-samp-overlap_no-correlation_noise2/udler1_no-samp-overlap_no-correlation_noise2.yml"
+yml <- read.table(yml.in,sep = ",") %>% set_colnames(c("n", "p"))
+n_o <- as.matrix(fread(unlist(yml[which(yml$n == "samp_overlap"),2])))
+rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2])))
+f <- as.matrix(fread(unlist(yml[which(yml$n == "factors"),2])))
+l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2])))
+```
+Test- PCA, flashR, with just plain things...
+```{r}
+x <- l %*% t(f)
+pca.res <- svd(x,4,4)
+plotFactors(pca.res$v, trait_names = paste0("t", 1:10), title = "")
+plotFactors(f, trait_names = paste0("t", 1:10), title = "")
+cor(f, pca.res$v)
+```
+Visual inspection- it looks like the order of -1,-2,4,3 yields the best overall? Let me look at this...
+```{r}
+all.4 <- combinat::permn(4)
+rec <- c()
+for(a in all.4)
+{
+  t <- pca.res$v[,a]
+  rec <- c(rec, cor(abs(as.vector(f)), abs(as.vector(t))))
+}
+
+all.4[which.max(rec^2)]
+#then get the max value....
+cor((as.vector(f)), (as.vector(pca.res$v[,c(1,2,4,3)]) * (c(rep(1,20), rep(-1,20)))))^2
+```
+Now, let's test this out to some extent....
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/src/evaluateSimR2.R")
+evaluteFactorConstruction((l), (f), (pca.res$u), (pca.res$v))
+
+```
+This is comforting. Our grid search identifies what seems to be the best option.
+
+
+
+#### Simple tests..
+Let's make a manual one....
+```{r}
+new.v <- f + matrix(rnorm(40, sd = 0.5), nrow = 10)
+new.u <- l + matrix(rnorm(2000, sd = 0.5), nrow = 500)
+
+
+cor(as.vector(l), as.vector(new.u))^2
+cor(as.vector(f), as.vector(new.v))^2
+evaluteFactorConstruction((l), (f), new.u, new.v)
+
+#for later:
+top.f <- cor(as.vector(f), as.vector(new.v))^2
+top.l <- cor(as.vector(l), as.vector(new.u))^2
+```
+Good, it matches again...
+Now, try swapping and adding some directional changes...
+```{r}
+new.v <- (f + matrix(rnorm(40, sd = 0.5), nrow = 10))[,c(2,3,4,1)]
+new.u <- (l + matrix(rnorm(2000, sd = 0.5), nrow = 500))[,c(2,3,4,1)]
+evaluteFactorConstruction((l), (f), new.u, new.v)
+cor(as.vector(f), as.vector(new.v[,c(4,1,2,3)]))^2
+cor(as.vector(l), as.vector(new.u[,c(4,1,2,3)]))^2
+
+```
+This appears to pick correctly.
+
+Looking at individual matching vectors to check nubmers....
+```{r}
+cor(new.v[,1], f[,2])^2
+cor(new.u[,1], l[,2])^2
+cor(new.v[,4], f[,1])^2
+evaluteFactorConstruction(l[,2], f[,2], new.u[,1], new.v[,1])
+```
+Well 
+
+## Test the matrix assessment method:
+How does it respond to shuffled columns?
+Swapped signs?
+Both?
+
+## question 1: why do a subset of the cohort settings perfrom much more poorly than the others?
+.... at least, for FlashR. For PCA, it appears that these settings actually do *better* than the random noise ones.
+Current hypothesis- the noise corresponds to the actual signal, so we get that kind of nonsense.
+Is there a qualitative difference in how noisy?
+
+## Question 2: simple test case with known performance in PCA

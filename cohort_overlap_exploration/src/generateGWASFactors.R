@@ -20,7 +20,7 @@ option_list <- list(
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
 
-t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k2/udler1_realistic-high_all-correlated-weak_noise1/udler1_realistic-high_all-correlated-weak_noise1.yml")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
 
 #read in relevant things
 #Maybe a better way would be to specify a parameter file, that has all of this information in it.
@@ -70,6 +70,16 @@ for(i in 1:nrow(n_o))
   }
 }
 stopifnot(isSymmetric(C))
+library(matrixcalc)
+if(!is.positive.definite(C))
+{
+  message("C is not PD, adjusting now...")
+  library(corpcor)
+  C.updated <- make.positive.definite(C, tol = 1e-3)
+  #percent change
+  prop.change <- norm(C- C.updated, type = "F")/norm(C, type = "F")
+  C <- C.updated
+}
 #NOTE: could also implement in terms of the matrix normal, a single line. That would work too, but I 
 #think (?) would be the same
 
