@@ -1,0 +1,245 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r setup}
+library(data.table)
+library(magrittr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(NatParksPalettes)
+```
+
+Look at the spearmen correlation one...
+
+```{r}
+dir <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/null_matrix_spearman/"
+sim.results <- list.files(dir, pattern = "*res.csv")
+all.results <- do.call("rbind", lapply(sim.results, function(x) fread(paste0(dir,x)) %>% mutate("sim_num" = gsub(pattern="res.csv", replacement = "",x = x))))
+length(unique(all.results$sim_num))
+```
+Note- all 50 ran, although with varying things.
+Simple plot- how does rho^2 change with overlap?
+**GLOBAL**
+```{r}
+ggplot(all.results, aes(x = overlap, y= rho^2 )) + geom_jitter()
+ggplot(all.results, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y= rho^2 )) + geom_violin() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Spearman Rank Correlation")  + ggtitle("All latent factors increasingly correspond to\ncohort structure as sample overlap increases")
+
+ggplot(all.results, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y = rho^2, fill = pc)) + geom_violin() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Spearman Rank Correlation")  + ggtitle("All latent factors increasingly correspond to\ncohort structure as sample overlap increases")
+
+ggplot(all.results, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y= rho^2 )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Spearman Rank Correlation") + ggtitle("All latent factors increasingly correspond to\ncohort structure as sample overlap increases")
+```
+**PC-specific**
+```{r}
+ggplot(all.results, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y= rho^2,fill = as.factor(pc) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Spearman Rank Correlation") + ggtitle("Top latent factors increasingly correspond to\ncohort structure as sample overlap increases") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4))
+
+ggplot(all.results, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y= -log10(p),fill = as.factor(pc) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("-log10(p) of Spearman correlation") + geom_hline(yintercept = -log10(0.05), color = "red") +  ggtitle("Top latent factors increasingly correspond to\ncohort structure as sample overlap increases") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4)) + 
+  annotate(geom="text", x = 6.3, y = -log10(0.04), label = "p = 0.05", color = "red")
+```
+
+**Reconstruction of "original"**
+We treat the inital one as the "true" F and L
+PAUSE on this- didn't run correctly, only did partial. Okay though.
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+dir.null <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/null_matrix_spearman/"
+loadings.n <- list.files(dir.null, pattern = "*u.csv")
+factors.n <- list.files(dir.null, pattern = "v.csv")
+pve.n <- list.files(dir.null, pattern = "pve.c")
+plotFactorsBarplot(fread(paste0(dir.null, factors.n[1])), trait_names = paste0("F",1:6), title ="none")
+plot(scan(paste0(dir.null, pve.n[1]), what = character()))
+```
+```{r}
+null.loadings <- lapply(loadings.n, function(x) fread(paste0(dir.null,x)) %>% mutate("sim_id" = gsub(pattern=".u.csv", replacement = "",x = x)) %>% tidyr::separate(sim_id, into=c("sim_num", "overlap"), sep = "\\.", remove = TRUE))
+
+null.pve <- do.call("rbind", lapply(pve.n, function(x) fread(paste0(dir.null,x)) %>% mutate("sim_id" = gsub(pattern=".pve.csv", replacement = "",x = x)) %>% tidyr::separate(sim_id, into=c("sim_num", "overlap"), sep = "\\.", remove = TRUE) %>% mutate("pc"=1:6))) %>% mutate("perc_overlap" = round(as.numeric(overlap)/15000, digits = 3))
+
+```
+How does PVE change?
+
+```{r}
+
+ggplot(null.pve, aes(x = as.factor(perc_overlap), y=pve )) + geom_boxplot() + geom_smooth(method = "lm", se=FALSE, color="blue", aes(group="1")) + facet_wrap(~pc,scales = "free_y" ) + theme_classic(15) + xlab("Percent overlap") + ylab("PVE")
+```
+Which factors are "significant"?
+```{r}
+sig <- 1/6
+by.sig <- null.pve %>% filter(pve >= sig)
+  all.pve %>% filter(pve >= sig) %>% mutate("jid" = paste0(overlap, ":", pc)) %>% group_by(jid) %>% summarize("num" = n()) %>% print()
+
+```
+
+
+Let's look at factor reconstruction.....
+Does this make sense in the null setting, when there shouldn't be any "real" signal?
+
+```{r}
+
+```
+
+
+
+### 8/23....
+#Non-null version
+But that is exactly what we can do with the non-null version...
+Recall- 3 european populations (all same MAFs), generate 3 GWAS from each one (same 3 traits here- same distributions, same SNPs). Traits 1 and 2 are indepepndent, one is polygenic, one is oligogenic, and 3 is a sum of the first 2 (no true genetic effects.)
+```{r}
+dir <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/non_null_matrix/"
+loadings <- list.files(dir, pattern = "*u.csv")
+factors <- list.files(dir, pattern = "v.csv")
+pve <- list.files(dir, pattern = "pve.c")
+
+all.loadings <- lapply(loadings, function(x) fread(paste0(dir,x)) %>% mutate("sim_id" = gsub(pattern=".u.csv", replacement = "",x = x)) %>% tidyr::separate(sim_id, into=c("sim_num", "overlap"), sep = "\\.", remove = TRUE))
+cohort_overlap <- c(1,1000,5000,7500,10000,12500)
+```
+To assess this here, what I would like to do:
+1) How well do high-overlap PCs recaptiulate the "true" PC? How much do they diverge over time?
+  (do both the BEST match, as well as the ordered match)
+2) How closely do the factors correspond to the trait assignment?
+
+Need to calibrate: how many factors to include? My initial intuition is 3, but it seems like actually looking at these factors suggests something else.
+What I should do is look at PVE > 1/9, but I don't have that data for these runs. So looks like its re-run time.
+Let's also get a practical look.
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+full.tab <- NULL
+for(i in c(1,5,10,15,20,25,30))
+{
+  for(c in cohort_overlap)
+  {
+    if(c == 1)
+    {
+      loadings.og <- fread(paste0(dir,i,".",c,".u.csv"))
+      factors.og <-  fread(paste0(dir,i,".",c,".v.csv"))
+      print(plotFactorsBarplot(as.matrix(factors.og[,1:3]),trait_names = c("A1", "B1", "C1","A2", "B2", "C2","A3", "B3", "C3" ), title = "Putative true factors",
+                   cluster = FALSE, colors = c("A", "B", "C","A", "B", "C","A", "B", "C")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("Yellowstone", 3)))
+    } 
+
+  }
+}
+
+```
+Based on these, its pretty clear that just 2 factors make sense
+
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/src/evaluateSimR2.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+full.tab <- NULL
+for(i in 1:50)
+{
+  for(c in cohort_overlap)
+  {
+    if(c == 1)
+    {
+      loadings.og <- fread(paste0(dir,i,".",c,".u.csv"))
+      factors.og <-  fread(paste0(dir,i,".",c,".v.csv"))
+    } else
+    {
+      loadings.curr <- fread(paste0(dir,i,".",c,".u.csv"))
+      factors.curr <-  fread(paste0(dir,i,".",c,".v.csv"))
+      max.r2 <- evaluteFactorConstruction(as.matrix(loadings.og[,1:2]), as.matrix(factors.og[,1:2]), as.matrix(loadings.curr[,1:2]), as.matrix(factors.curr[,1:2]))
+      full.tab <- rbind(full.tab, c(i,c,max.r2))
+    }
+  }
+}
+
+plotFactors(as.matrix(factors.og[,1:2]),trait_names = c("A1", "B1", "C1","A2", "B2", "C2","A3", "B3", "C3" ), title = "Putative true factors")
+
+plotFactorsBarplot(as.matrix(factors.og[,1:2]),trait_names = c("A1", "B1", "C1","A2", "B2", "C2","A3", "B3", "C3" ), title = "Putative true factors", cluster = FALSE, colors = c(natparks.pals("Yellowstone", 3),natparks.pals("Yellowstone", 3), natparks.pals("Yellowstone", 3))) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("Yellowstone", 3))
+
+full.tab <- data.frame(full.tab) %>% set_colnames(c("iter", "overlap", "loading_R2", "factor_R2")) %>% print()
+```
+PLot that ish...
+```{r}
+l <- ggplot(full.tab, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y = loading_R2)) + geom_boxplot() + theme_classic(15) + 
+  xlab("Percent cohort overlap") + ylab(bquote("Loading"~R^2))
+
+f <- ggplot(full.tab, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y = factor_R2)) + geom_boxplot() + theme_classic(15) + 
+  xlab("Percent cohort overlap") + ylab(bquote("Factor"~R^2))
+cowplot::plot_grid(plotlist = list(l,f))
+```
+
+Want to try repeating with just the best sign orientation, no orientation with respect to order. This assumes the order is consistent.
+being a little lazy about it though, not dealing with sign issue...
+```{r}
+quick.ordered.r2 <- function(og, curr)
+{
+      signs <- sign(cor(as.matrix(og[,1:2]), as.matrix(curr[,1:2])))
+      cor(unlist(curr[,1:2]) * c(rep(signs[1,1], nrow(curr)),rep(signs[2,2], nrow(curr))), unlist(og[,1:2]))^2
+}
+
+full.tab.ordered <- NULL
+for(i in 1:50)
+{
+  for(c in cohort_overlap)
+  {
+    if(c == 1)
+    {
+      loadings.og <- fread(paste0(dir,i,".",c,".u.csv"))
+      factors.og <-  fread(paste0(dir,i,".",c,".v.csv"))
+    } else
+    {
+      loadings.curr <- fread(paste0(dir,i,".",c,".u.csv"))
+      factors.curr <-  fread(paste0(dir,i,".",c,".v.csv"))
+      l <- quick.ordered.r2(loadings.og, loadings.curr)
+      f <- quick.ordered.r2(factors.og, factors.curr)
+      full.tab.ordered <- rbind(full.tab.ordered, c(i,c,l,f))
+    }
+  }
+}
+full.tab.ordered <- data.frame(full.tab.ordered) %>% set_colnames(c("iter", "overlap", "loading_R2", "factor_R2")) %>% print()
+
+```
+PLot it. Should be no better than the previous:
+```{r}
+l <- ggplot(full.tab.ordered, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y = loading_R2)) + geom_boxplot() + theme_classic(15) + 
+  xlab("Percent cohort overlap") + ylab(bquote("Loading"~R^2))
+
+f <- ggplot(full.tab.ordered, aes(x = as.factor(round(overlap*100/15000, digits = 2)), y = factor_R2)) + geom_boxplot() + theme_classic(15) + 
+  xlab("Percent cohort overlap") + ylab(bquote("Factor"~R^2))
+cowplot::plot_grid(plotlist = list(l,f))
+```
+
+Thinking time.
+I suspect that the issue will not necessarily be in the 1st 2 effects, but on detecting spurious other "significant" effects.
+So the problem boils down not to detecing spurious effects, but how many "significant" factors will be detected.
+Hypothesis: Higher cohort overlap will manifest itself as spurious factors.
+This introduces an interesting problem: how do we prune those out? At what point do we designate a factor as "significant" or not?
+Maybe we need to do something like they do in Burren et al, which is...???
+Task: rerun with PVE data.
+# 8/25
+I now have the PVE data. Let's see what we can do.
+Simplest test: how does the distribution of PVE shift over time?
+```{r}
+all.pve <- do.call("rbind", lapply(pve, function(x) fread(paste0(dir,x)) %>% mutate("sim_id" = gsub(pattern=".pve.csv", replacement = "",x = x)) %>% tidyr::separate(sim_id, into=c("sim_num", "overlap"), sep = "\\.", remove = TRUE) %>% mutate("pc"=1:9))) %>% mutate("perc_overlap" = round(as.numeric(overlap)/15000, digits = 3))
+head(all.pve)
+```
+Take a look
+```{r}
+ggplot(all.pve %>% filter(pc==1), aes(x = as.factor(overlap), y=pve )) + geom_boxplot()
+ggplot(all.pve %>% filter(pc==2), aes(x = as.factor(overlap), y=pve )) + geom_boxplot()
+ggplot(all.pve %>% filter(pc==3), aes(x = as.factor(overlap), y=pve )) + geom_boxplot()
+ggplot(all.pve, aes(x = as.factor(perc_overlap), y=pve )) + geom_boxplot() + geom_smooth(method = "lm", se=FALSE, color="blue", aes(group="1")) + facet_wrap(~pc,scales = "free_y" ) + theme_classic(15) + xlab("Percent overlap") + ylab("PVE")
+```
+There does not appear to be a major trend in the PVE explained by each factor as it goes up.
+Looking at a significance test... classic one
+Question- do we get more significant factors when we have higher overlap, or not?
+Maybe I should be looking at this in the null case, huh.
+```{r}
+sig <- 1/9
+by.sig <- all.pve %>% filter(pve >= sig)
+  all.pve %>% filter(pve >= sig) %>% mutate("jid" = paste0(overlap, ":", pc)) %>% group_by(jid) %>% summarize("num" = n())
+
+```
+Well, it looks like my hypothesis was wrong.
+And it also looks like 2 is good enough the entire time.
+So case closed on this issue.
+
+More complex- use this to limit how many samples to include in the tests above...
+

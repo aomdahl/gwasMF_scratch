@@ -1,0 +1,295 @@
+---
+title: "fullSimulation_analysis"
+output: html_document
+date: '2022-08-28'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("./simulation_processing_tools.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/data/abattle4/aomdahl1/gene_utils/qqplot.R")
+library(data.table)
+library(magrittr)
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(NatParksPalettes)
+names.three <- c("A1", "B1", "C1","A2", "B2", "C2","A3", "B3", "C3" )
+names.two <- c("A1", "B1", "C1","A2", "B2", "C2")
+```
+
+# Begin with the totally null simulation
+```{r}
+true.null.path <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/null_matrix_spearman/true_null_z/"
+true.null.sims <- list.files(true.null.path,pattern = "*.gwas.csv")
+true.null.zscores <- readInGWAS(true.null.sims, true.null.path)
+true.null.pcs <- pcaOnAll(true.null.zscores, cols = "ALL")
+true.null.spearman <- spearmanVsPCs(true.null.sims,true.null.pcs, c(0,0,0,1,1,1),trait.names = c("A1", "B1","C1", "A2", "B2", "C2") )
+true.null.kendall <- spearmanVsPCs(true.null.sims,true.null.pcs, c(0,0,0,1,1,1),trait.names = c("A1", "B1","C1", "A2", "B2", "C2"),stat.m = "kendall")
+head(true.null.spearman)
+```
+*Basic Checks*: Are the z-scores distributed appropriately?
+It seems like everyone has a different qq plot, I am getting differet resutls on each one... hmm.
+```{r}
+library(cowplot)
+qqunif.plot(pnorm(all.z.scores[sample(1:length(all.z.scores),5000)]))
+length(all.z.scores)
+```
+This isn't actually as great as I wanted...
+A more plain qqplot
+```{r}
+rands <- sample(1:length(true.null.zscores), 6)
+par(mfrow=c(2,3))
+qqnorm(true.null.zscores[[rands[1]]]$A1, pch =19,main = "A1");qqline(true.null.zscores[[rands[1]]]$A1)
+qqnorm(true.null.zscores[[rands[2]]]$B1, pch =19,main = "B1");qqline(true.null.zscores[[rands[2]]]$B1)
+qqnorm(true.null.zscores[[rands[3]]]$C1, pch =19,main = "C1");qqline(true.null.zscores[[rands[3]]]$C1)
+qqnorm(true.null.zscores[[rands[4]]]$A2, pch =19,main = "A2");qqline(true.null.zscores[[rands[4]]]$A2)
+qqnorm(true.null.zscores[[rands[5]]]$B2, pch =19,main = "B2");qqline(true.null.zscores[[rands[5]]]$B2)
+qqnorm(true.null.zscores[[rands[6]]]$C2, pch =19,main = "C2");qqline(true.null.zscores[[rands[6]]]$C2)
+
+```
+How does correlation change as we go?
+
+*First plot*: Does increasing overlap result in structure more similar to factor assignment?
+```{r}
+#Spearman
+ggplot(true.null.spearman, aes(x = as.factor(round(as.numeric(overlap)*100/15000, digits = 2)), y= as.numeric(rho)^2,fill = as.factor(PC) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Spearman Rank Correlation") + ggtitle("Cohort overlap does not change correspondence\nof latent factors with source cohor") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4))
+
+ggplot(true.null.spearman, aes(x = as.factor(round(as.numeric(overlap)*100/15000, digits = 2)), y= as.numeric(pval),fill = as.factor(PC) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("p-value") + ggtitle("Cohort overlap does not change correspondence\nof latent factors with source cohort") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4)) + geom_hline(yintercept = 0.05, col = "red")
+
+#Kendall tau
+
+ggplot(true.null.kendall, aes(x = as.factor(round(as.numeric(overlap)*100/15000, digits = 2)), y= as.numeric(rho)^2,fill = as.factor(PC) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Squared Kendall Tau Rank Correlation") + ggtitle("Cohort overlap does not change correspondence\nof latent factors with source cohor") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4))
+
+ggplot(true.null.kendall, aes(x = as.factor(round(as.numeric(overlap)*100/15000, digits = 2)), y= as.numeric(pval),fill = as.factor(PC) )) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Kendall Tau p-value") + ggtitle("Cohort overlap does not change correspondence\nof latent factors with source cohort") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4)) + geom_hline(yintercept = 0.05, col = "red")
+```
+*Second plot*: How well do we reconstruct the "original" with increasing sample overlap?
+<Note - its not clear that this really makes sense here, but here we are...>
+
+*Third plot* Does the distribution of PCs change?
+```{r}
+pve.plots <- pveChangePlot(true.null.pcs, true.null.sims)
+pve.plots$df
+pve.plots$plot
+```
+
+```{r}
+joined.combs <- pairwiseR2DF(true.null.zscores,matrix(c(c("A1","A1", "B1", "A2", "A2", "B2"),c("B1","C1", "C1", "B2", "C2", "C2")), ncol = 2) )
+joined.combs
+ggplot(joined.combs, aes(y = as.numeric(R2), x = as.factor(round(as.numeric(overlap)/15000*100, digits = 3)), fill = as.factor(cohort))) + 
+  geom_boxplot() + theme_classic(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Source\npopulation") + 
+  ggtitle("R2 between GWAS studies as cohort overlap grows")
+```
+Chek: can we recaptiulate the studies?
+```{r}
+p.thresh <- qnorm(0.05/2,lower.tail = FALSE)
+true.null.sims[4]
+high.overlap <- true.null.zscores[[6]] 
+hist(pnorm(high.overlap$A1,lower.tail = FALSE)*2)
+hist(pnorm(high.overlap$B1, lower.tail = FALSE)*2)
+b1.filt <- which(pnorm(high.overlap$A1, lower.tail = FALSE)*2 < 0.1)#high.overlap$B1[abs(high.overlap$A1) > p.thresh]
+hist(pnorm(high.overlap$B1[b1.filt],lower.tail = FALSE)*2, breaks = 30)
+```
+Now, let's visualize some of the PCs. Its not clear what this means here
+```{r}
+plotFactorsBarplot(as.matrix(true.null.pcs[[1]]$v[,1:3]),trait_names = names.two, title = "Putative true factors",
+                   cluster = FALSE, colors = c("Cohort 1", "Cohort 1", "Cohort 1","Cohort 2","Cohort 2","Cohort 2")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("BryceCanyon", 3)) + ggtitle("No cohort overlap")
+plot(true.null.pcs[[1]]$d^2/sum(true.null.pcs[[1]]$d^2), ylab = "PVE", xlab = "SV #", pch =19)
+
+
+plotFactorsBarplot(as.matrix(true.null.pcs[[4]]$v[,1:3]),trait_names = names.two, title = "Putative true factors",
+                   cluster = FALSE, colors = c("Cohort 1", "Cohort 1", "Cohort 1","Cohort 2","Cohort 2","Cohort 2")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("BryceCanyon", 3)) + ggtitle("High Cohort Overlap (83%)")
+plot(true.null.pcs[[4]]$d^2/sum(true.null.pcs[[1]]$d^2), ylab = "PVE", xlab = "SV #", pch = 19)
+```
+No concept for what this means. What about that PVE plot?
+Can't just do it regular, the distributions are too small
+```{r}
+null.pve.plot.dat <- pveChangePlot(true.null.pcs, true.null.sims)
+null.pve.plot.dat$plot
+ggplot(null.pve.plot.dat$df, aes(x = as.factor(perc_overlap), y = pve, )) + geom_violin()
+```
+# Simulation with vertical plieotropy, but no causal variants
+This one has 70 replicates. Not bad.
+```{r}
+vp.null.path <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/null_matrix_spearman/full_zscores/"
+vp.null.sims <- list.files(vp.null.path,pattern = "*.gwas.csv")
+vp.null.zscores <- readInGWAS(vp.null.sims, vp.null.path)
+vp.null.pcs <- pcaOnAll(vp.null.zscores, cols = "ALL")
+vp.null.spearman <- spearmanVsPCs(vp.null.sims,vp.null.pcs, c(0,0,0,1,1,1),trait.names = c("A1", "B1","C1", "A2", "B2", "C2") )
+vp.null.kendall <- spearmanVsPCs(vp.null.sims,vp.null.pcs, c(0,0,0,1,1,1),trait.names = c("A1", "B1","C1", "A2", "B2", "C2"),stat.m = "kendall")
+```
+QQplot of z-scores...
+```{r}
+rands <- sample(1:length(vp.null.zscores), 6)
+par(mfrow=c(2,3))
+qqnorm(vp.null.zscores[[rands[1]]]$A1, pch =19,main = "A1");qqline(vp.null.zscores[[rands[1]]]$A1)
+qqnorm(vp.null.zscores[[rands[2]]]$B1, pch =19,main = "B1");qqline(vp.null.zscores[[rands[2]]]$B1)
+qqnorm(vp.null.zscores[[rands[3]]]$C1, pch =19,main = "C1");qqline(vp.null.zscores[[rands[3]]]$C1)
+qqnorm(vp.null.zscores[[rands[4]]]$A2, pch =19,main = "A2");qqline(vp.null.zscores[[rands[4]]]$A2)
+qqnorm(vp.null.zscores[[rands[5]]]$B2, pch =19,main = "B2");qqline(vp.null.zscores[[rands[5]]]$B2)
+qqnorm(vp.null.zscores[[rands[6]]]$C2, pch =19,main = "C2");qqline(vp.null.zscores[[rands[6]]]$C2)
+```
+Looks good.
+Pairwise correlation plot?
+```{r}
+c <- matrix(c(c("A1","A1", "B1", "A2", "A2", "B2"),c("B1","C1", "C1", "B2", "C2", "C2")), ncol = 2)
+vp.joined.combs <- pairwiseR2DF(vp.null.zscores, vp.null.sims,matrix(c(c("A1","A1", "B1", "A2", "A2", "B2"),c("B1","C1", "C1", "B2", "C2", "C2")), ncol = 2) )
+expected.corr <- filter(vp.joined.combs, GWAS_entries %in% c("A1:B1","A2:B2", "A1:C1","B1:C1", "A2:C2", "B2:C2"))
+expected.corr$GWAS_entries <- factor(expected.corr$GWAS_entries, levels = c("A1:B1","A2:B2", "A1:C1","B1:C1", "A2:C2", "B2:C2"))
+ggplot(expected.corr, aes(y = as.numeric(R2), x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(GWAS_entries))) + 
+  geom_boxplot() + theme_classic(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2 between GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+```
+This honestly surprises me. Alot.
+This cannot be right.
+Manual attempt
+```{r}
+vp.null.sims
+#look at 1-6
+lapply(1:6, function(x) cor(vp.null.zscores[[x]])[c])
+```
+
+
+Hopefully we see the expected trend...
+```{r}
+ggplot(vp.null.spearman, aes(x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), y = as.numeric(rho)^2, fill = PC)) + geom_boxplot()
+ggplot(vp.null.spearman, aes(x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), y = -log10(as.numeric(pval)), fill = PC)) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Spearman -log10(p)") + ggtitle("Cohort overlap does not change correspondence\nof latent factors with source cohort") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4)) + geom_hline(yintercept = -log10(0.05), col = "red")
+
+
+ggplot(vp.null.kendall, aes(x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), y = as.numeric(rho)^2, fill = PC)) + geom_boxplot()
+ggplot(vp.null.kendall, aes(x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), y = -log10(as.numeric(pval)), fill = PC)) + geom_boxplot() + theme_classic(15) + xlab("Percent sample overlap in GWAS ") + ylab("Kendall Tau -log10(p)") + ggtitle("Cohort overlap increases correspondence of top latent factors with cohort") + labs(fill = "Singular\nVector") + scale_fill_manual(values=natparks.pals("Yellowstone", 4)) + geom_hline(yintercept = -log10(0.05), col = "red")
+
+```
+What about that null signal plot, eh?
+```{r}
+head(vp.null.sims[[4]])
+vp.null.zscores[[4]]
+iter <- 415
+vp.null.sims[iter]
+pvals.vp <- data.frame(apply(abs(vp.null.zscores[[iter]]), 2, function(x) pnorm(-x)*2))
+hist(pvals.vp$A1)
+hist(pvals.vp$C1)
+a1.filt <- which(pvals.vp$A1 < 0.1)#high.overlap$B1[abs(high.overlap$A1) > p.thresh]
+hist(pvals.vp$C1[a1.filt], breaks = 15)
+ks.test(pvals.vp$C1, y="punif")
+ks.test(pvals.vp$C1[a1.filt], y="punif")
+head(vp.null.sims)
+
+
+ks.df.pval <- ksTestTab(vp.null.zscores,vp.null.sims, pairs = list(c("A1", "C1"), c("B1", "C1"), c("A2", "C2"), c("B2", "C2")), pair.names=c("A1:C1", "B1:C1", "A2:C2", "B2:C2"), pval = TRUE)
+ks.df.stat <- ksTestTab(vp.null.zscores,vp.null.sims, pairs = list(c("A1", "C1"), c("B1", "C1"), c("A2", "C2"), c("B2", "C2")), pair.names=c("A1:C1", "B1:C1", "A2:C2", "B2:C2"), pval = FALSE)
+```
+
+```{r}
+ggplot(ks.df.pval,aes(x = as.factor(round(overlap/15000*100, digits = 2)), y = value) ) + geom_boxplot() + theme_classic(15) + 
+  geom_hline(yintercept = 0.05, col = "red") + xlab("Cohort overlap") + ylab("p-value")
+
+ggplot(ks.df.stat,aes(x = as.factor(round(overlap/15000*100, digits = 2)), y = value) ) + geom_boxplot() + theme_classic(15) + xlab("Cohort overlap") + ylab("test stat")
+```
+Now, the nice PVE plot that we like to make....
+```{r}
+vp.pve.change <- pveChangePlot(vp.null.pcs, vp.null.sims)
+vp.pve.change$plot
+vp.pve.change$df
+```
+What do the barplots look like?
+```{r}
+vp.null.sims[[4]]
+plotFactorsBarplot(as.matrix(vp.null.pcs[[1]]$v[,1:3]),trait_names = names.two, title = "Putative true factors",
+                   cluster = FALSE, colors = c("Cohort 1", "Cohort 1", "Cohort 1","Cohort 2","Cohort 2","Cohort 2")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("BryceCanyon", 3)) + ggtitle("No cohort overlap")
+plot(vp.null.pcs[[1]]$d^2/sum(vp.null.pcs[[1]]$d^2), ylab = "PVE", xlab = "SV #", pch =19)
+
+
+plotFactorsBarplot(as.matrix(vp.null.pcs[[4]]$v[,1:3]),trait_names = names.two, title = "Putative true factors",
+                   cluster = FALSE, colors = c("Cohort 1", "Cohort 1", "Cohort 1","Cohort 2","Cohort 2","Cohort 2")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("BryceCanyon", 3)) + ggtitle("High Cohort Overlap (83%)")
+plot(vp.null.pcs[[4]]$d^2/sum(vp.null.pcs[[1]]$d^2), ylab = "PVE", xlab = "SV #", pch = 19)
+```
+
+# Now a real simulation,with a real trait.
+Opting for the poorer overlap ones because
+```{r}
+signal.simple.path <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/non_null_matrix/simulations/"
+signal.simple.sims <- list.files(signal.simple.path,pattern = "*.gwas.csv")
+signal.simple.zscores <- readInGWAS(signal.simple.sims, signal.simple.path)
+signal.simple.pcs <- pcaOnAll(signal.simple.zscores, cols = "ALL")
+```
+Simple visualization of the  factors
+```{r}
+head(signal.simple.sims)
+plotFactorsBarplot(as.matrix(signal.simple.pcs[[1]]$v[,1:3]),trait_names = names.three, title = "Putative true factors",
+                   cluster = FALSE, colors = c("A", "B", "C","A", "B", "C","A", "B", "C")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("Yellowstone", 3)) + 
+  ggtitle("No cohort overlap")
+plot(signal.simple.pcs[[1]]$d^2/sum(signal.simple.pcs[[1]]$d^2), ylab = "PVE", xlab = "SV #", pch =19)
+
+
+
+plotFactorsBarplot(as.matrix(signal.simple.pcs[[4]]$v[,1:3]),trait_names = names.three, title = "Putative true factors",
+                   cluster = FALSE, colors = c("A", "B", "C","A", "B", "C","A", "B", "C")) + labs(fill = "Trait") + scale_fill_manual(values=natparks.pals("Yellowstone", 3)) + 
+ggtitle("High Cohort Overlap (83%)")
+plot(signal.simple.pcs[[4]]$d^2/sum(signal.simple.pcs[[4]]$d^2), ylab = "PVE", xlab = "SV #", pch = 19)
+#option- do with heatmap
+plotFactors(as.matrix(signal.simple.pcs[[1]]$v[,1:3]),trait_names = names.three, title = "Putative true factors",
+                   cluster = FALSE, colors = c("#0067A2","#0067A2","#0067A2","#DFCB91","#DFCB91","#DFCB91","#CB7223","#CB7223","#CB7223"))
+plotFactors(as.matrix(signal.simple.pcs[[4]]$v[,1:3]),trait_names = names.three, title = "Estimate",
+                   cluster = FALSE, colors = c("#0067A2","#0067A2","#0067A2","#DFCB91","#DFCB91","#DFCB91","#CB7223","#CB7223","#CB7223"))
+```
+
+Okay, but do we see spurious relatedness?
+```{r}
+c <- matrix(c(c("A1","A1", "B1", "A2", "A2", "B2","A3", "A3", "B3"),c("B1","C1", "C1", "B2", "C2", "C2","B3", "C3", "C3")), ncol = 2)
+signal.simple.joined.combs <- pairwiseR2DF(signal.simple.zscores, signal.simple.sims,combs = c)
+expected.corr <- filter(signal.simple.joined.combs, GWAS_entries %in% c("A1:B1","A2:B2", "A1:C1","B1:C1", "A2:C2", "B2:C2","A3:C3", "B3:C3", "A3:B3")) 
+expected.corr$relt <- unlist(lapply(str_extract_all(expected.corr$GWAS_entries, "[ABCD]"), function(x) paste0(x[1], ":", x[2])))
+
+ggplot(expected.corr, aes(y = as.numeric(R2), x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(relt))) + 
+  geom_boxplot() + theme_minimal(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2 between GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+```
+QUESTION- does this pattern affect both causal SNPs and non-causal SNPs, or is it just driven by one?
+SNPS 1-225 are truly causal. Run again on these subsets.
+```{r}
+causal.subset.simple <- pairwiseR2DF(lapply(signal.simple.zscores, function(x) x[1:225,]), signal.simple.sims,combs = c)
+causal.subset.simple$relt <- sapply(causal.subset.simple$GWAS_entries, function(x) paste0(str_extract_all(x, "[ABCD]")[[1]], collapse = ":"))
+
+noncausal.subset.simple <- pairwiseR2DF(lapply(signal.simple.zscores, function(x) x[226:nrow(x),]), signal.simple.sims,combs = c)
+noncausal.subset.simple$relt <- sapply(noncausal.subset.simple$GWAS_entries, function(x) paste0(str_extract_all(x, "[ABCD]")[[1]], collapse = ":"))
+```
+Plot it:
+```{r}
+ggplot(causal.subset.simple, aes(y = as.numeric(R2), x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(relt))) + 
+  geom_boxplot() + theme_minimal(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2 between causal SNPS in GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+
+
+ggplot(noncausal.subset.simple, aes(y = as.numeric(R2), x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(relt))) + 
+  geom_boxplot() + theme_minimal(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2 between non-causal SNPs in GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+
+
+#what is the effect per locus?
+ggplot(causal.subset.simple, aes(y = as.numeric(R2)/225, x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(relt))) + 
+  geom_boxplot() + theme_minimal(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2/SNP between causal SNPS in GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+
+
+ggplot(noncausal.subset.simple, aes(y = as.numeric(R2)/775, x = as.factor(round(as.numeric(overlap)/15000*100, digits = 2)), fill = as.factor(relt))) + 
+  geom_boxplot() + theme_minimal(15) + ylab(bquote("Pairwise"~R^2)) + xlab("Percent Overlap (%)") + labs(fill = "Trait Pairs") + 
+  ggtitle("R2/SNP between non-causal SNPs in GWAS studies as cohort overlap grows") + scale_fill_manual(values=natparks.pals("Yellowstone", 6))
+```
+Next step here- look at these with an LMM, or some kind of variance-partitioning test.
+ANOVA Much?
+lol.
+Stop and think. What I am wondering is- do causal SNPs explain a greater proportion of the variance
+
+```{r}
+r2.work <- testFactorizationPerformance(signal.simple.sims,signal.simple.pcs,npcs=2)
+head(r2.work)
+f <- ggplot(r2.work, aes(x = as.factor(round(overlap/150, digits = 2)), y=as.numeric(F_R2) )) + geom_boxplot() + theme_minimal(17) + 
+  xlab("Percent Cohort Overlap") + ylab(bquote("Factor"~R^2))
+
+l <- ggplot(r2.work, aes(x = as.factor(round(overlap/150, digits = 2)), y=as.numeric(L_R2) )) + geom_boxplot() + theme_minimal(17) + 
+  xlab("Percent Cohort Overlap") + ylab(bquote("Loading"~R^2))
+plot_grid(plotlist = list(f,l))
+```
+Now- the whitening try....
