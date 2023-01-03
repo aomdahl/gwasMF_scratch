@@ -18,8 +18,8 @@ ml anaconda
     MNAMES=`grep "test_methods" $YAML | cut -f 2 -d "," | sed 's/:/,/g'`
     K=`grep "K" $YAML | cut -f 2 -d ","`
     for i in $(eval echo "{1..$NITER}"); do
-        echo "Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R --se_data ${ODIR}/sim${i}.std_error.txt --beta_data ${ODIR}/sim${i}.effect_sizes.txt --seed ${i} --outdir ${ODIR}/factorization_results/sim${i}. --only_run $MNAMES --K $K --no_plots --C ${ODIR}/sim${i}.c_matrix.txt"
-    done
+        Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R --se_data ${ODIR}/sim${i}.std_error.txt --beta_data ${ODIR}/sim${i}.effect_sizes.txt --seed ${i} --outdir ${ODIR}/factorization_results/sim${i}. --only_run $MNAMES --K $K --no_plots 
+done
 
 #assess the performance of this...
 Rscript src/evaluateSims.R --output ${ODIR}/factorization_results/summary --plot --yaml  $YAML --sim_path ${ODIR}/factorization_results/ -w
