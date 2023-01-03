@@ -22,6 +22,6 @@ ml anaconda
 done
 
 #assess the performance of this...
-Rscript src/evaluateSims.R --output ${ODIR}/factorization_results/summary --plot --yaml  $YAML --sim_path ${ODIR}/factorization_results/ -w
+Rscript src/evaluateSims.R --output ${ODIR}/factorization_results/summary --plot --yaml  $YAML --sim_path ${ODIR}/factorization_results/ 
 
 
