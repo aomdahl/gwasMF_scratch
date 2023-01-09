@@ -40,6 +40,7 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
 	  V <- V[,-1]
 	  U <- U[,-1]
   }
+
   #its possible the matrices are different sizes, depending on which stage of the fitting they get passed in. Correct for this:
   #aligned <- AlignFactorMatrices(X,W,U,V); U <- aligned$U; V<- aligned$V
   k = ncol(U)
@@ -158,12 +159,9 @@ FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
   return(list("fits" = f.fits, "BIC"=bics))
 }
 
-
-
-DropEmptyColumnsPipe <- function(lin)
+DropEmptyColumns <- function(matin)
 {
-  ret.lin <- lin
-  c <- colSums(lin[[1]] != 0)
+  c <- colSums(matin != 0)
   if(any(c == 0))
   {
     print("dropping")
@@ -171,11 +169,19 @@ DropEmptyColumnsPipe <- function(lin)
     if(1 %in% drops){
       message("BEWARE- 1st column dropping???")
     }
-    ret.lin[[1]] <- ret.lin[[1]][,-drops]
+    return(    matin[,-drops])
   }
+  return(matin)
+}
+
+DropEmptyColumnsPipe <- function(lin)
+{
+  ret.lin <- lin
+  ret.lin[[1]] <- DropEmptyColumns(lin[[1]])
   return(ret.lin)
   
 }
+
 #Recalculate the sparsity params for U (?)
 #burn.in.sparsity <- defineSparsitySpace(X, W, option, burn.in = 5)
 #consider.parsm <- SelectCoarseSparsityParams(burn.in.sparsity, 5)
@@ -188,6 +194,7 @@ FitUs <- function(X, W, initV, alphas,option, weighted = FALSE)
     a <- alphas[[i]]
     option$alpha1 <- a
     l.fits[[i]] <- fit_L(X, W, initV, option) #%>% DropEmptyColumnsPipe(.)
+
   }
   #TODO: recode this, so don't need the logic statement. Downstream should be able to handle it
   if(weighted) {
@@ -290,8 +297,9 @@ quickSort <- function(tab, col = 1)
     {
       optimal.index <- which.min(bic)
     }
-    optimal.matrix <- fit.data$fits[[optimal.index]]
-  return(list("m" = optimal.matrix, "p" = params[optimal.index]))
+    optimal.matrix <- DropEmptyColumns(fit.data$fits[[optimal.index]][[1]])
+    #SELECT NON-ZERO entries
+  return(list("m" = optimal.matrix, "p" = params[[optimal.index]], "index" = optimal.index))
   }
 
     
@@ -308,13 +316,13 @@ message("Repeating number of iterations:")
   #things to record
   rec.dat <- list("alphas"=c(), "lambdas"=c(), "bic.a" = c(), "bic.l"=c(), "obj"=c(), 
                   "v.sparsity" = c(), "u.sparsity"=c(), "iter"=c(), "sd.sparsity.u" = c(), "sd.sparsity.v" = c(),
-                  "alpha.s" = c(), "lambda.s" = c(), "Ks" = c(option$K))
+                  "alpha.s" = c(0), "lambda.s" = c(), "Ks" = c(option$K))
   #kick things off
   lambdas <- consider.params$lambdas
-  v.fits <- FitVs(X,W, burn.in.sparsity$U_burn,lambdas,option, weighted = TRUE)
+  v.fits <- FitVs(X,W, burn.in.sparsity$U_burn,lambdas,option, weighted = TRUE) #also gets the bic
   optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
-  optimal.v <- optimal.iter.dat$m$V
-  rec.dat$alpha.s <- c(rec.dat$alpha.s,optimal.iter.dat$p)
+  optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
+  rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
   #update the parameters for U based on the new V
   u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option)
   alphas <- SelectCoarseSparsityParamsGlobal(u.sparsity, n.points = 15) #using this because first time.
@@ -329,20 +337,19 @@ message("Repeating number of iterations:")
   rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
   #plotFactors(apply(optimal.v, 2, function(x) x / norm(x, "2")), trait_names = names, title = "best")
   NOT.CONVERGED <- TRUE; i = 1
-  while(i < max.iter & NOT.CONVERGED)
-  {
+  while(i < max.iter & NOT.CONVERGED){
     #now fit U:
 	  print(i)
     u.fits <- FitUs(X, W, optimal.v, alphas,option, weighted = TRUE)
     #record relevant info- always do 
     rec.dat$alphas <- c(rec.dat$alphas, alphas);  rec.dat$bic.a <- c(rec.dat$bic.a,u.fits$BIC) 
-    
     #Pick the best choice from here, using threshold.
     optimal.iter.dat <- selectOptimalInstance(u.fits, u.fits$BIC, alphas)
-    optimal.u <- optimal.iter.dat$m$U
-    rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
+    optimal.u <- optimal.iter.dat$m
+    rec.dat$alpha.s <- c(rec.dat$alpha.s,optimal.iter.dat$p)
 
     rec.dat$U_sparsities = c(rec.dat$U_sparsities, matrixSparsity(optimal.u, ncol(X)));
+
     
     #now get the new lambdas for V:
     v.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.u),"V", option) #Is this what we want?
@@ -353,8 +360,8 @@ message("Repeating number of iterations:")
     v.fits <- FitVs(X,W, optimal.u,lambdas.new,option, weighted = TRUE)
     #Pick the best choice from here, using threshold.
     optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas.new)
-    optimal.v <- optimal.iter.dat$m$V
-    rec.dat$alpha.s <- c(rec.dat$alpha.s,optimal.iter.dat$p)
+    optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
+    rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
     
     #Record new data
     rec.dat$V_sparsities = c(rec.dat$V_sparsities, matrixSparsity(optimal.v, ncol(X)));
@@ -364,22 +371,28 @@ message("Repeating number of iterations:")
     u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option)
     alphas <- ProposeNewSparsityParams(u.fits$BIC, alphas,n.points = 7)
     lambdas <- lambdas.new
-    #Do the drop check.
-    
+
     rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
     #Check convergence
-    NOT.CONVERGED <- checkConvergenceBICSearch(rec.dat)
-    
-  }
-  return(list("optimal.v" = optimal.v, "v.fits"=v.fits, "u.fits" = u.fits,"rec.dat" = rec.dat, "alphas"=alphas, "lambdas"=lambdas, "options" = option))
-}
+    if(i > min.iter){
+      NOT.CONVERGED <- !checkConvergenceBICSearch(i, rec.dat) #returns true if convergence is reached
+    }
 
+    i = i+1
+  }
+  #TODO: add in drops for pve
+  #This returns all the data from the last iteration
+  #TODO: clean this up. This is very confusing.
+  return(list("optimal.v" = optimal.v, "pve" = v.fits$fits[[optimal.iter.dat$index]]$pve,"resid.var" = u.fits$resid.var,
+              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[i], "alpha"=rec.dat$alpha.s[i], "options" = option))
+}
 checkConvergenceBICSearch <- function(iter, record.data, conv.thresh = 1e-6)
 {
   #K check:
-  queries <- c(record.data$Ks[[iter]] == record.data$Ks[[iter-1]],
-  abs(record.data$alpha.s[[iter]] - record.data$alpha.s[[iter-1]]) < conv.thresh,
-  abs(record.data$lambda.s[[iter]] - record.data$lambda.s[[iter-1]]) < conv.thresh)
+  index = iter + 1
+  queries <- c(record.data$Ks[[index]] == record.data$Ks[[index-1]],
+  abs(record.data$alpha.s[[index]] - record.data$alpha.s[[index-1]]) < conv.thresh,
+  abs(record.data$lambda.s[[index]] - record.data$lambda.s[[index-1]]) < conv.thresh)
   if(all(queries))
   {
     return(TRUE)
@@ -437,7 +450,6 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   source(paste0(dir, 'read_in_tools.R'))
   source(paste0(dir, 'regressionUtils.R'))
   source(paste0(dir, 'pve.R'))
-  
   option <- readInSettings(args)
   print(option$fixed_ubiq)
   option$swap <- FALSE
@@ -507,6 +519,7 @@ UdlerArgs <- function()
   args$uncertainty <- "/scratch16/abattle4/ashton/snp_networks/scratch/udler_td2/processed_data/se_matrix.tsv"
   args$fixed_first <- TRUE
   args$genomic_correction <- ""
+
   args$nfactors <- 57
   args$calibrate_k <- FALSE
   args$trait_names = ""
