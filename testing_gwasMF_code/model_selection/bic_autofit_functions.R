@@ -384,7 +384,7 @@ message("Repeating number of iterations:")
   #This returns all the data from the last iteration
   #TODO: clean this up. This is very confusing.
   return(list("optimal.v" = optimal.v, "pve" = v.fits$fits[[optimal.iter.dat$index]]$pve,"resid.var" = u.fits$resid.var,
-              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[i], "alpha"=rec.dat$alpha.s[i], "options" = option))
+              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[i], "alpha"=rec.dat$alpha.s[i], "options" = option, "K"= ncol(optimal.v)))
 }
 checkConvergenceBICSearch <- function(iter, record.data, conv.thresh = 1e-6)
 {
@@ -417,6 +417,7 @@ source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/plot
 title <- paste0("A=",reg.run$autofit_alpha[1], "Lambda=",reg.run$autofit_lambda[1]) 
 plotFactors(apply(reg.run$V, 2, function(x) x/norm(x, "2")), trait_names = o$rownames, title = title)
 ggsave(paste0(option$out,opath, ".factors.png"))
+return(reg.run)
 }
 
 #runFullPipeClean(args$prefix,args, gwasmfiter =args$bic_adj)
@@ -451,7 +452,6 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   source(paste0(dir, 'regressionUtils.R'))
   source(paste0(dir, 'pve.R'))
   option <- readInSettings(args)
-  print(option$fixed_ubiq)
   option$swap <- FALSE
   option$alpha1 <- 1e-10
   option$lambda1 <- 1e-10
@@ -465,15 +465,20 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   hp <- readInParamterSpace(args)
   input.dat <- readInData(args)
   X <- input.dat$X; W <- input.dat$W; all_ids <- input.dat$ids; names <- input.dat$trait_names
-  
+  if(option$K == 0)
+  {
+    message('Iniitializing X to the max')
+    option$K <- ncol(X)
+  }
   #Run the bic thing...
   bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
   save(bic.dat, file = paste0(option$out,opath, "BIC_iter.Rdata" ))
   option <- bic.dat$options
-  option$alpha1 <- bic.dat$alphas[1] #Best from the previous. Seems to have converd..
-  option$lambda1 <- bic.dat$lambdas[which.min(bic.dat$v.fits$BIC)]
-  option$iter <- 5
-  gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
+  option$K <- bic.dat$K
+  option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
+  option$lambda1 <- bic.dat$lambda
+  #option$iter <- 5
+  ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
   
 }
 
@@ -543,10 +548,9 @@ UdlerArgs <- function()
   args$MAP_autofit <- -1
   args$auto_grid_search <- FALSE
   args$regression_method = "penalized"
-  args$converged_obj_change <- 0.001
+  args$converged_obj_change <- 0.05 #this is the percent change from one to the next.
   args$prefix <- ""
   args
 }
-
 
 
