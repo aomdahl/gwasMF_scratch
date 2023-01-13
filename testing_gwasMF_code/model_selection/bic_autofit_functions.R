@@ -73,14 +73,16 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   }
   if(FALSE)
   {
-    message(df)
-    message(norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
-	  ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d*k)/(n*d))*df
+    ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d*k)/(n*d))*df
   }else
   {
-
+    message("second term ", (log(n*d)/(n*d))*df)
+    message("First term ", norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
   ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d)/(n*d))*df
+  message("Total ", ret)
+  message(". ")
   }
+  
   return(ret)
 }
 
@@ -98,10 +100,14 @@ AltVar <- function(X,U)
   var(resids)
 }
 
-
+#WeightedAltVar(t(X),t(W),initV)
 #Determine the variance using OLS. Basically, this is the "best" residual variance we can get.
 WeightedAltVar <- function(X,W,U)
 {
+  n <- nrow(X) * ncol(X)
+  p <- ncol(U) * ncol(X)
+  message("N:", n)
+  message("P:", p)
   resids <- c()
   for(col in 1:ncol(X))
   {
@@ -111,7 +117,10 @@ WeightedAltVar <- function(X,W,U)
     fit <- lm(wx~wu)
     resids <- c(resids, resid(fit))
   }
-  r <- var(resids)
+  #r <- var(resids)
+  # residual variance is 1/(n-p) e^Te
+  r = (1/(n-p))*sum(resids * resids)
+  #This is equivilant to all ther terms being put into one matrix
   if( r == 0)
   {
     message("No residual variance with current fit.")
@@ -327,7 +336,15 @@ quickSort <- function(tab, col = 1)
       optimal.index <- oneSDRule(bic,params)
     } else
     {
+      best.score <- min(bic)
       optimal.index <- which.min(bic)
+      if(length(which(bic == best.score)) > 1)
+      {
+        optimal.index <- which.min(bic)
+        message("many paaramters yield the same score- choose the highest?")
+        best.param <- max(params[which(bic == best.score)]) #get the max of which parameters correspond to the lowest bic score
+        optimal.index <- which(params == best.param)
+      }
     }
     optimal.matrix <- DropEmptyColumns(fit.data$fits[[optimal.index]][[1]])
     #SELECT NON-ZERO entries
@@ -346,23 +363,13 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
   #things to record
   rec.dat <- list("alphas"=c(), "lambdas"=c(), "bic.a" = c(), "bic.l"=c(), "obj"=c(), 
                   "v.sparsity" = c(), "u.sparsity"=c(), "iter"=c(), "sd.sparsity.u" = c(), "sd.sparsity.v" = c(),
-                  "alpha.s" = c(0), "lambda.s" = c(), "Ks" = c(), "Vs" = list())
+                  "alpha.s" = c(), "lambda.s" = c(), "Ks" = c(), "Vs" = list())
   #kick things off
   lambdas <- consider.params$lambdas
-  V.start <- initV(Xint,Wint, new.options)
-  u.fits <- FitUs(X, W, V.start, alphas,option, weighted = TRUE)
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  alphas <- consider.params$alphas
+if(FALSE) #Old way..
+{
   v.fits <- FitVs(X,W, burn.in.sparsity$U_burn,lambdas,option, weighted = TRUE) #also gets the bic
-
   optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
   optimal.v <- optimal.iter.dat$m
   #optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
@@ -380,6 +387,10 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
   rec.dat$V_sparsities = c(rec.dat$V_sparsities, matrixSparsity(optimal.v, ncol(X)));
   rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
   #plotFactors(apply(optimal.v, 2, function(x) x / norm(x, "2")), trait_names = names, title = "best")
+  
+}
+
+  optimal.v <- initV(X,W, option)
   NOT.CONVERGED <- TRUE; i = 1
   while(i < max.iter & NOT.CONVERGED){
     #now fit U:
@@ -396,39 +407,46 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
     rec.dat$U_sparsities = c(rec.dat$U_sparsities, matrixSparsity(optimal.u, ncol(X)));
     
     #now get the new lambdas for V:
-    v.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.u),"V", option) #Is this what we want?
+    #Is this what we want?
+    if(i == 1)
+    {
+      v.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.u),"V", option)
+      lambdas <- SelectCoarseSparsityParamsGlobal(v.sparsity, n.points = 15)
+    }else
+    {
+      lambdas <- ProposeNewSparsityParams(v.fits$BIC, lambdas, n.points = 7)
+    }
     rec.dat$sd.sparsity.v <- c(rec.dat$sd.sparsity.v,sd(v.sparsity))
-    lambdas.new <- ProposeNewSparsityParams(v.fits$BIC, lambdas, n.points = 7)
-    
+   
     #Now fit V!
-    v.fits <- FitVs(X,W, optimal.u,lambdas.new,option, weighted = TRUE)
+    v.fits <- FitVs(X,W, optimal.u,lambdas,option, weighted = TRUE)
     #Pick the best choice from here, using threshold.
-    optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas.new)
+    optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
     optimal.v <- optimal.iter.dat$m
     #optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
     rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
     
     #Record new data
     rec.dat$V_sparsities = c(rec.dat$V_sparsities, matrixSparsity(optimal.v, ncol(X)));
-    rec.dat$lambdas <- c(rec.dat$lambdas, lambdas.new);  rec.dat$bic.l <- c(rec.dat$bic.l,v.fits$BIC) 
+    rec.dat$lambdas <- c(rec.dat$lambdas, lambdas);  rec.dat$bic.l <- c(rec.dat$bic.l,v.fits$BIC) 
 
     #update the parameters for U based on the new V 
     u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option) #not-needed
     alphas <- ProposeNewSparsityParams(u.fits$BIC, alphas,n.points = 7)
-    lambdas <- lambdas.new
-
     rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
     #Check convergence
     if(i > min.iter){
+      
       NOT.CONVERGED <- !checkConvergenceBICSearch(i, rec.dat) #returns true if convergence is reached
     }
     i = i+1
   }
+  final.index <- i-1
   #TODO: add in drops for pve
   #This returns all the data from the last iteration
   #TODO: clean this up. This is very confusing.
   return(list("optimal.v" = optimal.v,"resid.var" = u.fits$resid_var,
-              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[i], "alpha"=rec.dat$alpha.s[i], "options" = option, "K"= ncol(optimal.v)))
+              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[final.index], "alpha"=rec.dat$alpha.s[final.index], "options" = option, "K"= ncol(optimal.v)))
 }
 
 #Convergence criteria for the BIC ssearch
@@ -437,10 +455,11 @@ checkConvergenceBICSearch <- function(iter, record.data, conv.perc.thresh = 0.05
 {
   #K check:
   #
-  index = iter + 1
+  index = iter
   queries <- c(record.data$Ks[[index]] == record.data$Ks[[index-1]],
   abs(record.data$alpha.s[[index]] - record.data$alpha.s[[index-1]])/record.data$alpha.s[[index-1]] < conv.perc.thresh,
-  abs(record.data$lambda.s[[index]] - record.data$lambda.s[[index-1]])/record.data$lambda.s[[index-1]] < conv.perc.thresh)
+  abs(record.data$lambda.s[[index]] - record.data$lambda.s[[index-1]])/record.data$lambda.s[[index-1]] < conv.perc.thresh
+  )
   return(all(queries))
 }
 #TODO: try with random, and with non-random.
@@ -481,7 +500,7 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   dir ="/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/"
   source(paste0(dir, "fit_F.R"))
   #source(paste0(dir, "update_FL.R"))
-  source(paste0(dir, "fit_L.R"))
+  #source(paste0(dir, "fit_L.R"))
   source(paste0(dir, "plot_functions.R"))
   source(paste0(dir, 'compute_obj.R'))
   source(paste0(dir, 'buildFactorMatrices.R'))
@@ -506,8 +525,8 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   X <- input.dat$X; W <- input.dat$W; all_ids <- input.dat$ids; names <- input.dat$trait_names
   if(option$K == 0)
   {
-    message('Iniitializing X to the max')
-    option$K <- ncol(X)
+    message('Iniitializing X to the max -1')
+    option$K <- ncol(X)-1
   }
   #Run the bic thing...
   bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
