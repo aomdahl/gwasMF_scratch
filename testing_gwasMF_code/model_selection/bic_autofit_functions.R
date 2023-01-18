@@ -1,8 +1,29 @@
 #Temp script with functions for running the BIC-based fitting approach.
-#Estimator of the L1 degrees of freedom
-MatrixDFV <- function(mat_in){
 
-  sum(mat_in == 0)
+
+reportSimilarities <- function(f, s, t)
+{
+  print("Alphas:")
+  print(c(f$alpha, s$alpha, t$alpha))
+  print("Lambdas:")
+  print(c(f$lambda, s$lambda, t$lambda))
+  
+  print("Ks:")
+  print(c(f$K, s$K, t$K))
+}
+
+
+#Estimator of the L1 degrees of freedom
+MatrixDFV <- function(mat_in, fixed_first = FALSE){
+  print("RED ALERT- USING THE BAD V")
+  if(fixed_first)
+  {
+    sum(mat_in[,-1] == 0)
+  }else
+  {
+    sum(mat_in == 0)
+  }
+ 
 }
 MatrixDFU <- function(mat_in,fixed_first = FALSE)
 {
@@ -20,11 +41,11 @@ MatrixDFU <- function(mat_in,fixed_first = FALSE)
   #This seems like it would favor sparsity?
 }
 
-
+#CalcMatrixBIC(X,W,U,V,df=df,fixed_first = fixed_first,...)
 CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_first = FALSE)
 {
   #Calculated based on my understanding of what is given by equations 12 and 7 in Lee et al 2010
-  #We assume U is known, V is our predictor here
+  #We assume U (First term) is known/fixed, V is our predictor we evaluate here
   #11/17 UPDATE: df is calculated for U and V!
   
   n=nrow(X)
@@ -44,6 +65,7 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   k = ncol(U)
   if(!weighted)
   {
+    message("not weighting here..")
     W <- matrix(1, nrow = nrow(X), ncol = ncol(X))
   }
   if(ev =="std" )
@@ -59,13 +81,11 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
     errvar <- WeightedAltVar(X,W,U)
   }
   else # anuumber gets passed in.
-  {
-    errvar = ev
-    message(ev)
-  }
-  
-  #This seems to be dr
-  #I'm pretty sure its not.
+  { #message("in correct place...")
+    #print(ev)
+    errvar = ev 
+    }
+
   if(is.null(df))
   {
 	  message("something went wrong,..")
@@ -77,10 +97,14 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   }else
   {
     message("second term ", (log(n*d)/(n*d))*df)
+    if(df == 0)
+    {
+      message("Stop here plz.")
+    }
     message("First term ", norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
   ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d)/(n*d))*df
   message("Total ", ret)
-  message(". ")
+ message(". ")
   }
   
   return(ret)
@@ -102,29 +126,56 @@ AltVar <- function(X,U)
 
 #WeightedAltVar(t(X),t(W),initV)
 #Determine the variance using OLS. Basically, this is the "best" residual variance we can get.
+
+WeightColumnHelper <- function(w,x,U)
+{
+  return(list("wx"=w*x, "wu" = w*U))
+}
+
+RegressOutMatrixComponent <- function(X,W,mc)
+{
+  ret <- matrix(NA, nrow = nrow(X), ncol = ncol(X))
+  for(col in 1:ncol(X))
+  {
+    w <- unlist(W[,col])
+    wx <- (w*X[,col])
+    wu <- w * mc
+    fit <- lm(wx~wu + 0)
+    fitted <- mc*coef(fit)
+    ret[,col] <- X[,col] - fitted
+  }
+  return(ret)
+}
+
 WeightedAltVar <- function(X,W,U)
 {
   n <- nrow(X) * ncol(X)
   p <- ncol(U) * ncol(X)
-  message("N:", n)
-  message("P:", p)
+  #message("N:", n)
+  #message("P:", p)
   resids <- c()
   for(col in 1:ncol(X))
   {
     w <- unlist(W[,col])
     wx <- (w*X[,col])
     wu <- w * U
-    fit <- lm(wx~wu)
+    fit <- lm(wx~wu + 0)
     resids <- c(resids, resid(fit))
   }
   #r <- var(resids)
   # residual variance is 1/(n-p) e^Te
+  r = 0
   r = (1/(n-p))*sum(resids * resids)
   #This is equivilant to all ther terms being put into one matrix
-  if( r == 0)
+  if((sum(resids * resids) == 0))
   {
     message("No residual variance with current fit.")
+    print(r)
     message("Be wary here- not clear what to do. Going to just approximate to small number")
+    message("This is strong evidence of overfitting- we recommend dropping current factors.")
+    message("Current U dims:")
+    print(dim(U))
+    #this would be easy enough to do, if we had everything in "PVE" order.
     return(1e-10)
   }
   return(r)
@@ -134,9 +185,11 @@ WeightedAltVar <- function(X,W,U)
 CalcVBIC <- function(X,W,U,V,fixed_first=FALSE,...)
 {
   #Looking at the effect of a small change..
+  #
   #CalcMatrixBIC(X,W,U,V,df=MatrixDFV(V),...) #here, we look at sparsity, not number of non-zero coefs.
+  #df = MatrixDFV(V, fixed_first = fixed_first)
   df=MatrixDFU(V,fixed_first=fixed_first)
-  print(paste0("DF is ", df))
+  #print(paste0("DF is ", df))
   CalcMatrixBIC(X,W,U,V,df=df,fixed_first = fixed_first,...)
 }
 CalcUBIC <- function(X,W,U,V,...)
@@ -157,16 +210,31 @@ FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
     option$lambda1 <- l
     f.fits[[i]] <- fit_F(X, W, initU, option, formerF = NULL) #%>% DropEmptyColumnsPipe(.)
   }
-  #update: doing the weighted
-  message("Checking the weighting")
    #For the BIC calculation, we don't  want to include dense factor 1....
-  if(option$fixed_ubiq)
-  {
-        message("please be sure to remove F1")
-  }
+  #if(option$fixed_ubiq)
+  #{
+  #      message("please be sure to remove F1")
+  #}
+
+  
+  
   if(weighted) {
     #message("Weighted way...")
-    av <- WeightedAltVar(X,W,initU)
+    if(option$fixed_ubiq)
+    {
+      #If we are down to just 1 column, don't calculate BICs, there is no point anymore.
+      if(ncol(initU) == 1)
+      {
+        #If we have fixed_ubiq and down to 1 column, it doesn't matter 
+        return(list("fits" = f.fits, "BIC"=rep(0,length(lambdas))))
+      }
+      Xr <- RegressOutMatrixComponent(X,W,initU[,1])
+      av <- WeightedAltVar(Xr,W,as.matrix(initU[,-1]))
+    }else
+    {
+      av <- WeightedAltVar(X,W,initU)
+    }
+    
     bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU,x$V, ev=av, weighted = TRUE, fixed_first = option$fixed_ubiq)))
   }else{
     av <- AltVar(X,initU)
@@ -182,15 +250,16 @@ FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
 
 DropEmptyColumns <- function(matin)
 {
+  matin <- as.matrix(matin)
   c <- colSums(matin != 0)
   if(any(c == 0))
   {
-    print("dropping")
+    #print("dropping")
     drops <- which(c == 0)
     if(1 %in% drops){
       message("BEWARE- 1st column dropping???")
     }
-    return( matin[,-drops])
+    return(as.matrix(matin[,-drops]))
   }
   return(matin)
 }
@@ -220,6 +289,7 @@ FitUs <- function(X, W, initV, alphas,option, weighted = FALSE)
   #TODO: recode this, so don't need the logic statement. Downstream should be able to handle it
   if(weighted) {
     av <- WeightedAltVar(t(X),t(W),initV)
+    #OLS remove first X
     bics <- unlist(lapply(l.fits, function(x) CalcUBIC(X,W,as.matrix(x$U),initV, ev=av, weighted = TRUE)))
   }else{
     av <- AltVar(t(X),initV) #This step is quite slow.... need to speed this up somehow.
@@ -238,7 +308,7 @@ FitUs <- function(X, W, initV, alphas,option, weighted = FALSE)
 #@return a list of new sparsity points to try out.
 
 
-ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.score = FALSE)
+ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.score = FALSE, one.SD.rule = FALSE)
 {
   
   if(no.score)
@@ -248,7 +318,8 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.
     fake.scores[which(sparsity.params == bic.list)] <- -1
     bic.list <- fake.scores
   }
-  optimal.index <- oneSDRule(bic.list,sparsity.params)
+  optimal.index <- selectOptimalScoreIndex(bic.list, sparsity.params, one.SD.rule)
+ 
   optimal.sparsity.param <- sparsity.params[optimal.index]
   ordered.list <- sparsity.params[order(sparsity.params)] #order the list
   #New paradigm: always look above and below,
@@ -283,7 +354,7 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.
     }
     new.list <- rep.list
   }
-  c(optimal.sparsity.param, new.list)
+  sort(c(optimal.sparsity.param, new.list))
 }
 
 quickSort <- function(tab, col = 1)
@@ -327,10 +398,39 @@ quickSort <- function(tab, col = 1)
         optimal.l <- max(params[top.indices])
         return(which(params == optimal.l))
     }
+#Deals with cases if redundant scores.
+    SelectBICFromIdenticalScores <- function(bic, params)
+    {
+      best.score <- min(bic)
+      optimal.index <- which.min(bic)
+      #message("Warning- BIC scores are unchanging for certain settings. This is likely evidence of no sparsity.")
+     
+      #Choose next lowest bic score index
+      i <- sort(bic, index.return = TRUE)
+      
+      matching.score.indices <- which(bic[i$ix] == best.score)
+      if(length(matching.score.indices) > 1 & (1 %in% matching.score.indices)) #This only really applies if for sure at sparsity. Other cases could exist. Need more information here.
+      {
+        message("Identical scores correspond with lowest sparsity parameters. Proceeding with recommended procedure of selecting the next SMALLEST sparsity parameter")
+        min.param <- min(params[matching.score.indices])
+        ret.index <- which(params == min.param)
+        #next.index.sorted <- min(matching.score.indices)
+        #bic.score <- bic[i$ix][next.index.sorted]
+        #ret.index <- which(bic == bic.score)[1]
+      }else
+      {
+        best.param <- max(params[which(bic == best.score)]) #get the max of which parameters correspond to the lowest bic score
+        ret.index <- which(params == best.param) #return the optimal index
+      }
+      ret.index
+      
 
-    #This function selects the optimal matrix and drops non-zero entries.
-  selectOptimalInstance <- function(fit.data, bic, params, oneSD = FALSE)
+    }
+    
+    #This gets the index for the optimal
+  selectOptimalScoreIndex <- function(bic, params, oneSD, ndigits = 6)
   {
+    bic <- round(bic, digits = ndigits)
     if(oneSD)#just testing our the one sd rule
     {
       optimal.index <- oneSDRule(bic,params)
@@ -340,26 +440,39 @@ quickSort <- function(tab, col = 1)
       optimal.index <- which.min(bic)
       if(length(which(bic == best.score)) > 1)
       {
-        optimal.index <- which.min(bic)
-        message("many paaramters yield the same score- choose the highest?")
-        best.param <- max(params[which(bic == best.score)]) #get the max of which parameters correspond to the lowest bic score
-        optimal.index <- which(params == best.param)
+        optimal.index <- SelectBICFromIdenticalScores(bic, params)
+        if(length(optimal.index) > 1)
+        {
+          message("Warning: proposing redundant values.")
+          optimal.index <- optimal.index[1]
+        }
       }
     }
+    optimal.index
+  }
+    #This function selects the optimal matrix and drops non-zero entries.
+  selectOptimalInstance <- function(fit.data, bic, params, oneSD = FALSE)
+  {
+    
+    optimal.index <- selectOptimalScoreIndex(bic, params, oneSD)
     optimal.matrix <- DropEmptyColumns(fit.data$fits[[optimal.index]][[1]])
+    if(ncol(optimal.matrix) == 0)
+    {
+      optimal.matrix <- matrix(0, nrow = nrow(fit.data$fits[[optimal.index]][[1]]), ncol = 1 )
+    }
     #SELECT NON-ZERO entries
   return(list("m" = optimal.matrix, "p" = params[[optimal.index]], "index" = optimal.index))
   }
 
+
     
-    
-getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 50, burn.in.iter = 2)
+getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 50, burn.in.iter = 0)
 {
 #If we get columns with NA at this stage, we want to reset and drop those columns at the beginning.
-  burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
+    burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
+
   option$K <- burn.in.sparsity$new.k
   consider.params <- SelectCoarseSparsityParams(burn.in.sparsity, burn.in.iter, n.points = 15)
-  print("here okay?")
   #things to record
   rec.dat <- list("alphas"=c(), "lambdas"=c(), "bic.a" = c(), "bic.l"=c(), "obj"=c(), 
                   "v.sparsity" = c(), "u.sparsity"=c(), "iter"=c(), "sd.sparsity.u" = c(), "sd.sparsity.v" = c(),
@@ -389,13 +502,15 @@ if(FALSE) #Old way..
   #plotFactors(apply(optimal.v, 2, function(x) x / norm(x, "2")), trait_names = names, title = "best")
   
 }
-
-  optimal.v <- initV(X,W, option)
+	#option here to use the "burn in" sequence, but not surea bout that
+  #optimal.v <- initV(X,W, option)
+  optimal.v <- burn.in.sparsity$V_burn
   NOT.CONVERGED <- TRUE; i = 1
   while(i < max.iter & NOT.CONVERGED){
+    print(i)
     #now fit U:
     rec.dat$Vs[[i]] <- optimal.v
-	  print(i)
+	  #print(i)
     u.fits <- FitUs(X, W, optimal.v, alphas,option, weighted = TRUE)
     #record relevant info- always do 
     rec.dat$alphas <- c(rec.dat$alphas, alphas);  rec.dat$bic.a <- c(rec.dat$bic.a,u.fits$BIC) 
@@ -423,7 +538,8 @@ if(FALSE) #Old way..
     #Pick the best choice from here, using threshold.
     optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
     optimal.v <- optimal.iter.dat$m
-    #optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
+    #message("Updating K, iter ", i)
+    rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
     rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
     
     #Record new data
@@ -433,11 +549,20 @@ if(FALSE) #Old way..
     #update the parameters for U based on the new V 
     u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option) #not-needed
     alphas <- ProposeNewSparsityParams(u.fits$BIC, alphas,n.points = 7)
-    rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
+    
     #Check convergence
     if(i > min.iter){
       
       NOT.CONVERGED <- !checkConvergenceBICSearch(i, rec.dat) #returns true if convergence is reached
+    }
+    if(ncol(optimal.v) == 1 & option$fixed_ubiq)
+    {
+      message("Only down to 1 factor, best be stopping now.")
+      if(i < min.iter)
+      {
+        message("Zeroed-out the results very quickly, this suggests some kind of instability...")
+      }
+      NOT.CONVERGED <- FALSE
     }
     i = i+1
   }
@@ -446,16 +571,21 @@ if(FALSE) #Old way..
   #This returns all the data from the last iteration
   #TODO: clean this up. This is very confusing.
   return(list("optimal.v" = optimal.v,"resid.var" = u.fits$resid_var,
-              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[final.index], "alpha"=rec.dat$alpha.s[final.index], "options" = option, "K"= ncol(optimal.v)))
+              "rec.dat" = rec.dat, "lambda"=rec.dat$lambda.s[final.index], "alpha"=rec.dat$alpha.s[final.index], "options" = option, 
+              "K"= ncol(optimal.v), "alpha.path" = rec.dat$alpha.s, "lambda.path" = rec.dat$lambda.s))
 }
 
 #Convergence criteria for the BIC ssearch
-#Converges when K is unchanging from one run to the next, and the percentage size change in the alpha/lambda paramters is less than 1%
-checkConvergenceBICSearch <- function(iter, record.data, conv.perc.thresh = 0.05)
+#Converges when K is unchanging from one run to the next, and the percentage size change in the alpha/lambda paramters is less than 5%
+#Might consider making this more generous- if it stays on the same log scale, then that is probably good enough....
+checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.05)
 {
-  #K check:
-  #
-  index = iter
+  if(index > 5)
+  {
+    message("Late stage convergence, terminate soon....")
+    print(record.data$alpha.s)
+    print(record.data$lambda.s)
+  }
   queries <- c(record.data$Ks[[index]] == record.data$Ks[[index-1]],
   abs(record.data$alpha.s[[index]] - record.data$alpha.s[[index-1]])/record.data$alpha.s[[index-1]] < conv.perc.thresh,
   abs(record.data$lambda.s[[index]] - record.data$lambda.s[[index-1]])/record.data$lambda.s[[index-1]] < conv.perc.thresh
@@ -463,18 +593,48 @@ checkConvergenceBICSearch <- function(iter, record.data, conv.perc.thresh = 0.05
   return(all(queries))
 }
 #TODO: try with random, and with non-random.
-gwasML_ALS_Routine <- function(opath, option, X, W, optimal.v)
+gwasML_ALS_Routine <- function(opath, option, X, W, optimal.v, maxK=0)
 {
-#print(W)  
+#print(W)
+  print(paste0("Starting at k:", option$K))
 reg.run <- Update_FL(X, W, option, preV = optimal.v)
+if(maxK != 0)
+{
+  if(ncol(reg.run$V)> maxK)
+  {
+    message("Parsing down to desired number of factors")
+    message("More columns exist than specified....")
+  }
+  
+  or <- sort(reg.run$PVE, decreasing =TRUE, index.return= TRUE)
+  if(ncol(reg.run$V) < maxK)
+  {
+    message("Resulted in fewer than desired columns. Sorry.")
+    maxK <- ncol(reg.run$V)
+  }
+  keep.cols <- or$ix[1:maxK]
+  reg.run$V <- as.matrix(reg.run$V[,keep.cols])
+  reg.run$U <- as.matrix(reg.run$U[,keep.cols])
+  #print("Top PVEs:")
+  #print(reg.run$PVE[keep.cols])
+  #print("All PVEs")
+  #print(reg.run$PVE)
+  reg.run$PVE <- reg.run$PVE[keep.cols]
+}
+
   save(reg.run, file = paste0(option$out,opath, "_gwasMF_iter.Rdata" ))
 print(reg.run$V)
-o <- data.frame("rownames" = colnames(X), reg.run$V)
-write.table(o, file =  paste0(option$out,opath, ".factors.txt"), quote= FALSE, row.names = FALSE)
-source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/plot_functions.R")
-title <- paste0("A=",reg.run$autofit_alpha[1], "Lambda=",reg.run$autofit_lambda[1]) 
-plotFactors(apply(reg.run$V, 2, function(x) x/norm(x, "2")), trait_names = o$rownames, title = title)
-ggsave(paste0(option$out,opath, ".factors.png"))
+
+if(option$plots)
+{
+  o <- data.frame("rownames" = colnames(X), reg.run$V)
+  write.table(o, file =  paste0(option$out,opath, ".factors.txt"), quote= FALSE, row.names = FALSE)
+  source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/plot_functions.R")
+  title <- paste0("A=",reg.run$autofit_alpha[1], "Lambda=",reg.run$autofit_lambda[1]) 
+  plotFactors(apply(reg.run$V, 2, function(x) x/norm(x, "2")), trait_names = o$rownames, title = title)
+  ggsave(paste0(option$out,opath, ".factors.png"))
+}
+
 return(reg.run)
 }
 
@@ -535,7 +695,7 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   option$K <- bic.dat$K
   option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
   option$lambda1 <- bic.dat$lambda
-  #option$iter <- 5
+  #I think the best thing to do is to initialize randomly, run it a few times, and either take the average or assess stability.
   ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
   #ret <- gwasML_ALS_Routine(opath, option, X, W, NULL) #randomly initialize here...
   ret
@@ -594,6 +754,101 @@ runStdPipeClean <- function(opath,args,alpha, lambda)
   ret
 }
 
+gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
+{
+  opath = "irrelevant"
+  suppressPackageStartupMessages(library("tidyr"))
+  suppressPackageStartupMessages(library("plyr")) 
+  suppressPackageStartupMessages(library("dplyr")) 
+  suppressPackageStartupMessages(library("stringr")) 
+  suppressPackageStartupMessages(library("penalized")) 
+  suppressPackageStartupMessages(library("parallel")) 
+  suppressPackageStartupMessages(library("doParallel")) 
+  suppressPackageStartupMessages(library("logr")) 
+  suppressPackageStartupMessages(library("coop")) 
+  suppressPackageStartupMessages(library("data.table")) 
+  suppressPackageStartupMessages(library("glmnet")) 
+  suppressPackageStartupMessages(library("svMisc")) 
+  suppressPackageStartupMessages(library("nFactors")) 
+  suppressPackageStartupMessages(library("optparse"))
+  dir ="/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/"
+  source(paste0(dir, "fit_F.R"))
+  source(paste0(dir, "update_FL.R"))
+  source(paste0(dir, "fit_L.R"))
+  source(paste0(dir, "plot_functions.R"))
+  source(paste0(dir, 'compute_obj.R'))
+  source(paste0(dir, 'buildFactorMatrices.R'))
+  source(paste0(dir, 'sparsity_scaler.R'))
+  source(paste0(dir, 'cophenetic_calc.R'))
+  source(paste0(dir, 'read_in_tools.R'))
+  source(paste0(dir, 'regressionUtils.R'))
+  source(paste0(dir, 'pve.R'))
+  args <- defaultSettings(K=K)
+  option <- readInSettings(args)
+  option$swap <- FALSE
+  option$alpha1 <- 1e-10
+  option$lambda1 <- 1e-10
+  option$fixed_ubiq <- FALSE
+  message("no fixed ubiq...")
+  output <- args$output
+  log.path <- paste0(args$output, "gwasMF_log.", Sys.Date(), ".txt")
+  lf <- log_open(log.path, show_notes = FALSE)
+  options("logr.compact" = TRUE)
+  options("logr.notes" = FALSE)
+  
+  #Read in the hyperparameters to explore
+  hp <- readInParamterSpace(args)
+  all_ids <-snp.ids; names <- trait.names
+  initk <- option$K
+  #1/16: testing out a new idea on the sims. Might be too much, but whatever.
+  
+  #if(initk == 0)
+  #{
+    message('Initializing X to the max -1')
+    option$K <- ncol(X)-1
+  #}
+  #Run the bic thing...
+  option$V <- FALSE
+  #print("hard-coding in: K =5")
+  #option$K = 5
+  bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
+  #bic.dat2 <- getBICMatrices(opath,option,X,W,all_ids, names)
+  #bic.dat3 <- getBICMatrices(opath,option,X,W,all_ids, names)
+  #reportSimilarities(bic.dat, bic.dat2, bic.dat3)
+  option <- bic.dat$options
+  
+ # option$K <- bic.dat$K
+ option$K <-  ncol(X)-1
+ #message("resetting to full k..")
+  option$V <- TRUE
+  option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
+  option$lambda1 <- bic.dat$lambda
+  #print("V preview:")
+  #print(bic.dat$optimal.v)
+  #NEED TO SEE IF GO RANDOM OR WHAT...
+  #ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v, maxK = initk)
+     #option$K <-  ncol(X)-1
+  ret <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
+  #ret2 <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
+  #ret3 <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
+  ret
+}
+
+defaultSettings <- function(K=0)
+{
+  args <- UdlerArgs()
+  args$uncertainty <- ""
+  args$gwas_effects <- ""
+  args$nfactors <- K
+  args$scale_n <- ""
+  args$output <- "/scratch16/abattle4/ashton/snp_networks/scratch/testing_gwasMF_code/matrix_simulations/RUN"
+  opath <- "gwasMF"
+  args$simulation <- TRUE
+  args$converged_obj_change <- 0.05
+  args$fixed_first <- TRUE #trying to see if this help- IT DOENS'T really appear to matter very much.
+  args
+}
+
 DefaultSeed2Args <- function()
 {
   args <- list()
@@ -635,7 +890,7 @@ UdlerArgs <- function()
   args$uncertainty <- "/scratch16/abattle4/ashton/snp_networks/scratch/udler_td2/processed_data/se_matrix.tsv"
   args$fixed_first <- TRUE
   args$genomic_correction <- ""
-
+  args$overview_plots <- FALSE
   args$nfactors <- 57
   args$calibrate_k <- FALSE
   args$trait_names = ""
