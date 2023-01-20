@@ -58,4 +58,4 @@ option_list <- list(
 )
 args <- parse_args(OptionParser(option_list=option_list))
 args <- UdlerArgs()
-runFullPipeClean(args$prefix,args, gwasmfiter =args$bic_adj)
+r <- runFullPipeClean(args$prefix,args)

@@ -52,7 +52,7 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   d = ncol(X)
   if(fixed_first)
   {
-	  #message("Removing first factor because its fixed")
+	  message("Removing first factor because its fixed")
 	  #Regress out of X the first factor effects.
 	  #Remove the first factor from the downstream steps
 	  X <- X -  (U[,1] %*% t(V[,1]))
@@ -96,15 +96,17 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
     ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d*k)/(n*d))*df
   }else
   {
-    message("second term ", (log(n*d)/(n*d))*df)
+   
     if(df == 0)
     {
       message("Stop here plz.")
+      message("TODO- get the program to stop or reset or something.")
     }
-    message("First term ", norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
+    #message("First term ", norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
+    #message("second term ", (log(n*d)/(n*d))*df)
   ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d)/(n*d))*df
-  message("Total ", ret)
- message(". ")
+  #message("Total ", ret)
+ #message(". ")
   }
   
   return(ret)
@@ -151,6 +153,8 @@ WeightedAltVar <- function(X,W,U)
 {
   n <- nrow(X) * ncol(X)
   p <- ncol(U) * ncol(X)
+  #after discuussion with eric, just trying mle
+  #p <- 0
   #message("N:", n)
   #message("P:", p)
   resids <- c()
@@ -162,10 +166,14 @@ WeightedAltVar <- function(X,W,U)
     fit <- lm(wx~wu + 0)
     resids <- c(resids, resid(fit))
   }
-  #r <- var(resids)
+  r <- var(resids)
+  print("Default var is ")
+  print(r)
   # residual variance is 1/(n-p) e^Te
   r = 0
   r = (1/(n-p))*sum(resids * resids)
+  print("my calculated r is:")
+  print(r)
   #This is equivilant to all ther terms being put into one matrix
   if((sum(resids * resids) == 0))
   {
@@ -305,12 +313,20 @@ FitUs <- function(X, W, initV, alphas,option, weighted = FALSE)
 #Bic. list: list of BIc scores for all choices
 #optimal.sparsity.param- the top parameter chosen
 #new.dist: distribution of all the ne lambda parameter space
+#@param curr.mode= the mode of the sparsity space based on the current V and U settings
 #@return a list of new sparsity points to try out.
 
 
-ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.score = FALSE, one.SD.rule = FALSE)
+ProposeNewSparsityParams <- function(bic.list,sparsity.params, curr.dist, n.points = 7, no.score = FALSE, one.SD.rule = FALSE)
 {
-  
+  curr.mode = DensityMode(curr.dist)
+  global.min <- min(curr.dist)
+  if(length(bic.list) == 1)
+  {
+    message("No list to choose from- have zeroed all out..?")
+    #Go from cuyrrent value to the mode, give a spread
+    return(sort(10^seq(log10(sparsity.params),log10(curr.mode),length.out=n.points)))
+  }
   if(no.score)
   {
     #then bic.list is the optimal one; generate fake scores
@@ -319,32 +335,65 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.
     bic.list <- fake.scores
   }
   optimal.index <- selectOptimalScoreIndex(bic.list, sparsity.params, one.SD.rule)
- 
+  #cases with redundancy are complex.
   optimal.sparsity.param <- sparsity.params[optimal.index]
-  ordered.list <- sparsity.params[order(sparsity.params)] #order the list
+  sorted.sparsity.params <- sort(sparsity.params, index.return = TRUE)
+  ordered.list <- sorted.sparsity.params$x
+  sorted.index <- which(sorted.sparsity.params$ix == optimal.index)
+  #what is the index int eh sorted list of my optimal sparsty parameter? 
   #New paradigm: always look above and below,
   #If its the smallest paramter tested
   if(min(ordered.list) == optimal.sparsity.param)
   {
     message('best case is the minimum..')
-    above <- ordered.list[which(ordered.list == optimal.sparsity.param) + 1]
+    above <- ordered.list[sorted.index + 1]
     #below <- optimal.sparsity.param - (above - optimal.sparsity.param)
     #simplify this: we are stil searching, so look orders of magnitude
-    below <- 1e-10
-    new.list <- 10^seq(log10(below),log10(above),length.out=n.points)
+    #below <- 1e-10
+    below <- global.min
+    if(below > above)
+    {
+      #message("Global min param of distribution is greater than current one")
+      #print(above)
+      #print(below)
+      below <- optimal.sparsity.param/2
+    }
   } else if(max(ordered.list) == optimal.sparsity.param) #its the largest parameter tested
   {
     message('best case is the maximum')
-    below <- ordered.list[which(ordered.list == optimal.sparsity.param) - 1]
-    above <- optimal.sparsity.param*1000
-    new.list <- 10^seq(log10(below),log10(above),length.out=n.points)
+    below <- ordered.list[sorted.index - 1]
+    above <- curr.mode
+    #new.list <- 10^seq(log10(below),log10(above),length.out=n.points)
   }else {
     #Its bounded- our estimates should be between the one immediately above and below
-    above <- ordered.list[which(ordered.list == optimal.sparsity.param) + 1]
-    below <- ordered.list[which(ordered.list == optimal.sparsity.param) - 1]
-    new.list <- seq(below,above,by=(above-below)/n.points)[2:(n.points-1)]
+    above <- ordered.list[sorted.index + 1]
+    below <- ordered.list[sorted.index - 1]
+    #new.list <- seq(below,above,length.out = n.points)
   }
+  if(length(above) > 1 | length(below) < 1)
+  {
+    message("WHAT is going on...")
+    print(above)
+    print(below)
+    print(bic.list)
+    print(sparsity.params)
+    readline()
+    quit()
+  }
+  if(is.na(above) | is.na(below))
+  {
+    print("here")
+  }
+  if(above == below)
+  {
+    message("Converged on single solution")
+    return(below)
+  }
+  new.list <- 10^seq(log10(below),log10(above),length.out=n.points)
+  
   #Ensure none of them are less than 0
+  
+  
   if(any(new.list <= 0))
   {
     rep.list <- new.list[which(new.list > 0)]
@@ -354,7 +403,8 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, n.points = 7, no.
     }
     new.list <- rep.list
   }
-  sort(c(optimal.sparsity.param, new.list))
+
+  unique(sort(c(optimal.sparsity.param, new.list)))
 }
 
 quickSort <- function(tab, col = 1)
@@ -399,7 +449,9 @@ quickSort <- function(tab, col = 1)
         return(which(params == optimal.l))
     }
 #Deals with cases if redundant scores.
-    SelectBICFromIdenticalScores <- function(bic, params)
+#If these are at the upper extreme of the parameter list (likely occurs when all terms have been zeroed out), pick the SMALLEST parameter
+#if these are at the lower extreme of the parameter list (likely occurs when the terms are fully dense), pick the largest parameter
+  SelectBICFromIdenticalScores <- function(bic, params)
     {
       best.score <- min(bic)
       optimal.index <- which.min(bic)
@@ -408,22 +460,36 @@ quickSort <- function(tab, col = 1)
       #Choose next lowest bic score index
       i <- sort(bic, index.return = TRUE)
       
-      matching.score.indices <- which(bic[i$ix] == best.score)
-      if(length(matching.score.indices) > 1 & (1 %in% matching.score.indices)) #This only really applies if for sure at sparsity. Other cases could exist. Need more information here.
-      {
-        message("Identical scores correspond with lowest sparsity parameters. Proceeding with recommended procedure of selecting the next SMALLEST sparsity parameter")
-        min.param <- min(params[matching.score.indices])
-        ret.index <- which(params == min.param)
-        #next.index.sorted <- min(matching.score.indices)
-        #bic.score <- bic[i$ix][next.index.sorted]
-        #ret.index <- which(bic == bic.score)[1]
-      }else
-      {
-        best.param <- max(params[which(bic == best.score)]) #get the max of which parameters correspond to the lowest bic score
-        ret.index <- which(params == best.param) #return the optimal index
-      }
-      ret.index
+      sorted.bic <- bic[i$ix]
+      params.sorted.by.bic <- params[i$ix]
+      matching.score.indices <- which(sorted.bic == best.score)
       
+      #If the scores are on the  bigger end of scale
+      if(all(min(params.sorted.by.bic[matching.score.indices]) > params.sorted.by.bic[-matching.score.indices]))
+      {
+        message("Suspect that scores are zeroing out the results, picking the smallest parameter with low BIC")
+        optimal.param <- min(params.sorted.by.bic[matching.score.indices])
+      } else if(all(max(params.sorted.by.bic[matching.score.indices]) < params.sorted.by.bic[-matching.score.indices]))
+      {
+        message("Suspect that scores are inducing no sparsity, picking the largest parameter with low BIC")
+        optimal.param <- max(params.sorted.by.bic[matching.score.indices])
+      } 
+      else
+      {
+        #weird case, in the middle. #This means that all of them are equally goood?
+        #I this case, I want to pick the most spare one actually
+        print("Beware, unusual case...")
+        #optimal.param <- params.sorted.by.bic[matching.score.indices][ceiling(length(matching.score.indices)/2)] #get the middle one
+        optimal.param <- max(params.sorted.by.bic[matching.score.indices])
+        print(sorted.bic)
+        print(optimal.param)
+        print(params.sorted.by.bic)
+        print("")
+        message("Unusual case with teh center, pick the middle. Likely swung too far above or below. Hope is lost :(")
+        
+      }
+     
+  which(params == optimal.param) #return the optimal index
 
     }
     
@@ -466,10 +532,10 @@ quickSort <- function(tab, col = 1)
 
 
     
-getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 50, burn.in.iter = 0)
+getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 20, burn.in.iter = 4)
 {
 #If we get columns with NA at this stage, we want to reset and drop those columns at the beginning.
-    burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
+  burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
 
   option$K <- burn.in.sparsity$new.k
   consider.params <- SelectCoarseSparsityParams(burn.in.sparsity, burn.in.iter, n.points = 15)
@@ -480,32 +546,12 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
   #kick things off
   lambdas <- consider.params$lambdas
   alphas <- consider.params$alphas
-if(FALSE) #Old way..
-{
-  v.fits <- FitVs(X,W, burn.in.sparsity$U_burn,lambdas,option, weighted = TRUE) #also gets the bic
-  optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
-  optimal.v <- optimal.iter.dat$m
-  #optimal.v <- DropLowPVE(X,W,optimal.iter.dat$m) #Dropping just now...
-  rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
-  #update the parameters for U based on the new V
-  u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option)
-  alphas <- SelectCoarseSparsityParamsGlobal(u.sparsity, n.points = 15) #using this because first time.
-  
-  #Record relevant data
-  rec.dat$lambdas <- c(rec.dat$lambdas,lambdas)
-  rec.dat$bic.l <- c(rec.dat$bic.l,v.fits$BIC)
-  #Look at
-  rec.dat$sd.sparsity.v <- c(rec.dat$sd.sparsity.v,sd(burn.in.sparsity$max_sparsity_params[[5]]$lambda))
-  rec.dat$sd.sparsity.u <- c(rec.dat$sd.sparsity.u,sd(u.sparsity))
-  rec.dat$V_sparsities = c(rec.dat$V_sparsities, matrixSparsity(optimal.v, ncol(X)));
-  rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
-  #plotFactors(apply(optimal.v, 2, function(x) x / norm(x, "2")), trait_names = names, title = "best")
-  
-}
 	#option here to use the "burn in" sequence, but not surea bout that
   #optimal.v <- initV(X,W, option)
   optimal.v <- burn.in.sparsity$V_burn
   NOT.CONVERGED <- TRUE; i = 1
+  #$Remove low PVE right now.
+  optimal.v <- DropLowPVE(X,W,optimal.v, thresh = 0.01)
   while(i < max.iter & NOT.CONVERGED){
     print(i)
     #now fit U:
@@ -523,13 +569,13 @@ if(FALSE) #Old way..
     
     #now get the new lambdas for V:
     #Is this what we want?
+    v.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.u),"V", option)
     if(i == 1)
     {
-      v.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.u),"V", option)
       lambdas <- SelectCoarseSparsityParamsGlobal(v.sparsity, n.points = 15)
     }else
     {
-      lambdas <- ProposeNewSparsityParams(v.fits$BIC, lambdas, n.points = 7)
+      lambdas <- ProposeNewSparsityParams(v.fits$BIC, lambdas, v.sparsity, n.points = 7)
     }
     rec.dat$sd.sparsity.v <- c(rec.dat$sd.sparsity.v,sd(v.sparsity))
    
@@ -538,6 +584,7 @@ if(FALSE) #Old way..
     #Pick the best choice from here, using threshold.
     optimal.iter.dat <- selectOptimalInstance(v.fits, v.fits$BIC, lambdas)
     optimal.v <- optimal.iter.dat$m
+    #PercentVarEx(as.matrix(X)*as.matrix(W), v = optimal.v)
     #message("Updating K, iter ", i)
     rec.dat$Ks <- c(rec.dat$Ks, ncol(optimal.v))
     rec.dat$lambda.s <- c(rec.dat$lambda.s,optimal.iter.dat$p)
@@ -547,9 +594,8 @@ if(FALSE) #Old way..
     rec.dat$lambdas <- c(rec.dat$lambdas, lambdas);  rec.dat$bic.l <- c(rec.dat$bic.l,v.fits$BIC) 
 
     #update the parameters for U based on the new V 
-    u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option) #not-needed
-    alphas <- ProposeNewSparsityParams(u.fits$BIC, alphas,n.points = 7)
-    
+    u.sparsity <- DefineSparsitySpace(X,W,optimal.v, "U", option) #Here in case we hit the max.
+    alphas <- ProposeNewSparsityParams(u.fits$BIC, alphas, (u.sparsity), n.points = 7)
     #Check convergence
     if(i > min.iter){
       
@@ -578,13 +624,14 @@ if(FALSE) #Old way..
 #Convergence criteria for the BIC ssearch
 #Converges when K is unchanging from one run to the next, and the percentage size change in the alpha/lambda paramters is less than 5%
 #Might consider making this more generous- if it stays on the same log scale, then that is probably good enough....
-checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.05)
+checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.1)
 {
   if(index > 5)
   {
     message("Late stage convergence, terminate soon....")
-    print(record.data$alpha.s)
-    print(record.data$lambda.s)
+    #print(record.data$alpha.s)
+    
+    #print(record.data$lambda.s)
   }
   queries <- c(record.data$Ks[[index]] == record.data$Ks[[index-1]],
   abs(record.data$alpha.s[[index]] - record.data$alpha.s[[index-1]])/record.data$alpha.s[[index-1]] < conv.perc.thresh,
@@ -641,6 +688,7 @@ return(reg.run)
 #runFullPipeClean(args$prefix,args, gwasmfiter =args$bic_adj)
 runFullPipeClean <- function(opath,args, gwasmfiter =5)
 {
+  
 #renv::init("../../../custom_l1_factorization/renv_f/")
   message("Current setting is to use U based sparsity each time...")
   suppressPackageStartupMessages(library("tidyr"))
@@ -659,8 +707,8 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   suppressPackageStartupMessages(library("optparse"))
   dir ="/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/"
   source(paste0(dir, "fit_F.R"))
-  #source(paste0(dir, "update_FL.R"))
-  #source(paste0(dir, "fit_L.R"))
+  source(paste0(dir, "update_FL.R"))
+  source(paste0(dir, "fit_L.R"))
   source(paste0(dir, "plot_functions.R"))
   source(paste0(dir, 'compute_obj.R'))
   source(paste0(dir, 'buildFactorMatrices.R'))
@@ -690,14 +738,15 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
   }
   #Run the bic thing...
   bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
+  bic2.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
   save(bic.dat, file = paste0(option$out,opath, "BIC_iter.Rdata" ))
   option <- bic.dat$options
   option$K <- bic.dat$K
   option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
   option$lambda1 <- bic.dat$lambda
   #I think the best thing to do is to initialize randomly, run it a few times, and either take the average or assess stability.
-  ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
-  #ret <- gwasML_ALS_Routine(opath, option, X, W, NULL) #randomly initialize here...
+  #ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
+  ret <- gwasML_ALS_Routine(opath, option, X, W, NULL) #randomly initialize here...
   ret
 }
 
@@ -788,8 +837,6 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
   option$swap <- FALSE
   option$alpha1 <- 1e-10
   option$lambda1 <- 1e-10
-  option$fixed_ubiq <- FALSE
-  message("no fixed ubiq...")
   output <- args$output
   log.path <- paste0(args$output, "gwasMF_log.", Sys.Date(), ".txt")
   lf <- log_open(log.path, show_notes = FALSE)
