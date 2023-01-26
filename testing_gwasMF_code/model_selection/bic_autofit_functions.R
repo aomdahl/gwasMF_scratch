@@ -16,7 +16,7 @@ reportSimilarities <- function(f, s, t)
 #Estimator of the L1 degrees of freedom
 MatrixDFV <- function(mat_in, fixed_first = FALSE){
   print("RED ALERT- USING THE BAD V")
-  if(fixed_first)
+  if(fixed_first)  #if(FALSE) FF$
   {
     sum(mat_in[,-1] == 0)
   }else
@@ -30,7 +30,8 @@ MatrixDFU <- function(mat_in,fixed_first = FALSE)
   #this means we are learning U
   #Use the degrees of freedom: number of non-zero coefficients
   #sum(round(mat_in, digits = 4) != 0)
-  if(fixed_first)
+  #if(fixed_first) FF$
+  if(fixed_first)  #if(FALSE) FF$
   {
 	  sum(mat_in[,-1] != 0)
   }
@@ -50,9 +51,10 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   
   n=nrow(X)
   d = ncol(X)
-  if(fixed_first)
+  #if(fixed_first) FF$
+  if(fixed_first)  #if(FALSE) FF$
   {
-	  message("Removing first factor because its fixed")
+	  #message("Removing first factor because its fixed")
 	  #Regress out of X the first factor effects.
 	  #Remove the first factor from the downstream steps
 	  X <- X -  (U[,1] %*% t(V[,1]))
@@ -70,15 +72,10 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
   }
   if(ev =="std" )
   {
-    errvar <- var(as.vector(X - U %*% t(V))) #not sure if this is right...
-    message("not implemented for weighted")
-  }else if(ev == "ols")
-  {
-    
     errvar <- AltVar(X,U)
   }else if(ev == "ols" & weighted)
   {
-    errvar <- WeightedAltVar(X,W,U)
+    errvar <- WeightedAltVar(X,W,U, var.method = bic.var)
   }
   else # anuumber gets passed in.
   { #message("in correct place...")
@@ -91,23 +88,16 @@ CalcMatrixBIC <- function(X,W,U,V, ev="std", weighted = FALSE, df = NULL, fixed_
 	  message("something went wrong,..")
     df <- MatrixDFU(V)
   }
-  if(FALSE)
-  {
-    ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d*k)/(n*d))*df
-  }else
-  {
-   
-    if(df == 0)
-    {
-      message("Stop here plz.")
-      message("TODO- get the program to stop or reset or something.")
-    }
+    #if(df == 0)
+    #{
+    #  message("Factorization is perfectly empty.")
+    #  message("TODO- get the program to stop or reset or something.")
+    #}
     #message("First term ", norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar))
     #message("second term ", (log(n*d)/(n*d))*df)
   ret <- norm(X*W - (U %*% t(V))*W, type = "F")^2/(n*d * errvar) + (log(n*d)/(n*d))*df
   #message("Total ", ret)
  #message(". ")
-  }
   
   return(ret)
 }
@@ -123,7 +113,8 @@ AltVar <- function(X,U)
     fit <- lm(X[,col]~U)
     resids <- c(resids, resid(fit))
   }
-  var(resids)
+  n = length(resids)
+  (var(resids)* (n - 1)) / n
 }
 
 #WeightedAltVar(t(X),t(W),initV)
@@ -134,6 +125,9 @@ WeightColumnHelper <- function(w,x,U)
   return(list("wx"=w*x, "wu" = w*U))
 }
 
+#Meant to help regress out one learned component at a time.
+#not actually that helpful
+#mc is the matrix component to pull out.
 RegressOutMatrixComponent <- function(X,W,mc)
 {
   ret <- matrix(NA, nrow = nrow(X), ncol = ncol(X))
@@ -149,11 +143,10 @@ RegressOutMatrixComponent <- function(X,W,mc)
   return(ret)
 }
 
-WeightedAltVar <- function(X,W,U)
+WeightedAltVar <- function(X,W,U, var.method = "mle")
 {
   n <- nrow(X) * ncol(X)
-  p <- ncol(U) * ncol(X)
-  #after discuussion with eric, just trying mle
+  #after discuussion with eric,guanghao just trying mle
   #p <- 0
   #message("N:", n)
   #message("P:", p)
@@ -166,14 +159,33 @@ WeightedAltVar <- function(X,W,U)
     fit <- lm(wx~wu + 0)
     resids <- c(resids, resid(fit))
   }
-  r <- var(resids)
-  print("Default var is ")
-  print(r)
-  # residual variance is 1/(n-p) e^Te
+  stopifnot(length(resids) == n)
   r = 0
-  r = (1/(n-p))*sum(resids * resids)
+  if(var.method == "unbiased")
+  {
+    message("unbiased")
+    p <- ncol(U) * ncol(X)
+    r = (1/(n-p))*sum(resids * resids)
+  }else if(var.method == "map")
+  {
+    message("map")
+    alpha <- 0.001
+    beta <- 0.001
+    den <- (alpha + n/2 - 1)
+    num <- beta + 0.5*sum(resids * resids)
+    r <- num/den
+  }else #MLE
+  {
+    message("mle")
+    p <- 0
+    r = (1/n)*sum(resids * resids)
+  }
+  
   print("my calculated r is:")
   print(r)
+  print("mle var")
+  print((var(resids) * (n-1) )/ n)
+  #print(r)
   #This is equivilant to all ther terms being put into one matrix
   if((sum(resids * resids) == 0))
   {
@@ -210,52 +222,54 @@ CalcUBIC <- function(X,W,U,V,...)
 #Iniital estimates from burn.in.sparsity and consider.parsm
 FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
 {
+  bic.var = option$bic.var
   f.fits <- list()
   bics <- c()
   for(i in 1:length(lambdas))
   {
     l <- lambdas[[i]]
     option$lambda1 <- l
-    f.fits[[i]] <- fit_F(X, W, initU, option, formerF = NULL) #%>% DropEmptyColumnsPipe(.)
+    f.fits[[i]] <- fit_F(X, W, initU, option, formerF = NULL)
   }
-   #For the BIC calculation, we don't  want to include dense factor 1....
-  #if(option$fixed_ubiq)
-  #{
-  #      message("please be sure to remove F1")
-  #}
-
-  
   
   if(weighted) {
-    #message("Weighted way...")
-    if(option$fixed_ubiq)
+    #option$fixed_ubiq <- FALSE
+    #if(option$fixed_ubiq) FF$
+    if(option$fixed_ubiq)  #if(FALSE) FF$
     {
       #If we are down to just 1 column, don't calculate BICs, there is no point anymore.
       if(ncol(initU) == 1)
       {
         #If we have fixed_ubiq and down to 1 column, it doesn't matter 
+        message("Down to just 1 column, all BIC the same now.")
         return(list("fits" = f.fits, "BIC"=rep(0,length(lambdas))))
       }
-      Xr <- RegressOutMatrixComponent(X,W,initU[,1])
-      av <- WeightedAltVar(Xr,W,as.matrix(initU[,-1]))
+      Xr <- RegressOutMatrixComponent(X,W,initU[,1]) 
+      #this should be different for each one, because the fixed column differs
+      #this would unfairly advantage fits with more information in factor 1. Doesn't work.
+      #In practice, I think this is not different at all from just calculating the weighted variance normally, except 
+      #That in the variance calculation, they no longer get the benefit of that first factor
+      #message("Note: these functions may need to be need to be adjusted- each V1 is different, so each Xr is different that would be learned.")
+      #Current setup seems reasonable, but best would be to have 1 for each 
+      av <- WeightedAltVar(Xr,W,as.matrix(initU[,-1]), var.method = bic.var)
     }else
     {
-      av <- WeightedAltVar(X,W,initU)
+      av <- WeightedAltVar(X,W,initU, var.method = bic.var)
     }
-    
     bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU,x$V, ev=av, weighted = TRUE, fixed_first = option$fixed_ubiq)))
-  }else{
+  }else{ #unweighted
     av <- AltVar(X,initU)
     bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU, x$V, ev=av, fixed_first = option$fixed_ubiq)))
   }
-  
   if(Inf %in% bics)
   {
-    message("Error here...")
+    message("Error here: INF in BIC")
+    quit()
   }
   return(list("fits" = f.fits, "BIC"=bics))
 }
-
+#Helper function to get rid of empty columns in the data.
+#Empty means all the terms are 0.
 DropEmptyColumns <- function(matin)
 {
   matin <- as.matrix(matin)
@@ -272,6 +286,7 @@ DropEmptyColumns <- function(matin)
   return(matin)
 }
 
+#Same as the above, but for magrittr piping (not actually used.)
 DropEmptyColumnsPipe <- function(lin)
 {
   ret.lin <- lin
@@ -280,32 +295,27 @@ DropEmptyColumnsPipe <- function(lin)
   
 }
 
-#Recalculate the sparsity params for U (?)
-#burn.in.sparsity <- defineSparsitySpace(X, W, option, burn.in = 5)
-#consider.parsm <- SelectCoarseSparsityParams(burn.in.sparsity, 5)
-#Iniital estimates from burn.in.sparsity and consider.parsm
+#Recalculate the sparsity params for U
 FitUs <- function(X, W, initV, alphas,option, weighted = FALSE)
 {
+  bic.var = option$bic.var
   l.fits <- list()
   for(i in 1:length(alphas))
   {
     a <- alphas[[i]]
     option$alpha1 <- a
-    l.fits[[i]] <- fit_L(X, W, initV, option) #%>% DropEmptyColumnsPipe(.)
+    l.fits[[i]] <- fit_L(X, W, initV, option) 
 
   }
   #TODO: recode this, so don't need the logic statement. Downstream should be able to handle it
   if(weighted) {
-    av <- WeightedAltVar(t(X),t(W),initV)
-    #OLS remove first X
+    av <- WeightedAltVar(t(X),t(W),initV, var.method = bic.var)
     bics <- unlist(lapply(l.fits, function(x) CalcUBIC(X,W,as.matrix(x$U),initV, ev=av, weighted = TRUE)))
   }else{
     av <- AltVar(t(X),initV) #This step is quite slow.... need to speed this up somehow.
     bics <- unlist(lapply(l.fits, function(x) CalcUBIC(X,W,as.matrix(x$U),initV,ev=av)))
   }
-  
-  
-  #return(l.fits)
+
   return(list("fits" = l.fits, "BIC"=bics, "resid_var" =av))
 }
 
@@ -350,13 +360,14 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, curr.dist, n.poin
     #below <- optimal.sparsity.param - (above - optimal.sparsity.param)
     #simplify this: we are stil searching, so look orders of magnitude
     #below <- 1e-10
-    below <- global.min
+    below <- global.min #maybe a better way to do this
     if(below > above)
     {
-      #message("Global min param of distribution is greater than current one")
+      message("Global min param of distribution is greater than current one.")
+      message("Setting new minimum to 0.1 of current parameter")
       #print(above)
       #print(below)
-      below <- optimal.sparsity.param/2
+      below <- optimal.sparsity.param * 0.1
     }
   } else if(max(ordered.list) == optimal.sparsity.param) #its the largest parameter tested
   {
@@ -382,7 +393,8 @@ ProposeNewSparsityParams <- function(bic.list,sparsity.params, curr.dist, n.poin
   }
   if(is.na(above) | is.na(below))
   {
-    print("here")
+    print("proposed new paramters are not possible")
+    quit()
   }
   if(above == below)
   {
@@ -465,7 +477,14 @@ quickSort <- function(tab, col = 1)
       matching.score.indices <- which(sorted.bic == best.score)
       
       #If the scores are on the  bigger end of scale
-      if(all(min(params.sorted.by.bic[matching.score.indices]) > params.sorted.by.bic[-matching.score.indices]))
+      #if all scores yield the same, its not obvious if we have 0d out or total density. Pick the one closest ot he averagge
+      if(length(unique(bic)) == 1)
+      {
+        message("All scores yield the same BIC. Unclear what to do...")
+        mid = abs(params - mean(params))
+        optimal.param <- params[which(min(mid) == mid)][1]
+      }
+      else if(all(min(params.sorted.by.bic[matching.score.indices]) > params.sorted.by.bic[-matching.score.indices]))
       {
         message("Suspect that scores are zeroing out the results, picking the smallest parameter with low BIC")
         optimal.param <- min(params.sorted.by.bic[matching.score.indices])
@@ -531,13 +550,19 @@ quickSort <- function(tab, col = 1)
   }
 
 
-    
-getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 20, burn.in.iter = 4)
+#  bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
+  #getBICMatrices(opath,option,X,W,all_ids, names, burn.in.iter = 1)
+  #option$bic.var <- "mle". #unbiased is oto strong here
+getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 10, burn.in.iter = 4)
 {
 #If we get columns with NA at this stage, we want to reset and drop those columns at the beginning.
   burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
+  #optimal.v <- DropLowPVE(X,W,burn.in.sparsity$V_burn, thresh = 0.01)  #skipping... in sims seems to be bad?
+  optimal.v <- burn.in.sparsity$V_burn
+  #Doesn't appear the order makes a big difference.
+  #u.sparsity <- DefineSparsitySpace(X,W,as.matrix(optimal.v),"U", option)
+  option$K <- ncol(optimal.v)
 
-  option$K <- burn.in.sparsity$new.k
   consider.params <- SelectCoarseSparsityParams(burn.in.sparsity, burn.in.iter, n.points = 15)
   #things to record
   rec.dat <- list("alphas"=c(), "lambdas"=c(), "bic.a" = c(), "bic.l"=c(), "obj"=c(), 
@@ -546,12 +571,10 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
   #kick things off
   lambdas <- consider.params$lambdas
   alphas <- consider.params$alphas
-	#option here to use the "burn in" sequence, but not surea bout that
-  #optimal.v <- initV(X,W, option)
-  optimal.v <- burn.in.sparsity$V_burn
+
   NOT.CONVERGED <- TRUE; i = 1
   #$Remove low PVE right now.
-  optimal.v <- DropLowPVE(X,W,optimal.v, thresh = 0.01)
+  
   while(i < max.iter & NOT.CONVERGED){
     print(i)
     #now fit U:
@@ -624,7 +647,7 @@ getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.it
 #Convergence criteria for the BIC ssearch
 #Converges when K is unchanging from one run to the next, and the percentage size change in the alpha/lambda paramters is less than 5%
 #Might consider making this more generous- if it stays on the same log scale, then that is probably good enough....
-checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.1)
+checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.1, hard_stop = 10)
 {
   if(index > 5)
   {
@@ -640,11 +663,13 @@ checkConvergenceBICSearch <- function(index, record.data, conv.perc.thresh = 0.1
   return(all(queries))
 }
 #TODO: try with random, and with non-random.
+#gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
 gwasML_ALS_Routine <- function(opath, option, X, W, optimal.v, maxK=0)
 {
 #print(W)
   print(paste0("Starting at k:", option$K))
 reg.run <- Update_FL(X, W, option, preV = optimal.v)
+
 if(maxK != 0)
 {
   if(ncol(reg.run$V)> maxK)
@@ -659,14 +684,30 @@ if(maxK != 0)
     message("Resulted in fewer than desired columns. Sorry.")
     maxK <- ncol(reg.run$V)
   }
-  keep.cols <- or$ix[1:maxK]
-  reg.run$V <- as.matrix(reg.run$V[,keep.cols])
-  reg.run$U <- as.matrix(reg.run$U[,keep.cols])
-  #print("Top PVEs:")
+  #alternative option: drop until objective no longer shrinks (?)
+  objective.drop <- TRUE
+  if(objective.drop)
+  {
+    #function(X,W,U,V, minK, option
+    #unction(X,W,U,V, minK, option, maxK = NULL,drop.min.change = TRUE)
+    r <- DropFactorsByObjective(X,W,reg.run$U,reg.run$V, minK=maxK, option, maxK = maxK) #want it to be famed at 5?
+    reg.run$V <- r$V
+    reg.run$U <- r$U
+    reg.run$K <- r$K
+  }
+  if(ncol(reg.run$V)> maxK) #Still not fixed
+  {
+    message("Dropping by PVE sad face.")
+    keep.cols <- or$ix[1:maxK]
+    reg.run$V <- as.matrix(reg.run$V[,keep.cols])
+    reg.run$U <- as.matrix(reg.run$U[,keep.cols])
+    reg.run$PVE <- reg.run$PVE[keep.cols]
+  }
+    #print("Top PVEs:")
   #print(reg.run$PVE[keep.cols])
   #print("All PVEs")
   #print(reg.run$PVE)
-  reg.run$PVE <- reg.run$PVE[keep.cols]
+  
 }
 
   save(reg.run, file = paste0(option$out,opath, "_gwasMF_iter.Rdata" ))
@@ -737,16 +778,17 @@ runFullPipeClean <- function(opath,args, gwasmfiter =5)
     option$K <- ncol(X)-1
   }
   #Run the bic thing...
-  bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
-  bic2.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
+  bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names, burn.in.iter = 1)
+  #bic2.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
+  print(bic.dat)
   save(bic.dat, file = paste0(option$out,opath, "BIC_iter.Rdata" ))
   option <- bic.dat$options
   option$K <- bic.dat$K
   option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
   option$lambda1 <- bic.dat$lambda
   #I think the best thing to do is to initialize randomly, run it a few times, and either take the average or assess stability.
-  #ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v)
-  ret <- gwasML_ALS_Routine(opath, option, X, W, NULL) #randomly initialize here...
+  ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v) #I like this better
+  #ret.rand <- gwasML_ALS_Routine(opath, option, X, W, NULL) #randomly initialize here? not working so hot.
   ret
 }
 
@@ -803,7 +845,8 @@ runStdPipeClean <- function(opath,args,alpha, lambda)
   ret
 }
 
-gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
+#1.26- reprun is turned off
+gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5, rep.run = FALSE, bic.var= "mle")
 {
   opath = "irrelevant"
   suppressPackageStartupMessages(library("tidyr"))
@@ -834,6 +877,7 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
   source(paste0(dir, 'pve.R'))
   args <- defaultSettings(K=K)
   option <- readInSettings(args)
+  option$bic.var <- bic.var
   option$swap <- FALSE
   option$alpha1 <- 1e-10
   option$lambda1 <- 1e-10
@@ -842,13 +886,11 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
   lf <- log_open(log.path, show_notes = FALSE)
   options("logr.compact" = TRUE)
   options("logr.notes" = FALSE)
-  
   #Read in the hyperparameters to explore
   hp <- readInParamterSpace(args)
   all_ids <-snp.ids; names <- trait.names
   initk <- option$K
   #1/16: testing out a new idea on the sims. Might be too much, but whatever.
-  
   #if(initk == 0)
   #{
     message('Initializing X to the max -1')
@@ -856,14 +898,17 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
   #}
   #Run the bic thing...
   option$V <- FALSE
-  #print("hard-coding in: K =5")
-  #option$K = 5
   bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
-  #bic.dat2 <- getBICMatrices(opath,option,X,W,all_ids, names)
-  #bic.dat3 <- getBICMatrices(opath,option,X,W,all_ids, names)
+  if(rep.run)
+  {  
+    bic.dat2 <- getBICMatrices(opath,option,X,W,all_ids, names)
+    bic.dat3 <- getBICMatrices(opath,option,X,W,all_ids, names)
+    bic.dat4 <- getBICMatrices(opath,option,X,W,all_ids, names)
+    bic.dat5 <- getBICMatrices(opath,option,X,W,all_ids, names)
+  }
+
   #reportSimilarities(bic.dat, bic.dat2, bic.dat3)
   option <- bic.dat$options
-  
  # option$K <- bic.dat$K
  option$K <-  ncol(X)-1
  #message("resetting to full k..")
@@ -875,7 +920,47 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5)
   #NEED TO SEE IF GO RANDOM OR WHAT...
   #ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v, maxK = initk)
      #option$K <-  ncol(X)-1
-  ret <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
+  if(rep.run)
+  {
+    alphas.many <- c(bic.dat$alpha, bic.dat2$alpha, bic.dat3$alpha, bic.dat4$alpha, bic.dat5$alpha)
+    lambdas.many <- c(bic.dat$lambda, bic.dat2$lambda, bic.dat3$lambda, bic.dat4$lambda, bic.dat5$lambda)
+    all.runs <- list()
+   
+      
+      for(i in 1:length(alphas.many))
+      { 
+        print(i)
+        ret.list <- list()
+        for(j in 1:5)
+        { 
+          print(j)
+          option <- bic.dat$options
+          # option$K <- bic.dat$K
+          option$K <-  ncol(bic.dat2$optimal.v)
+          #message("resetting to full k..")
+          option$V <- TRUE
+          option$alpha1 <- alphas.many[i] #Best from the previous. Seems to have converd..
+          option$lambda1 <- lambdas.many[i]
+          ret.list[[j]] <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk)
+        }
+        all.runs[[i]] <- ret.list
+      }
+      
+    #Select the one that is most stable
+    source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/cophenetic_calc.R")
+    #move into simple list
+    l.sub <- lapply(all.runs, function(ll) lapply(ll, function(x) x$V))
+    cophs <- sapply(l.sub, function(x) copheneticAssessment(x))
+    print(cophs)
+    best <- which.max(cophs)
+    #run the max again
+    ret <- all.runs[[best]][[1]]
+  } else
+  {
+    ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v, maxK=initk)
+  }
+   #randomly initialize here...
+  #ret.std <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk)
   #ret2 <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
   #ret3 <- gwasML_ALS_Routine(opath, option, X, W, NULL, maxK=initk) #randomly initialize here...
   ret
@@ -927,8 +1012,46 @@ DefaultSeed2Args <- function()
   args$auto_grid_search <- FALSE
   args$regression_method = "penalized"
   args$converged_obj_change <- 0.001
+  args
 }
-
+YuanSimEasy <- function()
+{
+  args <- list()
+  args$covar_matrix = ""
+  args$gwas_effects <-"/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/yuan_simulations/Input_tau100_seed1_X.txt"
+  args$uncertainty <- "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/yuan_simulations/Input_tau100_seed1_W.txt"
+  args$fixed_first <- TRUE
+  args$genomic_correction <- ""
+  args$overview_plots <- FALSE
+  args$nfactors <- 5
+  args$calibrate_k <- FALSE
+  args$trait_names = ""
+  args$niter <- 20
+  args$alphas <- "" 
+  args$lambdas <- ""
+  args$autofit <- -1
+  args$auto_grid_search <- FALSE
+  args$cores <- 1
+  args$IRNT <- FALSE
+  args$weighting_scheme = "B_SE"
+  args$output <- "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/yuan_simulations/"
+  args$converged_obj_change <- 1
+  args$scaled_sparsity <- TRUE
+  args$posF <- FALSE
+  args$init_F <- "ones_eigenvect"
+  args$init_L <- ""
+  args$epsilon <- 1e-8
+  args$verbosity <- 1
+  args$scale_n <- ""
+  args$MAP_autofit <- -1
+  args$auto_grid_search <- FALSE
+  args$regression_method = "penalized"
+  args$converged_obj_change <- 0.05 #this is the percent change from one to the next.
+  args$prefix <- ""
+  args$bic_var <- "mle"
+  args$bic.var <- "mle"
+  args
+}
 UdlerArgs <- function()
 {
   args <- list()
@@ -963,6 +1086,7 @@ UdlerArgs <- function()
   args$regression_method = "penalized"
   args$converged_obj_change <- 0.05 #this is the percent change from one to the next.
   args$prefix <- ""
+  args$bic_var <- "unbiased"
   args
 }
 
