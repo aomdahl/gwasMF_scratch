@@ -178,13 +178,13 @@ WeightedAltVar <- function(X,W,U, var.method = "mle")
   {
     message("mle")
     p <- 0
-    r = (1/n)*sum(resids * resids)
+    r = sum(resids * resids)/n
   }
   
-  print("my calculated r is:")
-  print(r)
-  print("mle var")
-  print((var(resids) * (n-1) )/ n)
+  #print("my calculated r is:")
+  #print(r)
+  #print("mle var")
+  #print((var(resids) * (n-1) )/ n)
   #print(r)
   #This is equivilant to all ther terms being put into one matrix
   if((sum(resids * resids) == 0))
@@ -235,7 +235,7 @@ FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
   if(weighted) {
     #option$fixed_ubiq <- FALSE
     #if(option$fixed_ubiq) FF$
-    if(option$fixed_ubiq)  #if(FALSE) FF$
+    if(option$fixed_ubiqs)  #if(FALSE) FF$
     {
       #If we are down to just 1 column, don't calculate BICs, there is no point anymore.
       if(ncol(initU) == 1)
@@ -256,10 +256,10 @@ FitVs <- function(X, W, initU, lambdas,option, weighted = FALSE)
     {
       av <- WeightedAltVar(X,W,initU, var.method = bic.var)
     }
-    bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU,x$V, ev=av, weighted = TRUE, fixed_first = option$fixed_ubiq)))
+    bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU,x$V, ev=av, weighted = TRUE, fixed_first = option$fixed_ubiqs)))
   }else{ #unweighted
     av <- AltVar(X,initU)
-    bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU, x$V, ev=av, fixed_first = option$fixed_ubiq)))
+    bics <- unlist(lapply(f.fits, function(x) CalcVBIC(X,W,initU, x$V, ev=av, fixed_first = option$fixed_ubiqs)))
   }
   if(Inf %in% bics)
   {
@@ -553,7 +553,7 @@ quickSort <- function(tab, col = 1)
 #  bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
   #getBICMatrices(opath,option,X,W,all_ids, names, burn.in.iter = 1)
   #option$bic.var <- "mle". #unbiased is oto strong here
-getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 10, burn.in.iter = 4)
+getBICMatrices <- function(opath,option,X,W,all_ids, names, min.iter = 2, max.iter = 10, burn.in.iter = 0)
 {
 #If we get columns with NA at this stage, we want to reset and drop those columns at the beginning.
   burn.in.sparsity <- DefineSparsitySpaceInit(X, W, option, burn.in = burn.in.iter) #If this finds one with NA, cut them out here, and reset K; we want to check pve here too.
@@ -898,6 +898,7 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5, rep.run = F
   #}
   #Run the bic thing...
   option$V <- FALSE
+  option$fixed_ubiqs <- FALSE
   bic.dat <- getBICMatrices(opath,option,X,W,all_ids, names)
   if(rep.run)
   {  
@@ -907,21 +908,14 @@ gwasMFBIC <- function(X,W, snp.ids, trait.names, K=0, gwasmfiter =5, rep.run = F
     bic.dat5 <- getBICMatrices(opath,option,X,W,all_ids, names)
   }
 
-  #reportSimilarities(bic.dat, bic.dat2, bic.dat3)
   option <- bic.dat$options
- # option$K <- bic.dat$K
- option$K <-  ncol(X)-1
- #message("resetting to full k..")
   option$V <- TRUE
   option$alpha1 <- bic.dat$alpha #Best from the previous. Seems to have converd..
   option$lambda1 <- bic.dat$lambda
-  #print("V preview:")
-  #print(bic.dat$optimal.v)
-  #NEED TO SEE IF GO RANDOM OR WHAT...
-  #ret <- gwasML_ALS_Routine(opath, option, X, W, bic.dat$optimal.v, maxK = initk)
-     #option$K <-  ncol(X)-1
   if(rep.run)
   {
+    option$K <-  ncol(X)-1
+    #message("resetting to full k..")
     alphas.many <- c(bic.dat$alpha, bic.dat2$alpha, bic.dat3$alpha, bic.dat4$alpha, bic.dat5$alpha)
     lambdas.many <- c(bic.dat$lambda, bic.dat2$lambda, bic.dat3$lambda, bic.dat4$lambda, bic.dat5$lambda)
     all.runs <- list()
