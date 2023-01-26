@@ -17,10 +17,12 @@ option_list <- list(
   make_option(c("-o", "--output"), default = '', type = "character", 
               help="Output dir")
 )
+#t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/easy.yml")
+
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
 
-t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
 
 #read in relevant things
 #Maybe a better way would be to specify a parameter file, that has all of this information in it.
@@ -28,9 +30,9 @@ t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_ex
 #Specify a setup file.
 yml <- read.table(args$input,header = FALSE,sep = ",") %>% set_colnames(c("n", "p"))
 n_o <- as.matrix(fread(unlist(yml[which(yml$n == "samp_overlap"),2])))
-rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2])))
+rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2]))) #Correlation between phenotypes
 f <- as.matrix(fread(unlist(yml[which(yml$n == "factors"),2])))
-l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2])))
+l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2]))) #gut says this should be more dense, huh. 
 noise.scaler = 1
 if("noise_scaler" %in% yml$n)
 {
@@ -85,7 +87,7 @@ if(!is.positive.definite(C))
 
 #Create an image with the correlation structure:
 source("/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
-o <- plotCorrelationHeatmap(C, typin = "None", title = "Generated matrix of spurious covariance structure.")
+o <- plotCorrelationHeatmap(C, typin = "None", title = "Generated matrix of spurious covariance structure.", show.nums = TRUE)
 suppressMessages(ggsave(plot = o, filename = paste0(args$output, ".spurious_covariance.png")))
 write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, row.names = FALSE)
 
@@ -116,18 +118,18 @@ if(FALSE) #calibrating the noise scaler for this run..
   plot(1:100, var.dat[1:100,3], main = "Prop. variance in noise")
   plot(1:100, var.dat[1:100,2], main = "Prop. Variance in data")
 }
-for(s in 1:N)
+for(s in 1:N) #N is number of SNPs
 {
   mu <- f %*% l[s,]
   #S <- diag(se[s,]) %*% solve(C)
   #sigma <- sqrt(diag(se[s,])) %*% C %*% sqrt(diag(se[s,]))
   #as of 8/9
-  s.sqrt <- (diag(S[s,])) #dropped the square root, the scaling was off and we want variance, not standard deviation
+  s.sqrt <- sqrt(diag(S[s,]))
   sigma <- s.sqrt %*% C %*% s.sqrt
   #2 ways this could be done.....
   #betas[s,] <- mvrnorm(n = 1, mu, 5 * sigma, tol = 1e-6, empirical = FALSE, EISPACK = FALSE)
   #Or
-  noise <- noise.scaler*mvrnorm(n = 1, rep(0, length(mu)), 5 * sigma, tol = 1e-6, empirical = FALSE, EISPACK = FALSE)
+  noise <- noise.scaler*mvrnorm(n = 1, rep(0, length(mu)), sigma, tol = 1e-3, empirical = FALSE, EISPACK = FALSE)
   betas[s,] <- mu + noise
   #varReport(betas[s,], mu, noise)
   
