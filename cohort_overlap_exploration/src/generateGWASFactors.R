@@ -1,38 +1,57 @@
 ## Script to simulate GWAS data from factors, loadings, and correlation structure.
 #6 input files
-varReport <- function(t, m, n)
+
+#Returns the variance of the betas (overal variance)
+#variance of true data of the total
+#variance of the noise given the total.
+#t is betas
+#m is mean
+#n is noise
+varReport <- function(effects, true.signal, noise)
 {
-  return(c(var(t), var(m)/var(t), var(n)/var(t)))
+  t <- unlist(as.vector(effects))
+  m <- unlist(as.vector(true.signal))
+  n <- unlist(as.vector(noise))
+  stopifnot(length(t) == length(n))
+  #total variance, fraction from true signal, fraction from noise, var true /var noise, #var mu over sum var #var noise over sum var
+  return(c(var(t), var(m)/var(t), var(n)/var(t), var(m)/var(n), var(m)/(var(n) +  var(m)),var(n)/(var(n) +  var(m)) ))
 }
 
 library("optparse")
 library("data.table")
 library("ggplot2")
 library("magrittr")
-option_list <- list( 
+option_list <- list(
   make_option(c("-i", "--input"), default="",
               help="Path to input file handles"),
   make_option(c("-s", "--seed"), default=22,
               help="Set random seed, default is 22"),
-  make_option(c("-o", "--output"), default = '', type = "character", 
+  make_option(c("-o", "--output"), default = '', type = "character",
               help="Output dir")
 )
 #t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
-t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/easy.yml")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/comparing_u_v_dist/V1_U4_maf0.4_n5000_Uinit.yml")
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
-
+set.seed(args$seed)
 
 #read in relevant things
 #Maybe a better way would be to specify a parameter file, that has all of this information in it.
 #This way requires duplicates of each file in every simulation directory, which isn't what we want, is it.
 #Specify a setup file.
 yml <- read.table(args$input,header = FALSE,sep = ",") %>% set_colnames(c("n", "p"))
+if("sim_ref" %in% yml$n)
+{
+  message("Simulation path data already provided; Will skip simulation generation")
+  quit()
+}
+
+
 n_o <- as.matrix(fread(unlist(yml[which(yml$n == "samp_overlap"),2])))
 rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2]))) #Correlation between phenotypes
 f <- as.matrix(fread(unlist(yml[which(yml$n == "factors"),2])))
-l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2]))) #gut says this should be more dense, huh. 
+l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2]))) #gut says this should be more dense, huh.
 noise.scaler = 1
 if("noise_scaler" %in% yml$n)
 {
@@ -46,7 +65,7 @@ N <- nrow(l)
 #Set up the necessary data for SE estimation
 n.mat <- matrix(do.call("rbind", lapply(1:N, function(x) diag(n_o))), nrow = N, ncol = M)
 var.maf <- 2*(maf.mat)*(1-maf.mat)
-S <- 1/sqrt(var.maf *n.mat)
+S <- 1/sqrt(var.maf *n.mat) #This is the standard error
 #maf.mat <- matrix(rep(maf$maf[1:500],10), nrow= 500, ncol = 10)
 
 #Quick sanity check: do our estimated S correspond with the actual S?
@@ -82,7 +101,7 @@ if(!is.positive.definite(C))
   prop.change <- norm(C- C.updated, type = "F")/norm(C, type = "F")
   C <- C.updated
 }
-#NOTE: could also implement in terms of the matrix normal, a single line. That would work too, but I 
+#NOTE: could also implement in terms of the matrix normal, a single line. That would work too, but I
 #think (?) would be the same
 
 #Create an image with the correlation structure:
@@ -95,7 +114,7 @@ write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, r
 suppressMessages(library(MASS))
 betas <- matrix(NA, nrow = N, ncol = M)
 out.ses <- matrix(NA, nrow = N, ncol = M)
-var.dat <- matrix(NA, nrow = N, ncol = 3)
+var.dat <- matrix(NA, nrow = N, ncol = 6)
 
 if(FALSE) #calibrating the noise scaler for this run..
 {
@@ -118,23 +137,31 @@ if(FALSE) #calibrating the noise scaler for this run..
   plot(1:100, var.dat[1:100,3], main = "Prop. variance in noise")
   plot(1:100, var.dat[1:100,2], main = "Prop. Variance in data")
 }
+
+#reset the seed- not sure if the above matrix functions require random seed, but just in case:
+global.noise <- c()
+global.signal <- c()
+set.seed(args$seed)
 for(s in 1:N) #N is number of SNPs
 {
   mu <- f %*% l[s,]
-  #S <- diag(se[s,]) %*% solve(C)
-  #sigma <- sqrt(diag(se[s,])) %*% C %*% sqrt(diag(se[s,]))
-  #as of 8/9
-  s.sqrt <- sqrt(diag(S[s,]))
-  sigma <- s.sqrt %*% C %*% s.sqrt
+  #Variance on beta is standard error squared.
+  se.i <- (diag(S[s,]))
+  sigma <- se.i %*% C %*% se.i
   #2 ways this could be done.....
   #betas[s,] <- mvrnorm(n = 1, mu, 5 * sigma, tol = 1e-6, empirical = FALSE, EISPACK = FALSE)
   #Or
-  noise <- noise.scaler*mvrnorm(n = 1, rep(0, length(mu)), sigma, tol = 1e-3, empirical = FALSE, EISPACK = FALSE)
+  #What is the tolerance argument?
+
+  noise <- noise.scaler*mvrnorm(n = 1, rep(0, length(mu)), sigma, empirical = FALSE) #tol = 1e-3,
+  global.noise <- c(global.noise, unlist(as.vector(noise)))
+  global.signal <- c(global.signal, unlist(as.vector(mu)))
+  #When compared to a rnorm version when indpendent samples, this is the same. so that's fine.
   betas[s,] <- mu + noise
-  #varReport(betas[s,], mu, noise)
-  
+
+  #Write this out somehwere useful.
   var.dat[s,] <- varReport(betas[s,], mu, noise)
-  
+
   out.ses[s, ] <- diag(sigma) #variance of individual betas; context is now missing. Seems a bit.. odd.
   #With this mind, we could just be using the sigma hats directly, don't need to do this little dance.
   #waste of fetching time, that. Not really though, I learned some new things
@@ -148,36 +175,46 @@ if(FALSE)
   hist(out.beta[,3]/out.se[,3])
   z_tilde <- betas/se
   sigma_z <- sqrt(do.call("rbind", lapply(1:N, function(i) apply(z_tilde, 2, var))))
-  
+
   meanz <- do.call("rbind", lapply(1:N, function(i) apply(z_tilde, 2,mean)))
-  
+
   #beta_tilde <- (betas / sigma_z) - (meanz * se/sigma_z)
   beta_tilde <- betas / sqrt(do.call("rbind", lapply(1:N, function(i) apply(betas, 2, var))))
   #I need oto think about this a little more., Not sure how well things will work if z scores aren't N(0,1).
   #Maybe a non issue, idk.
-  
+
 }
 
 library(magrittr)
 out.beta <- data.frame("SNP" = paste0("rs", 1:N), round(betas, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
 #TODOIPDATE
 out.se <- data.frame("SNP" = paste0("rs", 1:N), round(out.ses, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
-
-
+out.var <- data.frame("SNP" = paste0("rs", 1:N), round(var.dat, digits = 7)) %>%
+  set_colnames(c("SNP", "var_beta", "var_mu:var_beta","var_noise:var_beta", "var_mu:var_noise", "var_m:var_m+var_n", "var_n:var_m+var_n"))
+#total variance, fraction from true signal, fraction from noise, var true /var noise, #var mu over sum var #var noise over sum vara
 #Write out output:
 write.table(x = out.beta, file = paste0(args$output, ".effect_sizes.txt"), quote = FALSE, row.names = FALSE)
 write.table(x = out.se, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
-
+write.table(x=var.dat, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
 full_cover <- S %*% C %*% t(S)
 write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, row.names = FALSE)
+
+global.var.report <- varReport(betas, global.signal, global.noise)
+
 sink(paste0(args$output, ".variance_notes.txt"))
-cat(paste0("On average, ", round(mean(var.dat[,2])*100, digits =2), "% of sample variation from true value.\n"))
-cat(paste0("On average, ", round(mean(var.dat[,3])*100,digits = 2), "% of sample variation from noise."))
+cat(paste0("Globally, ", round(mean(global.var.report[5])*100, digits =2), "% of sample variation from true value.\n"))
+cat(paste0("Globally, ", round(mean(global.var.report[6])*100,digits = 2), "% of sample variation from noise."))
+cat(paste0("Globally, signal to noise ratio is:", round(mean(global.var.report[4]),digits = 4)))
+cat(paste0("On average, ", round(mean(var.dat[,5])*100, digits =2), "% of sample variation from true value.\n"))
+cat(paste0("On average, ", round(mean(var.dat[,6])*100,digits = 2), "% of sample variation from noise."))
+cat(paste0("On average, signal to noise ratio is:", round(mean(var.dat[,4]),digits = 4)))
 sink()
 
-message(paste0("On average, ", round(mean(var.dat[,2])*100, digits =2), "% of sample variation from true value."))
-message(paste0("On average, ", round(mean(var.dat[,3])*100,digits = 2), "% of sample variation from noise."))
-
+message(paste0("Globally, ", round(mean(global.var.report[2])*100, digits =2), "% of sample variation from true value.\n"))
+message(paste0("Globally, ", round(mean(global.var.report[3])*100,digits = 2), "% of sample variation from noise."))
+message(paste0("On average, ", round(mean(var.dat[,5])*100, digits =2), "% of sample variation from true value."))
+message(paste0("On average, ", round(mean(var.dat[,6])*100,digits = 2), "% of sample variation from noise."))
+message(paste0("On average, signal to noise ratio is:", round(mean(var.dat[,4]),digits = 4)))
 #need a good way to look at SEs....
 
 #The 2nd PC correlates strongly with sample size
