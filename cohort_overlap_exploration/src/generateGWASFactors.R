@@ -23,14 +23,15 @@ library("ggplot2")
 library("magrittr")
 option_list <- list(
   make_option(c("-i", "--input"), default="",
-              help="Path to input file handles"),
+              help="Path to input yaml file"),
   make_option(c("-s", "--seed"), default=22,
               help="Set random seed, default is 22"),
   make_option(c("-o", "--output"), default = '', type = "character",
               help="Output dir")
 )
 #t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
-t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/comparing_u_v_dist/V1_U4_maf0.4_n5000_Uinit.yml")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V1_U1_maf0.4_n500.high_covar_1block_SCALED.yml",
+      "--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_1block_SCALED/fake")
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
@@ -61,6 +62,39 @@ message(paste0("Noise scaler is ", noise.scaler))
 maf.mat <- as.matrix(fread(unlist(yml[which(yml$n == "maf"),2])))
 M <- nrow(n_o)
 N <- nrow(l)
+
+if("herit_scaler" %in% yml$n)
+{
+  #Has to correspond to the number of features
+  ntraits = ncol(l)
+  message("Scaling X according to empirical trait heritabilities")
+  herit.settings <- unlist(yml[which(yml$n == "herit_scaler"),2])
+  
+  #Effect size distribution heritabilities come from 2018 text:
+  #"Estimation of complex effect-size distributions using summary-level statistics from genome-wide association studies across 32 complex traits"
+  #Supplementary Table 4
+  dis.traits <- c("Alzheimers","Asthma","Coronary artery disease", "Type 2 diabetes","Crohns disease", "Inflammatory bowel disease",
+                      "Ulcerative colitis","Rheumatoid arthritis")
+  dis.herit <- c(173.7,400.6,134.6,198.4,380.5,214.3,301.3,174.6)*10^-5
+  
+  continuous_traits <- c("Age at menarche","BMI","Height","Hip circumference","Waist circumference","Waist-to-hip ratio","HDL cholesterol",
+                         "LDL cholesterol","Total cholesterol","Triglycerides","Child birth weight","Childhood obesity","Neuroticism")
+  
+  cont.herit <- c(12.4,18.0,14.6,8.0,8.1,6.5,15.2,21.8,22.7,23.1,9.1,95.6,0.9)*10^-5
+  
+  #choose the one based on the herit.settings
+  herit.factors <- switch(herit.settings,
+         "disease" = rep(dis.herit,5)[1:ntraits],
+         "mixed" = c(rep(dis.herit,5)[1:floor(ntraits/2)],rep(cont.herit,5)[1:floor(ntraits/2)]),
+         "continuous" = rep(cont.herit,5)[1:ntraits])
+  scaling.d <- diag(herit.factors)
+  #need to multiply each column of mu by  sqrt(scaling.d[i]/var(i))
+  
+  #TODO- implement how this D gets applied!
+  
+  
+}
+
 
 #Set up the necessary data for SE estimation
 n.mat <- matrix(do.call("rbind", lapply(1:N, function(x) diag(n_o))), nrow = N, ncol = M)
@@ -106,6 +140,8 @@ if(!is.positive.definite(C))
 
 #Create an image with the correlation structure:
 source("/home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+rownames(C) <- paste0("T", 1:nrow(C)); colnames(C) <- paste0("T", 1:ncol(C))
+
 o <- plotCorrelationHeatmap(C, typin = "None", title = "Generated matrix of spurious covariance structure.", show.nums = TRUE)
 suppressMessages(ggsave(plot = o, filename = paste0(args$output, ".spurious_covariance.png")))
 write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, row.names = FALSE)
@@ -116,32 +152,13 @@ betas <- matrix(NA, nrow = N, ncol = M)
 out.ses <- matrix(NA, nrow = N, ncol = M)
 var.dat <- matrix(NA, nrow = N, ncol = 6)
 
-if(FALSE) #calibrating the noise scaler for this run..
-{
-  for(i in 1:100)
-  {
-    s = 10
-    mu <- f %*% l[s,]
-    #S <- diag(se[s,]) %*% solve(C)
-    #sigma <- sqrt(diag(se[s,])) %*% C %*% sqrt(diag(se[s,]))
-    #as of 8/9
-    s.sqrt <- (diag(S[s,])) #dropped the square root, the scaling was off and we want variance, not standard deviation
-    sigma <- s.sqrt %*% C %*% s.sqrt
-    #2 ways this could be done.....
-    #betas[s,] <- mvrnorm(n = 1, mu, 5 * sigma, tol = 1e-6, empirical = FALSE, EISPACK = FALSE)
-    #Or
-    noise <- i*mvrnorm(n = 1, rep(0, length(mu)), 5 * sigma, tol = 1e-6, empirical = FALSE, EISPACK = FALSE)
-    betas[s,] <- mu + noise
-    var.dat[i,] <- varReport(betas[s,], mu, noise)
-  }
-  plot(1:100, var.dat[1:100,3], main = "Prop. variance in noise")
-  plot(1:100, var.dat[1:100,2], main = "Prop. Variance in data")
-}
-
 #reset the seed- not sure if the above matrix functions require random seed, but just in case:
 global.noise <- c()
 global.signal <- c()
 set.seed(args$seed)
+all.noise <- NULL
+mu.tot <- l %*% t(f)
+#Need to reorganize how i do the sims. turd.
 for(s in 1:N) #N is number of SNPs
 {
   mu <- f %*% l[s,]
@@ -153,11 +170,13 @@ for(s in 1:N) #N is number of SNPs
   #Or
   #What is the tolerance argument?
 
-  noise <- noise.scaler*mvrnorm(n = 1, rep(0, length(mu)), sigma, empirical = FALSE) #tol = 1e-3,
+  #noise <- noise.scaler*mvrnorm(n = 100, as.vector(rep(0, length(mu))), sigma, empirical = TRUE) #tol = 1e-3,
+  noise <- (noise.scaler * mvtnorm::rmvnorm(1, sigma = sigma))
+  all.noise <- rbind(all.noise, noise)
   global.noise <- c(global.noise, unlist(as.vector(noise)))
   global.signal <- c(global.signal, unlist(as.vector(mu)))
   #When compared to a rnorm version when indpendent samples, this is the same. so that's fine.
-  betas[s,] <- mu + noise
+  betas[s,] <- mu + t(noise)
 
   #Write this out somehwere useful.
   var.dat[s,] <- varReport(betas[s,], mu, noise)
@@ -167,7 +186,32 @@ for(s in 1:N) #N is number of SNPs
   #waste of fetching time, that. Not really though, I learned some new things
 }
 
+#Alternative version, where we add all the noise at the end
+betas.alt <- mu.tot + all.noise
+#verify
+stopifnot(betas == betas.alt)
 
+#Now scale mu to match our distributional assumptions
+if("herit_scaler" %in% yml$n)
+{
+  #get the scaling factors
+  mu.tot.var <- apply(mu.tot, 2, var)
+  scaling.mat <- diag(sqrt(herit.factors/mu.tot.var))
+  mu.scaled <- (mu.tot %*% scaling.mat) 
+  #sanity check
+  new.vars <- apply(mu.scaled, 2, var)
+  betas = mu.scaled + all.noise
+  #Some plots if doing this manually
+  
+  pb <- cor(betas); rownames(pb) = paste0("T", 1:10); colnames(pb) = paste0("T", 1:10)
+  bcor <- plotCorrelationHeatmap(pb,typin = "None",title = "Correlation structure of scaled beta hats")
+  suppressMessages(ggsave(plot = bcor, filename = paste0(args$output, ".effect_size_estimate_correlation.png")))
+  if(FALSE){
+    plot(herit.factors, new.vars,pch=19, xlab = "True var (GWAS)", ylab = "Scaled var"); abline(a=0, b= 1, col = "blue")
+    pba <- cor(betas.alt); rownames(pba) = paste0("T", 1:10); colnames(pba) = paste0("T", 1:10)
+    plotCorrelationHeatmap(pba,typin = "None",title = "Correlation structure of original beta hats")
+  }
+}
 #Scale so z-scores are z-scores? Not sure if this is necessary, but might be worth including.
 #If my initial estimates of u, v are centered at 0, this shouldn't be necessary
 if(FALSE)
@@ -195,10 +239,11 @@ out.var <- data.frame("SNP" = paste0("rs", 1:N), round(var.dat, digits = 7)) %>%
 #Write out output:
 write.table(x = out.beta, file = paste0(args$output, ".effect_sizes.txt"), quote = FALSE, row.names = FALSE)
 write.table(x = out.se, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
-write.table(x=var.dat, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
+write.table(x=var.dat, file = paste0(args$output, ".variance_data.txt"), quote = FALSE, row.names = FALSE)
 full_cover <- S %*% C %*% t(S)
 write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, row.names = FALSE)
-
+#write out empirical covar
+write.table(x = cor(all.noise), file = paste0(args$output, ".empirical_covar.txt"), quote = FALSE, row.names = FALSE)
 global.var.report <- varReport(betas, global.signal, global.noise)
 
 sink(paste0(args$output, ".variance_notes.txt"))
@@ -210,8 +255,8 @@ cat(paste0("On average, ", round(mean(var.dat[,6])*100,digits = 2), "% of sample
 cat(paste0("On average, signal to noise ratio is:", round(mean(var.dat[,4]),digits = 4)))
 sink()
 
-message(paste0("Globally, ", round(mean(global.var.report[2])*100, digits =2), "% of sample variation from true value.\n"))
-message(paste0("Globally, ", round(mean(global.var.report[3])*100,digits = 2), "% of sample variation from noise."))
+message(paste0("Globally, ", round(mean(global.var.report[5])*100, digits =2), "% of sample variation from true value.\n"))
+message(paste0("Globally, ", round(mean(global.var.report[6])*100,digits = 2), "% of sample variation from noise."))
 message(paste0("On average, ", round(mean(var.dat[,5])*100, digits =2), "% of sample variation from true value."))
 message(paste0("On average, ", round(mean(var.dat[,6])*100,digits = 2), "% of sample variation from noise."))
 message(paste0("On average, signal to noise ratio is:", round(mean(var.dat[,4]),digits = 4)))
