@@ -1,0 +1,757 @@
+---
+title: "Evaluating the new round of U and V simulations"
+output: html_notebook
+---
+
+
+```{r}
+pacman::p_load(data.table, tidyr, dplyr, readr, ggplot2, stringr, cowplot, optparse)
+```
+
+
+Now scrape and merge the results
+Some helper functions for doing so:
+```{r}
+#grab all the tabular data from the files and put it into one place
+mergeTabularResults <- function(query, base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/", scale = TRUE)
+{
+  library(magrittr)
+library(dplyr)
+library(data.table)
+d <- list.dirs(base.dir,recursive = FALSE)
+t <- NULL
+library(tidyr)
+file.ext = "/factorization_results//summary.tabular_performance.tsv"
+if(!scale){
+  file.ext="/factorization_results//summary.noscale.tabular_performance.tsv"
+}
+for(p in d)
+{
+if(grepl(query, p))
+  {
+    #print(p)
+    maf <- stringr::str_extract(string =p,pattern = "maf0.\\d+")
+    num <- stringr::str_extract(string =p,pattern = "n[0-9]+")
+    if(file.exists(paste0(p, file.ext)))
+    {
+          c <- fread(paste0(p, file.ext)) %>% mutate("MAF" = gsub(pattern = "maf",replacement = "",x=maf), "N"= gsub(pattern = "n",replacement = "",x=num))
+          print(paste0(p, file.ext))
+      if(length(c) > 0)
+      {
+         t <- rbind(t, c)
+      }
+    }else
+    {
+      message("Incomplete or terminated run- tabular performance summary missing.")
+      message(p)
+    }
+
+  }
+}
+t %>% mutate("MAF" = as.numeric(MAF)) %>% mutate("noise" = 1/(MAF*2*(1-MAF) * as.numeric(N)))
+}
+
+#Visualize this data
+visualizePerformanceAll <- function(t)
+{
+  library(ggplot2)
+  print(ggplot(t, aes(x = method, y = R2_L, color= method)) + geom_boxplot() + facet_grid(MAF ~ N) + theme_minimal() + ggtitle("R2 of U"))
+print(ggplot(t, aes(x = method, y = R2_F, color= method)) + geom_boxplot() + facet_grid(MAF ~ N) + theme_minimal() + ggtitle("R2 of V"))
+print(ggplot(t, aes(x = method, y = K_out, color= method)) + geom_boxplot() + facet_grid(MAF ~ N) + theme_minimal() + ggtitle("Output K"))
+print(ggplot(t, aes(x = method, y = sparsityV, color= method)) + geom_boxplot() + facet_grid(MAF ~ N) + theme_minimal() + ggtitle("SparsityV"))
+print(ggplot(t, aes(x = method, y = sparsityU, color= method)) + geom_boxplot() + facet_grid(MAF ~ N) + theme_minimal() + ggtitle("SparsityU"))
+}
+
+```
+
+Evaluating the baseline here.... (previous successful version)
+Note: the super noisy ones failed (low maf, n < 1000) apparently. Need to revisit those!
+```{r}
+library(magrittr)
+library(dplyr)
+library(data.table)
+d <- list.dirs("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/",recursive = FALSE)
+t <- NULL
+for(p in d)
+{
+  
+  if(grepl("V1", p) & file.exists(paste0(p, "/factorization_results//summary.tabular_performance.tsv")) & !grepl("gwasMF", p))
+  {
+    maf <- stringr::str_extract(string =p,pattern = "maf0.\\d+")
+    num <- stringr::str_extract(string =p,pattern = "n[0-9]+")
+    c <- fread(paste0(p, "/factorization_results//summary.tabular_performance.tsv")) %>% mutate("MAF" = gsub(pattern = "maf",replacement = "",x=maf), "N"= gsub(pattern = "n",replacement = "",x=num))
+    if(length(c) > 0)
+    {
+       t <- rbind(t, c)
+    }
+   
+  }
+}
+```
+ make the plot here (dunno why its gone)
+ 
+ I wnat to know what the pattern is in terms of K- is it consistent, or random, or otherwise, as things change
+```{r}
+library(tidyr)
+t <- NULL
+for(p in d)
+{
+  
+  if(grepl("V1", p) & file.exists(paste0(p, "/factorization_results//summary.tabular_performance.tsv")))
+  {
+    np = list.files(paste0(p, "/factorization_results/"), pattern = "*.gwasMF_BIC.factors.txt")
+    o <- sapply(np, function(x) ncol(fread(paste0(p, "/factorization_results/",x))))
+    dir = basename(p)
+    t <- rbind(t, data.frame("sim" = np, "dir" =dir, "ks" = o ))
+  }
+}
+t <- t %>% separate(dir, into = c("V", "U", "maf", "n"), sep= "_")
+```
+
+```{r}
+library(ggplot2)
+ggplot(t, aes(x = sim, y = ks)) + geom_boxplot() + theme_classic() + xlab("Random seed") + ylab("Ks") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Effect of random seed on Ks selected")
+
+ggplot(t, aes(x = maf, y = ks)) + geom_boxplot() + theme_classic() + xlab("Random seed") + ylab("Ks") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Effect of MAF on Ks selected")
+
+
+ggplot(t, aes(x = n, y = ks)) + geom_boxplot() + theme_classic() + xlab("Random seed") + ylab("Ks") + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + ggtitle("Effect of N on Ks selected")
+```
+Well, out method does way better with smaller N and smaller MAF.
+How does fit and noise correspond?
+```{r}
+
+```
+
+
+
+WTH
+Actual range
+```{r}
+mafs <- c(0.01,0.05,0.1,0.2,0.3,0.4)
+var.mafs <- 2 * mafs * (1-mafs)
+ns <- c(1,100,500,5000,50000)
+all.dens <- as.matrix(var.mafs) %*% t(as.matrix(ns))
+1/all.dens
+```
+1/20/2023
+We are sucking terribly. This isn't working at all. Need to figure out wth is going on
+This is the run on 1/20 with results whre
+1) Use n as denominator in BIC
+2) We drop PVE < 0.01 at the very beginning
+
+```{r}
+t <- mergeTabularResults("_unbiased_var_drop_pve")
+visualizePerformanceAll(t)
+```
+## 1/25/23
+After re-visiting, tweaking the code to choose factors bassed on the objective function, etc (and setting up my new standing desk!), I ran again under 2 settings, one with DF given by p = 0, one by p = kn or km.
+Let's see how we did
+```{r}
+biased.estimate <- mergeTabularResults("n_objective_cut_burn_in")
+biased.estimate
+visualizePerformanceAll(biased.estimate)
+```
+What I'm seeing- in general, we do as well or poorer than PCA, with the exception of one case each simulation (at seed 5 I think?) For some reason once every 5 times we get a really good fit. Weird
+Let's look at the best in each case:
+```{r}
+best.perf <- biased.estimate %>% mutate("perf.id" = paste0(MAF, ":", N)) %>% group_by(perf.id) %>% arrange(desc(R2_F)) %>% slice(1) %>% print()
+ggplot(best.perf, aes(x = MAF, y= N, color = method, size = R2_F)) + geom_point() + theme_classic() + ggtitle("Which method had the best fit with different noise settings?")
+
+ggplot(best.perf, aes(x = MAF, y= N, color = method, size = sparsityV)) + geom_point() + theme_classic() + ggtitle("What was teh sparsity at the best settings?")
+```
+Strange. So we do well in the extremes, but don't do great with sparsty.
+
+Now, the case with **unbiased** estimator, using $n-p$ (this was only a partial run, so incomplete data)
+```{r}
+unbiased.estimate <- mergeTabularResults("np_var_drop_pv")
+unbiased.estimate
+visualizePerformanceAll(unbiased.estimate)
+```
+Hmm.. seems like in general it does quite a bit better, but we loose alot of factors along the way. Weird.
+I think this is maybe the approach we should go with.
+
+But I'm. not sure how your R2 could be so much better rif you only have 1 column in some cases. How is this possible?
+```{r}
+d <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/V1_U1_maf0.4_n1gwasMF_np_var_drop_pve/factorization_results/"
+pca <- fread(paste0(d, "sim1.PCA.factors.txt"))
+pca.u <- fread(paste0(d, "sim1.PCA.loadings.txt"))
+gwasmf <- fread(paste0(d, "sim1.gwasMF_BIC.factors.txt"))
+gwasmf.u <- fread(paste0(d, "sim1.gwasMF_BIC.loadings.txt"))
+true.v <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V1_N100_K5_ubiq1_normNONE_60sparsity.csv")
+true.u <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/U1_M10_K5_var0.8_61sparsity.csv")
+
+pca
+gwasmf
+evaluteFactorConstruction(true.u, true.v, pca.u, pca)
+evaluteFactorConstruction(true.u, true.v, gwasmf.u, gwasmf)
+```
+There's no way we should be outperforming PCA here, not with just 1 factor.
+Well, I conclude that in simulation the unbiased estimator actually does better. Let's see if multiples starts can help with this...
+
+# 1/26/23
+New set of simulations, in which we integrated multiple starts, selecting the set of parameters that maximize cophenetic correlation (this is naive, should be more nuanced), and we try:
+1) MLE for var eestimate
+2) Unbiased for var estimate
+3) Map for var estimate (recommended as a possible alternative in the Murphy textbook)
+
+```{r}
+mle.estimate <- mergeTabularResults("n_objective_cut_burn_in_multi-sample")
+visualizePerformanceAll(mle.estimate)
+
+map.estimate <- mergeTabularResults("F_map_multi-test")
+visualizePerformanceAll(map.estimate)
+
+unbiased.estimate <- mergeTabularResults("F_np_multi-test")
+visualizePerformanceAll(unbiased.estimate)
+
+
+```
+Well the results are pretty clear- the unbiased estimate does the best here compared to PCA. This is probalby what we want to go with moving forward.
+I am still concerned by the performance though. It shouldn't be quite so bad, should it? Like our R2 with f is quite abysmal.
+
+
+Made some more changes- initialize with PVE, set K to max, don't drop using PVE. Not sure how many of htese translated into the simulations because they were running concurrently, but let's just see....
+```{r}
+map.pve.estimate <- mergeTabularResults("map_pve_init")
+visualizePerformanceAll(map.pve.estimate)
+
+unbiased.pve.estimate <- mergeTabularResults("_np_pve_init")
+visualizePerformanceAll(unbiased.pve.estimate)
+head(unbiased.pve.estimate)
+```
+well, we went from being slightly worse to slightby better. That's good.'
+
+But still weird results- we do worse in cases that are easy, or at leaset some of them. huh.
+
+
+#Trying another run- condensed,focused, with all my changes in place. Still unhappy to bic.
+```{r}
+#/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.2_n100gwasMF_unbiased/
+unbiased <- mergeTabularResults("_unbiased", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs//fast_runs/")
+
+
+map <- mergeTabularResults("_map", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs//fast_runs/")
+
+
+mle <- mergeTabularResults("_mle", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs//fast_runs/")
+
+mle <- mle %>% mutate("MAF" = as.numeric(MAF)) %>% mutate("noise" = 1/(MAF*2*(1-MAF) * as.numeric(N)))
+
+
+ggplot(mle, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt V")
+
+ggplot(mle, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt U")
+
+ggplot(map, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + 
+  facet_wrap(~noise) + ggtitle("Map estimator for variance")
+
+ggplot(unbiased, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise)+ ggtitle("Unbiased estimator for variance")
+
+
+View(mle)
+visualizePerformanceAll(map)
+visualizePerformanceAll(unbiased)
+
+visualizePerformanceAll(mle)
+```
+MLE probably the best to go with, but not clear.
+
+# 2/1/23: reintroducing the GRID
+Note in all these cases, still initializing with PCA
+```{r}
+#/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.01_n100gwasMF_grid_pve_init/factorization_results/ 
+
+grid.inclusion <- mergeTabularResults("MF_grid_pve_init", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs//fast_runs/")
+
+ggplot(grid.inclusion, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~round(noise, digits = 3)) + ggtitle(bquote(R^2 ~"with V"))
+
+ggplot(grid.inclusion, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~round(noise, digits = 3))+ ggtitle(bquote(R^2 ~"with U"))
+
+```
+
+## 2/3/2023
+Evaluating the performacne of my simulation (see feb_2022), it seems likely that one issue with the simulation is the input U file. So I'd like to think about resimulating with a laplace distribution.
+The problem is, this is not bourne out in what Yuan did or the authors of the paper did. So I'm not sure about it.
+
+
+The other point- maybe the advantage comes from scaling by SE, which we aren't taking advantage of. As in, our advantage comes when there is a greater variety in the noise present, but when its uniform it won't do as well as other methods?
+
+
+Or maybe its a bug in the simulations: after all, I have been scaling down W wrong. 
+Trying with the rescaled U- smaller terms on the simulations
+
+```{r}
+mle.smallu <- mergeTabularResults("_mle", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")
+
+ggplot(mle.smallu, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt V")
+
+ggplot(mle.smallu, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt U")
+```
+
+## 2/6/2023
+Ran the grid fit with random starts on the original U. Let's see how that went...
+```{r}
+mle.grid.originalI<- mergeTabularResults("_grid_pve_init", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")%>% filter(noise < 0.5) %>% drop_na()
+
+vr <- ggplot(mle.grid.originalI %>% filter(noise < 0.5, noise >0.001), aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt V") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x=element_blank(), #remove x axis labels
+        axis.ticks.x=element_blank())
+ur <- ggplot(mle.grid.originalI %>% filter(noise < 0.5, noise >0.001), aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("R2 wrt U") + theme_minimal()+ theme(legend.position = "bottom") 
+cowplot::plot_grid(plotlist = list(vr, ur), ncol = 1)
+true.u <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/U1_M10_K5_var0.8_61sparsity.csv")
+true.v <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V1_N100_K5_ubiq1_normNONE_60sparsity.csv")
+
+
+#We want to look at sparsity, but need all the matrices. fetchity fetchers.
+matrixSparsity(true.u, initK = 5)
+matrixSparsity(true.v, initK = 5)
+guess.u <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000gwasMF_grid_pve_init/factorization_results/sim1.gwasMF_grid.factors.txt")
+guess.u <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000gwasMF_grid_pve_init/factorization_results/sim1.gwasMF_grid.factors.txt")
+matrixSparsity(guess.u)
+ matrixSparsity(guess.u,initK = 5, wrt.init = TRUE)
+ 
+ #estimatino of sparsity
+vs <- ggplot(mle.grid.originalI %>% filter(noise < 0.5, noise >0.001), aes(x = method, y = sparsityV, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("Sparsity in V") + theme_minimal() + geom_hline(yintercept = matrixSparsity(true.v, initK = 5), linetype="dotted", color = "gray") + theme(legend.position = "none") + theme(axis.text.x=element_blank(), #remove x axis labels
+        axis.ticks.x=element_blank())
+
+us <- ggplot(mle.grid.originalI %>% filter(noise < 0.5, noise >0.001), aes(x = method, y = sparsityU, color = method)) + geom_boxplot() + facet_wrap(~noise) + ggtitle("Sparsity in U") + theme_minimal() + geom_hline(yintercept = matrixSparsity(true.u, initK = 5), linetype="dotted", color = "gray")+ theme(legend.position = "bottom") 
+cowplot::plot_grid(plotlist = list(vs, us), ncol = 1)
+
+```
+
+#Performance with mixed SE
+```{r}
+mle.udler.se <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_mafmixed_udler100/factorization_results/summary.tabular_performance.tsv")
+mle.udler.se <- mergeTabularResults(query = "_mafmixed_udler", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")
+ggplot(mle.udler.se, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + ggtitle("R2 wrt V") + theme_minimal() + facet_wrap(~N)
+ggplot(mle.udler.se, aes(x = method, y = sparsityV, color = method)) + geom_boxplot() + ggtitle("R2 wrt V") + theme_minimal() + facet_wrap(~N)
+```
+
+
+## FEBRUARY 23
+After lots of work implementing OPTIM, reconsidering the objective function, etc.
+This is the run with new BIC calculation
+```{r}
+all.results.optim <- mergeTabularResults("_optim$", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")
+all.results.optim
+df.optim <- all.results.optim %>% mutate("Noise.p" = as.factor(round(noise, digits = 4)))
+vo <- ggplot(df.optim, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt V") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x=element_blank(), #remove x axis labels
+        axis.ticks.x=element_blank())
+uo <- ggplot(df.optim %>% filter, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt U") + theme_minimal()+ theme(legend.position = "bottom") 
+cowplot::plot_grid(plotlist = list(vo, uo), ncol = 1)
+
+```
+
+this is the run with the OLD BIC calculation
+```{r}
+all.results.optim.bic <- mergeTabularResults("_optim_BIC", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")
+all.results.optim.bic
+df.optim.bic <- all.results.optim.bic %>% mutate("Noise.p" = as.factor(round(noise, digits = 4)))
+vo <- ggplot(df.optim.bic, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt V") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x=element_blank(), #remove x axis labels
+        axis.ticks.x=element_blank())
+uo <- ggplot(df.optim.bic %>% filter, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt U") + theme_minimal()+ theme(legend.position = "bottom") 
+cowplot::plot_grid(plotlist = list(vo, uo), ncol = 1)
+
+```
+Now, compare to the old method (new measurement way)- that is, old bic, old objective function:
+```{r}
+
+mle.old <- mergeTabularResults("_mle$", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs//fast_runs/")%>% mutate("Noise.p" = as.factor(round(noise, digits = 4)))
+vprev <- ggplot(mle.old, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt V") + theme_minimal() + theme(legend.position = "none") + theme(axis.text.x=element_blank(), #remove x axis labels
+        axis.ticks.x=element_blank())
+uprev <- ggplot(mle.old %>% filter, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noise.p) + ggtitle("R2 wrt U") + theme_minimal()+ theme(legend.position = "bottom") 
+cowplot::plot_grid(plotlist = list(vprev, uprev), ncol = 1)
+```
+
+Evaluate the objective performance (lol) of the new method and see how it stacks up against the true objective
+See the `bic_versions_alternative.Rmd`
+
+
+## 3/1
+Implemented C, quick test..
+```{r}
+single.run <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.2_n100gwasMF_optim_covar_high_fixed_1/factorization_results/summary.tabular_performance.tsv")
+library(ggplot2)
+ggplot(single.run, aes(x=method, y= R2_F, color = method)) + geom_boxplot()
+covar <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.2_n100gwasMF_optim_covar_high_fixed_1/sim2.c_matrix.txt")
+covar <- as.matrix(covar); rownames(covar) <- paste0("V", 1:10)
+plotCorrelationHeatmap(covar, typin='None', show.nums = TRUE)
+```
+
+## 3/3
+Evaluating the performance of the above:
+I don't understand why I still see differential performance... its baffling.
+*Redvisit on 3/6- found some issues.
+```{r}
+noise.df <- data.frame("MAF" = c(0.05,0.3,0.2,0.4,0.1,0.01), "Noiseperc" =c(11,2.7,3.25,2.3,6,35 ))
+covar.all <- mergeTabularResults("covar_high_fixed_1$", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/") %>% left_join(., noise.df, by = "MAF") %>%
+  filter(MAF != 0.3) #run didn't occur right...
+
+ggplot(covar.all, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) 
+#theme(legend.position = "none") +
+
+ggplot(covar.all, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) 
+
+```
+Suscpicious results- fixed because pre-whitening when I didn't want to.
+0.3 results seem sus.
+this whole thing seems sus. Why are the results so low all of a sudden???? for everything.
+Why isi everything doing so poorly, even on easy case?
+```{r}
+
+source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/src/evaluateSimR2.R")
+
+true.factor <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V1_M10_K5_ubiq1_normNONE_60sparsity.csv")
+beta <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs//V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1/sim1.effect_sizes.txt")
+se <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs//V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1/sim1.std_error.txt")
+
+non.fix.v <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.3_n100gwasMF_optim_covar_high_fixed_1/factorization_results/sim1.gwasMF_BIC_noCovar.factors.txt"))
+non.fix.u <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.3_n100gwasMF_optim_covar_high_fixed_1/factorization_results/sim1.gwasMF_BIC_noCovar.loadings.txt"))
+evaluteFactorConstruction(as.matrix(true.u), as.matrix(true.v), non.fix.u, non.fix.v)
+
+test <- flashier::flash(as.matrix(beta[,-1]/se[,-1]))
+test2 <- flashier::flash(as.matrix(beta[,-1]))
+test$pve
+test$F.pm
+cor(test$F.pm, true.factor)
+cor(test2$F.pm, true.factor)
+```
+
+Something is very sus.
+#after fixign
+```{r}
+pred.flash <-fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs//V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1/factorization_results/sim1.backfit.factors.txt")
+pred.flash
+cor(test$F.pm, as.matrix(pred.flash))
+cor(test$F.pm, as.matrix(true.factor))
+
+true.loadings
+evaluteFactorConstruction(true.loadings, true.factors, test$L.pm, test$F.pm)
+```
+problem solved: I WAS PRE-whitening beforehand, and that was really hurting performance. Did fine on L, but not F.
+
+
+Test this:
+Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R          --se_data /scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1//sim1.std_error.txt --beta_data /scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1//sim1.effect_sizes.txt --seed 1         --outdir /scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1//factorization_results/sim1. --only_run PCA,gwasMF_BIC,backfit,gwasMF_grid,gwasMF_BIC_noCovar --K 5 --no_plots --bic_var mle --init_mat V         --C /scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100gwasMF_optim_covar_high_fixed_1//sim1.c_matrix.txt
+
+
+## 3/14
+Further updates- made everyint global, etc.
+<Note- I had to rerun this on 3/16 because of some weird bheavior, testing to see if its fixed.>
+The original data can be found itn eh correspond zip file
+```{r}
+noise.df <- data.frame("MAF" = c(0.05,0.3,0.2,0.4,0.1,0.01), "Noiseperc" =c(10,2.5,3.25,2.3,6,36 ))
+covar.all <- mergeTabularResults("covar_high_fixed_1_global", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/") %>% left_join(., noise.df, by = "MAF")
+
+v <- ggplot(covar.all, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(covar.all, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+
+```
+```{r}
+load("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.1_n100gwasMF_optim_covar_high_fixed_1_global//factorization_results/sim1.gwasMF_BIC_noCovarglobal.fit.als.RData")
+plot(ret$global.mse)
+plot(ret$obj)
+plot(ret$decomp_obj)
+ret$decomp_obj
+tot.fit <- sapply(ret$each.matrix.obj, function(x) x$Tot)
+plot(tot.fit)
+plot(ret$penalized_ll)
+true
+```
+
+Now, the global version without covar structure:
+```{r}
+noise.df <- data.frame("MAF" = c(0.05,0.3,0.2,0.4,0.1,0.01), "Noiseperc" =c(11,2.7,3.5,2.4,6,37 ))
+no.covar.all <- mergeTabularResults("noCovar_fixed_1_global", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/") %>% left_join(., noise.df, by = "MAF")
+
+v <- ggplot(no.covar.all, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(no.covar.all, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~Noiseperc, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+
+## 3/31
+Runs with the scaled simulation, where I just modulate sample size (!)
+  why? Idk. Would be the same as maf I guess, but whatever
+```{r}
+scaled.runs <- mergeTabularResults("high_covar_SCALED", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/")
+perc.noise <- c(2.5, 0.5,0.05,0.015)
+scaled.runs
+
+
+v <- ggplot(scaled.runs, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(scaled.runs, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+  well, darn.
+  What do I see: at small noise, we do better than other methods, but not at larger noise.
+  PCA is just as good as the other methods here. This is suprising to me.
+  Adjusting for covariance structure offers norminal benefits; flashR still just does really well.
+  
+  What does the correlation straucture look like?
+```{r}
+
+t <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim5.backfit.factors.txt")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/plot_functions.R")
+#First factor is confounded!
+plotFactorsBarplot(as.matrix(t), paste0("T", 1:10), "flash")
+###########
+t <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim4.backfit.factors.txt")
+#second factor is confounded!
+plotFactorsBarplot(as.matrix(t), paste0("T", 1:10), "flash2")
+
+```
+  It seems like there are 2 confounding effects- the error size and the effect of cohort overlap. Should I be modeling them independently? 
+  That might be the problem.
+  Mine
+```{r}
+pca <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim1.PCA.factors.txt")
+flash <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim1.backfit.factors.txt")
+gwasmf <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC.factors.txt")
+gwasmf.nc <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC_noCovar.factors.txt")
+#second factor is confounded!
+plotFactorsBarplot(as.matrix(pca), paste0("T", 1:10), "pca1")
+plotFactorsBarplot(as.matrix(flash), paste0("T", 1:10), "flash1")
+plotFactorsBarplot(as.matrix(gwasmf), paste0("T", 1:10), "gleaner_1")
+plotFactorsBarplot(as.matrix(gwasmf.nc), paste0("T", 1:10), "gleaner_noCovar1")
+```
+  ^^ THIS IS EXACTLY WHAT the method is intended to avoid. This doesn't make any sense.
+also we still have the issue of pruning too fast when errors are high. This isn't good.
+Look at some other examples?
+```{r}
+pca <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_SCALED/factorization_results/sim1.PCA.factors.txt")
+flash <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_SCALED/factorization_results/sim1.backfit.factors.txt")
+gwasmf <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC.factors.txt")
+gwasmf.nc <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC_noCovar.factors.txt")
+#second factor is confounded!
+plotFactorsBarplot(as.matrix(pca), paste0("T", 1:10), "pca1")
+plotFactorsBarplot(as.matrix(flash), paste0("T", 1:10), "flash1")
+plotFactorsBarplot(as.matrix(gwasmf), paste0("T", 1:10), "gleaner_1")
+plotFactorsBarplot(as.matrix(gwasmf.nc), paste0("T", 1:10), "gleaner_noCovar1")
+```
+  at 5000??
+
+```{r}
+pca <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_SCALED/factorization_results/sim1.PCA.factors.txt")
+flash <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_SCALED/factorization_results/sim1.backfit.factors.txt")
+gwasmf <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC.factors.txt")
+gwasmf.nc <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_SCALED/factorization_results/sim1.gwasMF_BIC_noCovar.factors.txt")
+#second factor is confounded!
+plotFactorsBarplot(as.matrix(pca), paste0("T", 1:10), "pca1")
+plotFactorsBarplot(as.matrix(flash), paste0("T", 1:10), "flash1")
+plotFactorsBarplot(as.matrix(gwasmf), paste0("T", 1:10), "gleaner_1")
+plotFactorsBarplot(as.matrix(gwasmf.nc), paste0("T", 1:10), "gleaner_noCovar1")
+```
+```{r}
+true.f <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V1_M10_K5_ubiq1_normNONE_60sparsity.csv")
+true.l <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/U1_M10_K5_var0.8_61sparsity.csv")
+plotFactorsBarplot(as.matrix(true.f), paste0("T", 1:10), "True factor structure")
+```
+  
+Maybe I need to redo my story: 1st part is that cohort overlap doesn't have an effect here; 2nd part is using flashR?
+
+Ohhhh k. Maybe not as bad as I thought. The effect are exactly confounded with the covariance structure. This is what will hurt us. We need a different covariance simulation, this one isn't a good example
+  
+  
+  What happens when we don't scale?
+```{r}
+scaled.runs <- mergeTabularResults("high_covar_SCALED", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = FALSE)
+perc.noise <- c(2.5, 0.5,0.05,0.015)
+scaled.runs
+
+
+v <- ggplot(scaled.runs, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(scaled.runs, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+  hmmmmm. Not really sure what to make of this.
+  
+## 4/3
+Just looking at one block. I imagine the results are pretty similar sadly....
+(Note that scaling makes a big difference here... we really struggle on that front for some reason.)
+```{r}
+ob.runs <- mergeTabularResults("high_covar_1block_SCALED", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE)
+v <- ggplot(ob.runs, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(ob.runs, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+
+```
+Well, this is thouroughly baffling. The no-covar version does way better. Why the poor performance cases? Poop on a stick.
+```{r}
+pca <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_1block_SCALED/factorization_results/sim1.PCA.factors.txt")
+flash <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_1block_SCALED/factorization_results/sim1.backfit.factors.txt")
+gwasmf <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_1block_SCALED/factorization_results/sim1.gwasMF_BIC.factors.txt")
+gwasmf.nc <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.high_covar_1block_SCALED/factorization_results/sim1.gwasMF_BIC_noCovar.factors.txt")
+
+plotFactorsBarplot(as.matrix(pca), paste0("T", 1:10), "pca1")
+plotFactorsBarplot(as.matrix(flash), paste0("T", 1:10), "flash1")
+plotFactorsBarplot(as.matrix(gwasmf), paste0("T", 1:10), "gleaner_1")
+plotFactorsBarplot(as.matrix(gwasmf.nc), paste0("T", 1:10), "gleaner_noCovar1")
+plotFactorsBarplot(as.matrix(true.f), paste0("T", 1:10), "True factor structure")
+```
+## 4/4
+Looking performance after fixing how whitening happens on U, I think I was doing it backwards....
+Also added in 100,000 and 1000
+```{r}
+whit.cor.runs <- mergeTabularResults("SCALED_Wc_t", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE)
+v <- ggplot(whit.cor.runs, aes(x = method, y = R2_F, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+
+u <- ggplot(whit.cor.runs, aes(x = method, y = R2_L, color = method)) + geom_boxplot() + facet_wrap(~noise, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+## 4/5
+Let's also be honest about sparsity...
+Plot factor 2 in each case
+```{r}
+true.sparstiy <- sum(true.f == 0)/(nrow(true.f) * ncol(true.f))
+true.sparsity.u <- sum(true.l == 0)/(nrow(true.l) * ncol(true.l))
+sv <- ggplot(whit.cor.runs, aes(x = method, y = sparsityV, color = method)) + geom_boxplot() + geom_hline(yintercept = true.sparstiy, color = "red", linetype="dashed") + facet_wrap(~as.factor(as.numeric(N)), ncol = 6) + ggtitle("Number of 0'd out V terms") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank())
+
+su <- ggplot(whit.cor.runs, aes(x = method, y = sparsityU, color = method)) + geom_boxplot() + geom_hline(yintercept = true.sparsity.u, color = "red", linetype="dashed") + facet_wrap(~as.factor(as.numeric(N)), ncol = 6) + ggtitle("Number of 0'd out U terms") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom") + theme(axis.text.x=element_blank())
+
+cowplot::plot_grid(plotlist = list(sv,su), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+Now, give me a more fair count of sparsity- let's look at terms less than 1e-3, when we scale all columsn to be unit norm
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwasMF/R/sparsity_scaler.R")
+source.dir <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n100000.high_covar_1block_SCALED_Wc_t/factorization_results/"
+getSparsityIntense <- function(source.dir)
+{
+  review.files <- list.files(source.dir,pattern = "*.factors.txt")
+  #low var <- set as below average? 1/10?
+  avg.thresh <- 1/10
+  arbitrary.thresh <- 1e-3
+  k.true <- 5
+  m.true <- 10
+  store.sparsity <- NULL
+  for(f in review.files)
+  {
+    meth =str_split(f, pattern = "\\.")[[1]][2]
+    mat.adj <- fread(paste0(source.dir, f)) %>% apply(.,2,function(x)x/norm(x, "2"))
+    store.sparsity <- rbind(store.sparsity, c(meth, matrixSparsity(mat.adj,k.true, thresh=avg.thresh, wrt.init = TRUE), matrixSparsity(mat.adj,k.true, thresh=arbitrary.thresh, wrt.init = TRUE)))
+    #plot those
+    if(grepl("1\\.", f))
+    {
+      print(plotFactorsBarplot(as.matrix(mat.adj), paste0("T", 1:10), title = "Predicted structure") + xlab(meth))
+    }
+  }
+  return(store.sparsity)
+}
+```
+Now run it
+```{r}
+path = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/"
+all.sparsities <- list(getSparsityIntense(paste0(path, "V1_U1_maf0.4_n100000.high_covar_1block_SCALED_Wc_t/factorization_results/")),
+getSparsityIntense(paste0(path, "V1_U1_maf0.4_n50000.high_covar_1block_SCALED_Wc_t/factorization_results/")),
+getSparsityIntense(paste0(path, "V1_U1_maf0.4_n5000.high_covar_1block_SCALED_Wc_t/factorization_results/")),
+getSparsityIntense(paste0(path, "V1_U1_maf0.4_n1000.high_covar_1block_SCALED_Wc_t/factorization_results/")),
+getSparsityIntense(paste0(path, "V1_U1_maf0.4_n500.high_covar_1block_SCALED_Wc_t/factorization_results/")),
+getSparsityIntense(paste0(path, "V1_U1_maf0.4_n100.high_covar_1block_SCALED_Wc_t/factorization_results/")))
+
+```
+
+```{r}
+source.num <- c(100000,50000,5000,1000,500,100)
+sparsity.df <- do.call("rbind", lapply(1:length(all.sparsities), function(i) data.frame(all.sparsities[[i]], "n.count" = source.num[i]))) %>% set_colnames(c("method", "avg.sparsity","arbit.sparsity", "N"))
+sparsity.df$avg.sparsity <- as.numeric(sparsity.df$avg.sparsity)
+sparsity.df$arbit.sparsity <- as.numeric(sparsity.df$arbit.sparsity)
+```
+now plot
+```{r}
+ggplot(sparsity.df, aes(x = method,y = avg.sparsity, fill = method)) + geom_boxplot() + geom_hline(yintercept = true.sparstiy, color = "red", linetype = "dashed") + facet_grid(~N)+ theme(axis.text.x=element_blank()) + ggtitle("Sparsity at average threshold")
+
+ggplot(sparsity.df, aes(x = method,y = arbit.sparsity, fill = method)) + geom_boxplot() + geom_hline(yintercept = true.sparstiy, color = "red", linetype = "dashed") + facet_grid(~N)+ theme(axis.text.x=element_blank()) + ggtitle("Sparsity at <= 1e=3")
+```
+## 4/13
+Changed the optimizer- looking for outliers
+```{r}
+outlier.runs <- mergeTabularResults("high_covar_1block_SCALED_Wc_t", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE) %>% filter(as.numeric(N)> 700)
+
+#Also include the alternative flashR methods run:
+flashr.runs <- mergeTabularResults("_FLASHR_Wc_t", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE) %>%
+  mutate("method" = ifelse(method == "backfit", "backfit_z", method))
+color.assign <- data.frame("method"=unique(joined.runs$method), col = c("springgreen3", "lightskyblue", "salmon4", "lightskyblue3","salmon1","salmon3","salmon2")) %>% arrange(method)
+joined.runs <- rbind(outlier.runs, flashr.runs) %>% left_join(., color.assign, by = "method") %>% mutate("N" = as.numeric(N))
+#make the plots
+v <- ggplot(joined.runs, aes(x = method, y = R2_F, fill = method)) + geom_boxplot() + facet_wrap(~N, ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V")) + scale_fill_manual(values = color.assign$col) 
+# legend.position = "bottom"
+u <- ggplot(joined.runs, aes(x = method, y = R2_L, fill = method)) + geom_boxplot() + facet_wrap(~N, ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U")) + scale_fill_manual(values = color.assign$col) 
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+
+```
+## 3/17
+INTRODUCING the SANN + Brent approach, how does it compare
+(Initially run with "SANN_Brent_maxError")
+```{r}
+sann.run <- mergeTabularResults(".SANN_Brent$", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE)
+
+
+v <- ggplot(sann.run, aes(x = method, y = R2_F, fill = method)) + geom_boxplot() + facet_wrap(~as.numeric(N), ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+# legend.position = "bottom"
+u <- ggplot(sann.run, aes(x = method, y = R2_L, fill = method)) + geom_boxplot() + facet_wrap(~as.numeric(N), ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+
+```
+Quick- for abstract:
+```{r}
+sann.run <- mergeTabularResults(".SANN_Brent$", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE) %>% filter(as.numeric(N) == 5000) 
+new.names <- data.frame(method = unique(sann.run$method), "new.meth" = c("PCA", "GLEANER", "GLEANER_noCov", "FLASH"))
+sann.run <- left_join(sann.run, new.names ,by = "method")
+v <- ggplot(sann.run, aes(x = method, y = R2_F, fill = new.meth)) + geom_boxplot() + ggtitle("Latent factor reconstruction (V)") + theme_bw(18) +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank(), axis.title.x = element_blank()) + ylab(bquote(R^2 ~ "wrt V"))
+# legend.position = "bottom"
+u <- ggplot(sann.run, aes(x = method, y = R2_L, fill = new.meth)) + geom_boxplot() + ggtitle("Latent loading reconstruction (U)")+ theme_bw(19) +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank(), axis.title.x = element_blank())+ ylab(bquote(R^2 ~ "wrt U")) + labs(fill = "Method")
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+```
+
+
+
+BRENT ONLY APPROACH
+
+```{r}
+brent.run <- mergeTabularResults("Brent_only", base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/",scale = TRUE)
+
+
+v <- ggplot(brent.run, aes(x = method, y = R2_F, fill = method)) + geom_boxplot() + facet_wrap(~as.numeric(N), ncol = 6) + ggtitle("R2 wrt V") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "none") + theme(axis.text.x=element_blank()) + ylab(bquote(R^2 ~ "V"))
+# legend.position = "bottom"
+u <- ggplot(brent.run, aes(x = method, y = R2_L, fill = method)) + geom_boxplot() + facet_wrap(~as.numeric(N), ncol = 6) + ggtitle("R2 wrt U") + theme_bw() +theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1), legend.position = "bottom")  + theme(axis.text.x=element_blank())+ ylab(bquote(R^2 ~ "U"))
+cowplot::plot_grid(plotlist = list(v,u), nrow = 2, rel_heights =  c(0.8,1.0))
+
+```
+Comparing the 2 above, the SANN+Brent approach is better, so we stick with that.
+What is the runtime difference?
+Would all SANN work? I avoid that b/c too slow
+```{r}
+library(ggpubr)
+brent.run.abbrev <- brent.run %>%filter(as.numeric(N) == 5000,method== "gwasMF_BIC") %>% mutate("optimizer" = "Brent")
+joined.df <- rbind(sann.run%>% mutate("optimizer" = "SANN+Brent") %>% 
+                     filter(method == "gwasMF_BIC") %>% select(-new.meth), brent.run.abbrev)
+
+t.test((joined.df %>% filter(optimizer == "SANN+Brent"))$R2_L,(joined.df %>% filter(optimizer == "Brent"))$R2_L,alternative = "greater")
+ggplot(joined.df, aes(x = optimizer, y = R2_L)) + geom_boxplot() + theme_minimal()+ stat_compare_means(method = "t.test")
+t.test((joined.df %>% filter(optimizer == "SANN+Brent"))$R2_F,(joined.df %>% filter(optimizer == "Brent"))$R2_F,alternative = "greater",paired = TRUE)
+ggplot(joined.df, aes(x = optimizer, y = R2_F)) + geom_boxplot() + theme_minimal()+ stat_compare_means(method = "t.test")
+```
+Performance differences are clear.. Runtime differences?
+```{r}
+tabs <- NULL
+for(sim in 1:10)
+{
+  load(paste0("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.Brent_only/factorization_results/sim", sim, ".time.stamps.Rdata"))
+tabs <- rbind(tabs, c(as.numeric(time.perf$gwasMF_BIC, units = "secs"), as.numeric(time.perf$gwasMF_BIC_noCovar, units = "secs"), "Brent"))
+load(paste0("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n5000.SANN_Brent/factorization_results/sim", sim, ".time.stamps.Rdata"))
+     tabs <- rbind(tabs, c(as.numeric(time.perf$gwasMF_BIC, units = "secs"), as.numeric(time.perf$gwasMF_BIC_noCovar, units = "secs"), "SANN+Brent"))
+}
+tabs <- data.frame(tabs) %>% mutate("GLEANER" = as.numeric(X1), "GLEANER_noCOvar" = as.numeric(X2)) %>% rename("Optimizer" = X3) %>% select(-X1,-X2)
+ggplot(tabs, aes(x = Optimizer, y= GLEANER)) + geom_boxplot() + stat_compare_means(method = "t.test") + 
+  theme_bw() + ggtitle("Runtimes of GLEANER approaches\n not that different") + ylab("Time (s)")
+ggplot(tabs, aes(x = Optimizer, y= GLEANER_noCOvar)) + geom_boxplot() + stat_compare_means(method = "t.test") + 
+  theme_bw() +ggtitle("Runtimes of GLEANER_noCOvar approaches \n QUITE different")+ ylab("Time (s)")
+
+```
+hmm, no actually that different
