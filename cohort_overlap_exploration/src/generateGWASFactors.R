@@ -35,7 +35,7 @@ t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_ex
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
-set.seed(args$seed)
+#set.seed(args$seed)
 
 #read in relevant things
 #Maybe a better way would be to specify a parameter file, that has all of this information in it.
@@ -50,6 +50,10 @@ if("sim_ref" %in% yml$n)
 
 
 n_o <- as.matrix(fread(unlist(yml[which(yml$n == "samp_overlap"),2])))
+
+new.seed=args$seed + as.numeric(n_o[1,1])
+message("New sim version: seed set by setting + n: ", new.seed)
+set.seed(new.seed)
 rho <- as.matrix(fread(unlist(yml[which(yml$n == "pheno_corr"),2]))) #Correlation between phenotypes
 f <- as.matrix(fread(unlist(yml[which(yml$n == "factors"),2])))
 l <-  as.matrix(fread(unlist(yml[which(yml$n == "loadings"),2]))) #gut says this should be more dense, huh.
@@ -82,11 +86,17 @@ if("herit_scaler" %in% yml$n)
   
   cont.herit <- c(12.4,18.0,14.6,8.0,8.1,6.5,15.2,21.8,22.7,23.1,9.1,95.6,0.9)*10^-5
   
+  #quick.test
+  x.inter <- fread("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/gwas_extracts/seed2_thresh0.9_h2-0.1_vars1e-5/seed2_thresh0.9_h2-0.1_vars1e-5.FULL_LIST.1e-5.beta.tsv")[,-1] %>% 
+    tidyr::drop_na()
+  variance.scale <- apply(x.inter,2,var)
+
   #choose the one based on the herit.settings
   herit.factors <- switch(herit.settings,
          "disease" = rep(dis.herit,5)[1:ntraits],
          "mixed" = c(rep(dis.herit,5)[1:floor(ntraits/2)],rep(cont.herit,5)[1:floor(ntraits/2)]),
-         "continuous" = rep(cont.herit,5)[1:ntraits])
+         "continuous" = rep(cont.herit,5)[1:ntraits],
+         "ukbb_real" = rep(variance.scale,5)[1:ntraits])
   scaling.d <- diag(herit.factors)
   #need to multiply each column of mu by  sqrt(scaling.d[i]/var(i))
   
