@@ -24,9 +24,18 @@ BuildYAML <- function(row)
   ret.list[["test_methods"]] <- row$test_methods
   #last things (fixed)
   ret.list[["noise_scaler"]] <- 1
-  ret.list[["bic_param"]] <- "mle"
+  ret.list[["bic_param"]] <- "sklearn"
   ret.list[["init"]] <- "V"
-  ret.list[["herit_scaler"]] <- "disease"
+  if(is.na(row$HERIT))
+  {
+  ret.list[["herit_scaler"]] <- "continuous"
+
+  }else
+ {
+	 ret.list[["herit_scaler"]] <- row$HERIT
+  }
+
+
   data.frame("names" = names(ret.list), "vals" = unlist(ret.list))
 }
 
