@@ -1,3 +1,5 @@
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
 pacman::p_load(magrittr, tidyr, dplyr, ggplot2, data.table)
 BuildYAML <- function(row)
 {
@@ -45,6 +47,12 @@ conv.files <- "./OneDrive - Johns Hopkins/Research_Ashton_MacBook_Pro/snp_networ
 conv.files <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/setting_files/path_reference.csv"
 paramfiles <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/setting_files/v1_u1_sims.csv"
 opath <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/25_round_sims_april23/"
+# test if there is at least one argument: if not, return an error
+if (length(args)<2) {
+  stop("At least two arguments must be supplied (input file path and output directory).n", call.=FALSE)
+}
+paramfiles <- args[1]
+opath <- args[2]
 param.setting <- fread(paramfiles)
 
 
@@ -53,10 +61,22 @@ param.setting <- param.setting %>% mutate("fnames" = paste0(V,"_", U, "_MAF-", M
 
 conv <-fread(conv.files)
 cats <- c("factors", "loadings", "maf", "K", "iter", "samp_overlap","pheno_corr", "test_methods","noise_scaler","bic_param", "init")
-
+if (length(args)==4) {
+message("mkdir -p ", args[4])
+  }
 for(i in 1:nrow(param.setting))
 {
-	message("Currently running ", param.setting[i,]$fnames)
+  
+  if (length(args)==4) {
+    if(args[3] == "-c")
+    {
+      message("bash src/runSimulation.sh ", paste0(opath, '/',param.setting[i,]$fnames), " ", args[4], gsub(x=param.setting[i,]$fnames, replacement = "", pattern = ".yml"))
+    }
+  }else
+  {
+    message("Currently running ", param.setting[i,]$fnames)
+  }
+
   tab <- BuildYAML(param.setting[i,])
   write.table(tab, file = paste0(opath, "/", param.setting[i,]$fnames), quote = FALSE, row.names = FALSE, col.names = FALSE, sep = ",")
 }
