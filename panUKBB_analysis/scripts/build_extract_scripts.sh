@@ -40,3 +40,8 @@ buildEverything  ()
     buildEverything $i $ODIR $DIR
   done
 
+#Updated version- take a list of files to input
+#while read i; do
+#	echo $i
+#	buildEverything $ODIR $DIR
+#done < $1

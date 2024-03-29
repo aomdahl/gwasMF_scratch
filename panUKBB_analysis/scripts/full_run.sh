@@ -17,7 +17,11 @@
   tail -n +2 download_biomarkers_flat.sh > tmp && mv tmp download_biomarkers_flat.sh
   sbatch download_biomarkers_flat.sh
   sbatch download_phenos_flat.sh
-
+#1.5) Get the EUR relevant information:
+cd /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/ 
+#zcat full_variant_qc_metrics.txt.bgz |  awk '((NR == 1) || (($11 + 0.0 > 0.9) && ($34 + 0.0 > 0.01) && ($9 == "true"))) {print $1","$2","$3","$4","$5","$6","$14","$20","$26","$32","$38}' | gzip > high_quality_common_variants_EUR.txt.bgz
+#Above version yielded incorrect thing, trying again....
+zcat full_variant_qc_metrics.txt.bgz |  cut -f 1-6,11,33,34,9 | awk '((NR == 1) || (($7 == "true") && ($8 + 0.0 > 0.9) && ($10 + 0.0 > 0.01))) {print $0}'  | gzip > high_quality_common_variants_EUR.txt.bgz
 #2) Extract via awk the EUR information only from the summary statistics
   bash scripts/build_extract_scripts.sh
   #Submit these jobs to slurm in 2 pieces...
@@ -62,10 +66,10 @@ snakemake --snakefile rules/ldsr_pairwise.smk -j 5 ldsr_results/panUKBB_complete
 
 #10) Manually evaluate the results, select a threshold to narrow down to ~100 studies
 	#in R: trait_selection_part2_postLDSC.Rmd
-
+	#Also update the missingness repoort file
 	#Modify the missingness report file
-	awk -F "." '(FNR == NR) {arr[$1];next} ($4 in arr) {print $0}' /scratch16/abattle4/ashton/snp_networks/scratch/panUKBB_analysis/rg_filtered_0.7_traits.txt  missingness_report.tsv > missingness_report.SUB.tsv
-	mv missingness_report.tsv missingness_report.COMPLETE.tsv && mv missingness_report.SUB.tsv missingness_report.tsv
+	#awk -F "." '(FNR == NR) {arr[$1];next} ($4 in arr) {print $0}' /scratch16/abattle4/ashton/snp_networks/scratch/panUKBB_analysis/rg_filtered_0.7_traits.txt  missingness_report.tsv > missingness_report.SUB.tsv
+	#mv missingness_report.tsv missingness_report.COMPLETE.tsv && mv missingness_report.SUB.tsv missingness_report.tsv
 
 #11) Create the file for clumping variants based on the frequency of occurence across the set.
 	ml anaconda

@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -p express
+#SBATCH -J partial_extraction
+#SBATCH --time=120:00
+source /data/apps/go.sh ### for safety reasons
+set -e
+cd /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/extract_EUR_scripts
