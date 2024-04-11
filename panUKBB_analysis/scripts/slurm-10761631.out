@@ -1,0 +1,1538 @@
++----------------------------------------------------------------------------------------+
+|              [31mHome[0m Usage for user [31maomdahl1[0m as of [31mSat Mar 30 17:00:07 2024[0m               |
++----------------------+----------------------+-------------------+----------------------+
+|         Used         |        Quota         |      Percent      |        Files         |
++----------------------+----------------------+-------------------+----------------------+
+|       18.32 GB       |       50.00 GB       |       36.64%      |       372,424        |
++----------------------+----------------------+-------------------+----------------------+
+
++------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mabattle4:[0m as of [31mSat Mar 30 17:00:20 2024[0m               |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|     FS     |    Used   |   Quota    |  Used % |    Files    | Files Quota  |   Files %   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|    data    |  81.81 TB | 100.00 TB  |  81.00% |  15,570,666 |  40,960,000  |    38.00%   |
+|  scratch4  |  7.47 GB  |  10.00 TB  |    0%   |   122,462   |  1,048,576   |    11.00%   |
+| scratch16  |  72.90 TB | 100.00 TB  |  72.00% |  9,551,073  |  10,485,760  |    91.00%   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+
++----------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mbattle-mccoy:[0m as of [31mSat Mar 30 17:00:20 2024[0m               |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|     FS     |     Used     |   Quota    |  Used %  | Files  |   Files Quota   |    Files %    |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|    data    |  241.52 GB   |  1.00 TB   |  23.00%  |   14   |     409,600     |       0%      |
+|  scratch4  |   6.71 TB    |  10.00 TB  |  67.00%  | 3,372  |    1,048,576    |       0%      |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+
+Important TODO: update to use RSIDs over chr:pos in the event of hg38 as reference.
+non-default list is entered; going to do a quick liftover to get hg38 too...
+Converted list has 1047666 entries
+Original list has 1094844 entries
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.gz ( ankle_spacing_width )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3143-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.gz ( coxarthrosis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M16-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.gz ( heel_bone_mineral_density )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3148-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.gz ( internal_derangement_knee )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-835-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.gz ( standing_height )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-50-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.gz ( asthma )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-495-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.gz ( chest_pain_when_walking )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3606-both_sexes-3606.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.gz ( cough )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22502-both_sexes-22502.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.gz ( FEV1 )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20154-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.gz ( FEV1_FVC_ratio )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-FEV1FVC-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.gz ( forced_vital_capacity )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3062-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.gz ( hayfever_allergic_rhinitis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-22126-both_sexes-22126.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.gz ( nasal_polyps )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-471-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.gz ( peak_expiratory_flow )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-3064-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.gz ( age_at_first_intercourse )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2139-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.gz ( female_genital_prolapse )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N81-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.gz ( number_of_sexual_partners )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-2149-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.gz ( alcohol_related_disorders )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-317-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.gz ( anxiety_disorders )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-300-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.gz ( belief_in_meaningful_life )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20460-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.gz ( chronotype )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1180-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.gz ( depressed_for_week )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-4598-both_sexes-4598.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.gz ( extreme_irritability )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20502-both_sexes-20502.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.gz ( frequency_of_alcohol )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20414-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.gz ( guilt_for_drinking )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20409-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.gz ( light_smoker )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2644-both_sexes-2644.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.gz ( mania_irritiability )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20548-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.gz ( neuroticism_score )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20127-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.gz ( previous_alcohol_drinker )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20117-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.gz ( risk_taking )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2040-both_sexes-2040.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.gz ( sleep_duration )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1160-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.gz ( smoking_status )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20116-both_sexes-0.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.gz ( snoring )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1210-both_sexes-1210.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz ( _3mm_cylindrical_power_R )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz ( _3mm_strong_meridian_angle_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz ( _6mm_asymmetry_angle_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.gz ( _6mm_asymmetry_index_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5157-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.gz ( _6mm_strong_meridian_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5134-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.gz ( cateract )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-366-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.gz ( corneal_resistance_factor_R )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5257-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.gz ( glaucoma )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-365-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.gz ( intra_ocular_pressure )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5262-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.gz ( no_major_eye_problems )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6148-both_sexes-100.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.gz ( retinal_detachment_defects )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-361-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.gz ( spherical_power_left )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5085-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.gz ( difficulty_sleeping )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1200-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.gz ( headache_pain )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6159-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.gz ( headaches_extended )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-3799-both_sexes-3799.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.gz ( mononeuropathies_upper_limb )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-G56-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.gz ( multisite_chronic_pain )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-MCP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.gz ( breast_cancer )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-174-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.gz ( colon_rectum_anus_neoplasm_benign )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-D12-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.gz ( mean_carotid_IMT )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-22677-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.gz ( neoplasm_bronchus_lung_malignant )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C34-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.gz ( shoulder_lesions )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-M75-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.gz ( skin_neoplasm_malignant_other )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-C44-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.gz ( other_serious_medical_condition )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2473-both_sexes-2473.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.gz ( birth_weight )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20022-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.gz ( body_size_age_10_comparative )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1687-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.gz ( direct_LDL )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-LDLC-both_sexes-medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.gz ( whole_body_fat_free_mass )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23101-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.gz ( whole_body_fat_mass )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.gz ( whole_body_impedance )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-23106-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.gz ( whr )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-whr-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.gz ( eosinophil_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30150-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.gz ( lymphocyte_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30120-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.gz ( lymphocyte_percent )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30180-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.gz ( mean_corpuscular_hemoglobin_conc )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30060-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.gz ( mean_corpuscular_volume )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30040-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.gz ( mean_platelet_volume )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30100-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.gz ( monocyte_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30130-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.gz ( monocyte_percent )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30190-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.gz ( platelet_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30080-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.gz ( platelet_distribution_width )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.gz ( rbc_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30010-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.gz ( rbc_distribution_width )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30070-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.gz ( reticulocyte_count_high_light_scatter )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30300-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.gz ( wbc_count )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30000-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.gz ( abdominal_hernia )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.gz ( cholelithiasis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-574.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.gz ( diverticulosis_diverticulitis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-562-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.gz ( inguinal_hernia )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.gz ( umbilical_hernia )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-550.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.gz ( hypothyroidism )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1226.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.gz ( kidney_uretur_calculus )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-N20-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.gz ( type_2_diabetes )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-250.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.gz ( hearing_difficulty )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2257-both_sexes-2257.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.gz ( blonde_hair )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-1747-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.gz ( eczema_dermatitis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1452.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.gz ( skin_color )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1717-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.gz ( gout_SR )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-20002-both_sexes-1466.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.gz ( fluid_intelligence_score )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-20016-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.gz ( max_digits_remembered )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4282-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.gz ( narcolepsy )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-1220-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.gz ( pairs_matching )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-400-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.gz ( responsiveness_button_press )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-404-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.gz ( atrial_fibrillation )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/icd10-I48-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.gz ( coronary_artherosclerosis )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-411.4-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz ( DBP )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-DBP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.gz ( hemorrhoids )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-455-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.gz ( maximum_heart_rate )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-6033-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz ( pulse_pressure )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-PP-both_sexes-combined_medadj_irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.gz ( pulse_rate )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-102-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.gz ( pulse_wave_reflection_index )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-4195-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.gz ( varicose_veins_lower_extremities )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-454.1-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.gz ( bleeding_gums )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-3.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.gz ( broken_or_fractured_bones )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-2463-both_sexes-2463.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.gz ( dentures )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-6.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.gz ( hand_grip_strength_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-46-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.gz ( loose_teeth )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-4.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.gz ( mouth_ulcers )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/categorical-6149-both_sexes-1.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.gz ( alanine_aminotransferase )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30620-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.gz ( albumin )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30600-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.gz ( alkaline_phosphatase )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30610-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.gz ( aspartate_aminotransferase )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30650-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.gz ( c_reactive_protein )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30710-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.gz ( calcium )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30680-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.gz ( creatinine )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30700-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.gz ( cystatin_c )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30720-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.gz ( gamma_glutamyltransferase )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30730-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.gz ( glucose )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30740-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.gz ( glycated_haemoglobin_hba1c )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30750-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.gz ( hdl_cholesterol )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30760-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.gz ( igf1 )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30770-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.gz ( phosphate )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30810-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.gz ( SHBG )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30830-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.gz ( sodium_in_urine )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-30530-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.gz ( testosterone )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30850-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.gz ( total_bilirubin )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30840-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.gz ( triglycerides )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30870-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.gz ( urea )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30670-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.gz ( vitamin_d )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/biomarkers-30890-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.gz ( allgery_to_penicilin )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-960.2-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.gz ( dupuytrens_disease )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-728.71-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.gz ( hallux_valgus )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-735.3-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.gz ( non-albumin_protein )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-NAP-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.gz ( syncope_and_collapse )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/phecode-788-both_sexes.tsv.EUR_ONLY.INTERMEDIATE.gz
+

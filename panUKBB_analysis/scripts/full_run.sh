@@ -17,22 +17,40 @@
   tail -n +2 download_biomarkers_flat.sh > tmp && mv tmp download_biomarkers_flat.sh
   sbatch download_biomarkers_flat.sh
   sbatch download_phenos_flat.sh
-#1.5) Get the EUR relevant information:
-cd /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/ 
-#zcat full_variant_qc_metrics.txt.bgz |  awk '((NR == 1) || (($11 + 0.0 > 0.9) && ($34 + 0.0 > 0.01) && ($9 == "true"))) {print $1","$2","$3","$4","$5","$6","$14","$20","$26","$32","$38}' | gzip > high_quality_common_variants_EUR.txt.bgz
-#Above version yielded incorrect thing, trying again....
-zcat full_variant_qc_metrics.txt.bgz |  cut -f 1-6,11,33,34,9 | awk '((NR == 1) || (($7 == "true") && ($8 + 0.0 > 0.9) && ($10 + 0.0 > 0.01))) {print $0}'  | gzip > high_quality_common_variants_EUR.txt.bgz
-#2) Extract via awk the EUR information only from the summary statistics
+
+#2) Get the EUR relevant information:
+	cd /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/ 
+	#zcat full_variant_qc_metrics.txt.bgz |  awk '((NR == 1) || (($11 + 0.0 > 0.9) && ($34 + 0.0 > 0.01) && ($9 == "true"))) {print $1","$2","$3","$4","$5","$6","$14","$20","$26","$32","$38}' | gzip > high_quality_common_variants_EUR.txt.bgz
+	#Above version yielded incorrect thing, trying again....
+	#zcat full_variant_qc_metrics.txt.bgz |  cut -f 1-6,11,33,34,9 | awk '((NR == 1) || (($7 == "true") && ($8 + 0.0 > 0.9) && ($10 + 0.0 > 0.01))) {print $0}'  | gzip > high_quality_common_variants_EUR.txt.bgz
+	#Third time's the charm?
+	#awk -f quick_filter.awk <(zcat full_variant_qc_metrics.txt.bgz | cut -f 1-6,11,33,34,9) > intermediate.tmp
+	#awk 'NR==FNR{c[$5]++;next} c[$5]<2' intermediate.tmp intermediate.tmp | gzip >  high_quality_common_variants_EUR.txt.bgz	
+	#Nope, just did it in R and it worked fine. This is dumb.
+#3) Extract via awk the EUR information only from the summary statistics
   bash scripts/build_extract_scripts.sh
-  #Submit these jobs to slurm in 2 pieces...
-  bash sbatch scripts/slurm_first_half.sh
-  bash sbatch scripts/slurm_second.half.sh
+  #Launch the commands into 4 scripts		
+  bash submit_extractions.sh
+  #ALTERNATIVE option- just do it for the 137 traits we want:
+  	#ls *.sh all.runs | sed 's/.extract.sh//g' > all.runs
+	#LOOKUP=/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/trait_selections/panUKBB_complete.studies.tsv
+	#while read p; do
+	#    if grep -q $p $LOOKUP; then
+	#	echo ${p}.extract.sh
+	#    fi
+	#done < all.runs
+	#bash submit_extractions_selected.sh
 
 #4) Manually compile the manifest list. Found in:
-  ls /scratch16/abattle4/ashton/snp_networks/scratch/custom_l1_factorization/trait_selections/panUKBB_complete.studies.tsv
+  ls /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/trait_selections/panUKBB_complete.studies.tsv
+  
 
 #5) Launch the premunging script to get these into a format that the LDSC munger will recognize
 	sbatch scripts/premunge_all.sh
+	cd /scratch16/abattle4/ashton/snp_network/custom_l1_framework
+	snakemake --snakefile rules/extract_factorize.smk -j 1 gwas_extracts/panUKBB_complete/panUKBB_complete.1000G.txt --configfile config/panUKBB_complete_config.yaml
+
+        cd gwas_extracts/panUKBB_complete/
 	sed -i 's/NEGLOG10_PVAL_EUR/PVAL/g' gwas_extracts/panUKBB_complete/munge_sumstats.all.sh
 	#It didn't add the signed sum stats,nor did it add SE. look into this. But for now, do it manually
 	sed -i 's/--keep-maf/--keep-maf --signed-sumstats beta_EUR,0/g'  gwas_extracts/panUKBB_complete/munge_sumstats.all.sh
@@ -55,9 +73,9 @@ snakemake --snakefile  rules/ldsr_pairwise.smk  -j 1 gwas_extracts/panUKBB_compl
 	rm ldsr_results/panUKBB_complete/rg_ldsr/*.sh
 	snakemake --snakefile rules/ldsr_pairwise.smk -j 1 ldsr_results/panUKBB_complete/rg_ldsr/hdl_cholesterol_ldsc.run.sh  --configfile config/panUKBB_complete_config.yaml
 	#Modify them to work with the format, LDSC output formatting was irregular and we need to update to EUR.
-	for i in  ldsr_results/panUKBB_complete/rg_ldsr/*.sh; do
+	for i in  ` ls ldsr_results/panUKBB_complete/rg_ldsr/*.sh`; do
 
-		sed -i 's/-chr//g' $ibash
+		sed -i 's/-chr//g' $i
 		sed -i 's/UKBB.ALL.ldscore\//UKBB.ALL.ldscore\/UKBB.EUR/g' $i
 	done
 
@@ -86,4 +104,26 @@ snakemake --snakefile rules/ldsr_pairwise.smk -j 5 ldsr_results/panUKBB_complete
 #10) Clump using the UKBB reference
 	#Run the clumping:
 	plink/1.90b6.4
-	plink --bfile /scratch16/abattle4/ashton/prs_dev/1000genomes_refLD/ref --clump-p1 1 --clump-p2 1 --clump-r2 0.2 --clump-kb 250 --clump  gwas_extracts/panUKBB_complete/panUKBB_complete.1000G_freqs.txt --out gwas_extracts/panUKBB_complete/panUKBB_complete_clumping
+	plink --bfile /scratch16/abattle4/ashton/prs_dev/1000genomes_refLD/ref --clump-p1 1 --clump-p2 1 --clump-r2 0.1 --clump-kb 250 --clump  gwas_extracts/panUKBB_complete/panUKBB_complete.1000G_freqs.txt --out gwas_extracts/panUKBB_complete/panUKBB_complete_clumping_250kb_r2_0.1
+	#Convert it into a format that snakemake likes:
+	awk '{print $3}'   gwas_extracts/panUKBB_complete/panUKBB_complete_clumping_250kb_r2_0.1.clumped > gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.1.250kb.0.2r2.prune.in
+
+#11) Extract this set of SNPs
+	snakemake --snakefile rules/extract_factorize.smk -j 1 gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.1.beta.tsv --configfile config/panUKBB_complete_config.yaml
+#12) Run GLEANER
+	sbatch ../../../custom_l1_factorization/run_scripts/GLEANER_panUKBB_6K_snps_2.sh
+#13) Project the factors
+	sbatch extractProject.sh
+
+#14) Build the meta-summary stats
+	ml snakemake
+
+	snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_6.1K/loading_ss_files_Meta/ --configfile config/panUKBB_complete_config.yaml
+
+	snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_6.1K/loading_ss_files_MetaAdj/ --configfile config/panUKBB_complete_config.yaml
+
+#15) Run the full LDSC
+	#Adjusted version, which is what we will use
+	snakemake --snakefile  rules/project_assess.smk  -j 7 results/panUKBB_complete_6.1K/MetaAdj_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/
+	#Standard version:
+	snakemake --snakefile  rules/project_assess.smk  -j 5 results/panUKBB_complete_6.1K/Meta_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/ --dry-run

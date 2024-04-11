@@ -1,0 +1,71 @@
++-------------------------------------------------------------------------------+
+|          Home Usage for user [31maomdahl1[0m as of [31mWed Feb 14 19:00:07 2024[0m          |
++--------------------+--------------------+-----------------+-------------------+
+|        Used        |       Quota        |     Percent     |       Files       |
++--------------------+--------------------+-----------------+-------------------+
+|      15.23 GB      |      50.00 GB      |      30.47%     |      327,232      |
++--------------------+--------------------+-----------------+-------------------+
+
++--------------------------------------------------------------------------------+
+|            Usage for Group [31mabattle4:[0m as of [31mWed Feb 14 19:30:13 2024[0m            |
++-----------+----------+-----------+--------+------------+-------------+---------+
+|     FS    |   Used   |   Quota   | Used % |   Files    | Files Quota | Files % |
++-----------+----------+-----------+--------+------------+-------------+---------+
+|    data   | 76.10 TB | 100.00 TB | 76.00% | 15,421,771 |  40,960,000 |  37.00% |
+|  scratch4 | 7.47 GB  |  10.00 TB |   0%   |  122,462   |  1,048,576  |  11.00% |
+| scratch16 | 97.51 TB | 100.00 TB | 97.00% | 9,533,241  |  10,485,760 |  90.00% |
++-----------+----------+-----------+--------+------------+-------------+---------+
+
++--------------------------------------------------------------------------------+
+|          Usage for Group [31mbattle-mccoy:[0m as of [31mWed Feb 14 19:30:13 2024[0m          |
++----------+------------+----------+--------+-------+--------------+-------------+
+|    FS    |    Used    |  Quota   | Used % | Files | Files Quota  |   Files %   |
++----------+------------+----------+--------+-------+--------------+-------------+
+|   data   | 241.52 GB  | 1.00 TB  | 23.00% |   14  |   409,600    |      0%     |
+| scratch4 |  6.67 TB   | 10.00 TB | 66.00% | 3,350 |  1,048,576   |      0%     |
++----------+------------+----------+--------+-------+--------------+-------------+
+
+Important TODO: update to use RSIDs over chr:pos in the event of hg38 as reference.
+non-default list is entered; going to do a quick liftover to get hg38 too...
+Converted list has 1047666 entries
+Original list has 1094844 entries
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz ( _3mm_cylindrical_power_R )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5116-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz ( _3mm_strong_meridian_angle_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5104-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+
+Currently processing file  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz ( _6mm_asymmetry_angle_L )
+Assuming hg37 build, using hapmap3 SNPS only...
+Correction protocol is CONVLOGPTOSTD
+curr file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz
+new file /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Proceeding with update...
+Changes being made to /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.gz
+Updated file name is  /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+File change protocol code is  CONVLOGPTOSTD
+/data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/phenotype_flat_files/EUR_only/continuous-5110-both_sexes-irnt.tsv.EUR_ONLY.INTERMEDIATE.gz
+Traceback (most recent call last):
+  File "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/munge_precursor.py", line 666, in <module>
+    intermediate_file = doCleanup(dat, fix_instructions,build_dict, args.calls_only, allele_reference_dict, force_update = args.force_update)
+  File "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/munge_precursor.py", line 498, in doCleanup
+    line[pval_index] = str(10**(-1 * makeNum(line[pval_index])))
+  File "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/munge_precursor.py", line 55, in makeNum
+    return float(str)
+ValueError: could not convert string to float: 'false'
