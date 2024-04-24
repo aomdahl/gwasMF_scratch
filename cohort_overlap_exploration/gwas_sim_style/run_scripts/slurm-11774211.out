@@ -1,0 +1,58 @@
++----------------------------------------------------------------------------------------+
+|              [31mHome[0m Usage for user [31maomdahl1[0m as of [31mWed Apr 24 14:00:08 2024[0m               |
++----------------------+----------------------+-------------------+----------------------+
+|         Used         |        Quota         |      Percent      |        Files         |
++----------------------+----------------------+-------------------+----------------------+
+|       19.38 GB       |       50.00 GB       |       38.76%      |       376,455        |
++----------------------+----------------------+-------------------+----------------------+
+
++------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mabattle4:[0m as of [31mWed Apr 24 14:30:12 2024[0m               |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|     FS     |    Used   |   Quota    |  Used % |    Files    | Files Quota  |   Files %   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|    data    |  88.62 TB | 100.00 TB  |  88.00% |  16,615,514 |  40,960,000  |    40.00%   |
+|  scratch4  |  7.47 GB  |  10.00 TB  |    0%   |   122,462   |  1,048,576   |    11.00%   |
+| scratch16  |  74.05 TB | 100.00 TB  |  74.00% |  9,576,267  |  10,485,760  |    91.00%   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+
++----------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mbattle-mccoy:[0m as of [31mWed Apr 24 14:30:12 2024[0m               |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|     FS     |     Used     |   Quota    |  Used %  | Files  |   Files Quota   |    Files %    |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|    data    |  241.52 GB   |  1.00 TB   |  23.00%  |   14   |     409,600     |       0%      |
+|  scratch4  |   6.71 TB    |  10.00 TB  |  67.00%  | 3,372  |    1,048,576    |       0%      |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+
+Generating simulations
+Seed set to 6
+this version of the script simply saves out all the GWAs summary stats, doesn't actually do any analysis.
+herit a: 0
+herit b: 0
+Number of simulations to run:10
+SD of noise to add to sims: 1, 1, 0.1
+Loading MAF data
+Populations will have 100,000 individuals, for 30,000 samples per study
+Starting sim iters...
+on iteration 1 of 10
+In the null builder
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+[1] 1
+Start:1....End: 30000....Length: 30000
+/cm/local/apps/slurm/var/spool/job11774211/slurm_script: line 15: 2031146 Killed                  Rscript simulation_scripts/gwas_centric_vary_overlap_degree_template.R 6 10 N30000_multi-overlap_SD-1-1-0.1_h2-0-0/ /scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/null_matrix_spearman/ 0 0 1,1,0.1
+slurmstepd: error: Detected 1 oom_kill event in StepId=11774211.batch. Some of the step tasks have been OOM Killed.

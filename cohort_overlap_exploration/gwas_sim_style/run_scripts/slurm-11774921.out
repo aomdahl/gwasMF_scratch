@@ -1,0 +1,337 @@
++----------------------------------------------------------------------------------------+
+|              [31mHome[0m Usage for user [31maomdahl1[0m as of [31mWed Apr 24 14:00:08 2024[0m               |
++----------------------+----------------------+-------------------+----------------------+
+|         Used         |        Quota         |      Percent      |        Files         |
++----------------------+----------------------+-------------------+----------------------+
+|       19.38 GB       |       50.00 GB       |       38.76%      |       376,455        |
++----------------------+----------------------+-------------------+----------------------+
+
++------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mabattle4:[0m as of [31mWed Apr 24 14:30:12 2024[0m               |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|     FS     |    Used   |   Quota    |  Used % |    Files    | Files Quota  |   Files %   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+|    data    |  88.62 TB | 100.00 TB  |  88.00% |  16,615,514 |  40,960,000  |    40.00%   |
+|  scratch4  |  7.47 GB  |  10.00 TB  |    0%   |   122,462   |  1,048,576   |    11.00%   |
+| scratch16  |  74.05 TB | 100.00 TB  |  74.00% |  9,576,267  |  10,485,760  |    91.00%   |
++------------+-----------+------------+---------+-------------+--------------+-------------+
+
++----------------------------------------------------------------------------------------------+
+|              [31mGPFS[0m Usage for Group [31mbattle-mccoy:[0m as of [31mWed Apr 24 14:30:12 2024[0m               |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|     FS     |     Used     |   Quota    |  Used %  | Files  |   Files Quota   |    Files %    |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+|    data    |  241.52 GB   |  1.00 TB   |  23.00%  |   14   |     409,600     |       0%      |
+|  scratch4  |   6.71 TB    |  10.00 TB  |  67.00%  | 3,372  |    1,048,576    |       0%      |
++------------+--------------+------------+----------+--------+-----------------+---------------+
+
+Generating simulations
+Seed set to 6
+this version of the script simply saves out all the GWAs summary stats, doesn't actually do any analysis.
+herit a: 0
+herit b: 0
+Number of simulations to run:10
+SD of noise to add to sims: 1, 1, 0.1
+Loading MAF data
+Populations will have 100,000 individuals, for 30,000 samples per study
+Starting sim iters...
+on iteration 1 of 10
+In the null builder
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+[1] 1
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+[1] 2
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+[1] 3
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+[1] 4
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+[1] 5
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+[1] 6
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+[1] 7
+Start:1....End: 29999....Length: 30000
+Start:1....End: 34999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 34999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 34999....Length: 30000
+Start:1....End: 39999....Length: 30000
+[1] 8
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Start:1....End: 29999....Length: 30002
+Current overlap setting is: 000
+Current overlap setting is: 100000
+Current overlap setting is: 500000
+Current overlap setting is: 1000000
+Current overlap setting is: 1500000
+Current overlap setting is: 2000000
+Current overlap setting is: 2500000
+Current overlap setting is: 3000000
+Current overlap setting is: 100010000
+Current overlap setting is: 500010000
+Current overlap setting is: 1000010000
+Current overlap setting is: 1500010000
+Current overlap setting is: 2000010000
+Current overlap setting is: 2500010000
+Current overlap setting is: 3000010000
+Current overlap setting is: 500050000
+Current overlap setting is: 1000050000
+Current overlap setting is: 1500050000
+Current overlap setting is: 2000050000
+Current overlap setting is: 2500050000
+Current overlap setting is: 3000050000
+Current overlap setting is: 10000100000
+Current overlap setting is: 15000100000
+Current overlap setting is: 20000100000
+Current overlap setting is: 25000100000
+Current overlap setting is: 30000100000
+Current overlap setting is: 15000150000
+Current overlap setting is: 20000150000
+Current overlap setting is: 25000150000
+Current overlap setting is: 30000150000
+Current overlap setting is: 20000200000
+Current overlap setting is: 25000200000
+Current overlap setting is: 30000200000
+Current overlap setting is: 25000250000
+Current overlap setting is: 30000250000
+Current overlap setting is: 30000300000
+Current overlap setting is: 100010001000
+Current overlap setting is: 500010001000
+Current overlap setting is: 1000010001000
+Current overlap setting is: 1500010001000
+Current overlap setting is: 2000010001000
+Current overlap setting is: 2500010001000
+Current overlap setting is: 3000010001000
+Current overlap setting is: 500050001000
+Current overlap setting is: 1000050001000
+Current overlap setting is: 1500050001000
+Current overlap setting is: 2000050001000
+Current overlap setting is: 2500050001000
+Current overlap setting is: 3000050001000
+Current overlap setting is: 10000100001000
+Current overlap setting is: 15000100001000
+Current overlap setting is: 20000100001000
+Current overlap setting is: 25000100001000
+Current overlap setting is: 30000100001000
+Current overlap setting is: 15000150001000
+Current overlap setting is: 20000150001000
+Current overlap setting is: 25000150001000
+Current overlap setting is: 30000150001000
+Current overlap setting is: 20000200001000
+Current overlap setting is: 25000200001000
+Current overlap setting is: 30000200001000
+Current overlap setting is: 25000250001000
+Current overlap setting is: 30000250001000
+Current overlap setting is: 30000300001000
+Current overlap setting is: 500050005000
+Current overlap setting is: 1000050005000
+Current overlap setting is: 1500050005000
+Current overlap setting is: 2000050005000
+Current overlap setting is: 2500050005000
+Current overlap setting is: 3000050005000
+Current overlap setting is: 10000100005000
+Current overlap setting is: 15000100005000
+Current overlap setting is: 20000100005000
+Current overlap setting is: 25000100005000
+Current overlap setting is: 30000100005000
+Current overlap setting is: 15000150005000
+Current overlap setting is: 20000150005000
+Current overlap setting is: 25000150005000
+Current overlap setting is: 30000150005000
+Current overlap setting is: 20000200005000
+Current overlap setting is: 25000200005000
+Current overlap setting is: 30000200005000
+Current overlap setting is: 25000250005000
+Current overlap setting is: 30000250005000
+Current overlap setting is: 30000300005000
+Current overlap setting is: 100001000010000
+Current overlap setting is: 150001000010000
+Current overlap setting is: 200001000010000
+Current overlap setting is: 250001000010000
+Current overlap setting is: 300001000010000
+Current overlap setting is: 150001500010000
+Current overlap setting is: 200001500010000
+Current overlap setting is: 250001500010000
+Current overlap setting is: 300001500010000
+Current overlap setting is: 200002000010000
+Current overlap setting is: 250002000010000
+Current overlap setting is: 300002000010000
+Current overlap setting is: 250002500010000
+Current overlap setting is: 300002500010000
+Current overlap setting is: 300003000010000
+Current overlap setting is: 150001500015000
+Current overlap setting is: 200001500015000
+Current overlap setting is: 250001500015000
+Current overlap setting is: 300001500015000
+Current overlap setting is: 200002000015000
+Current overlap setting is: 250002000015000
+Current overlap setting is: 300002000015000
+Current overlap setting is: 250002500015000
+Current overlap setting is: 300002500015000
+Current overlap setting is: 300003000015000
+Current overlap setting is: 200002000020000
+Current overlap setting is: 250002000020000
+Current overlap setting is: 300002000020000
+Current overlap setting is: 250002500020000
+Current overlap setting is: 300002500020000
+Current overlap setting is: 300003000020000
+Current overlap setting is: 250002500025000
+Current overlap setting is: 300002500025000
+Current overlap setting is: 300003000025000
+Current overlap setting is: 300003000030000
+on iteration 2 of 10
+In the null builder
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+genotypes are unscaled- recommend scaling them to have mean 0, variance 1, so we can get a better grip on heritability
+[1] 100000   1000
+[1] 0
+[1] "DEPRECATED:True R^2 report in the 'r2' argument...."
+[1] "DEPRECTAED:True correlation report in the 'r' argument...."
+[1] 1
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+Start:1....End: 30000....Length: 30000
+Start:30001....End: 60000....Length: 30000
+Start:60001....End: 90000....Length: 30000
+[1] 2
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 58999....Length: 30000
+Start:1....End: 87999....Length: 30000
+[1] 3
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 54999....Length: 30000
+Start:1....End: 79999....Length: 30000
+[1] 4
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 69999....Length: 30000
+[1] 5
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 44999....Length: 30000
+Start:1....End: 59999....Length: 30000
+[1] 6
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 49999....Length: 30000
+[1] 7
+Start:1....End: 29999....Length: 30000
+Start:1....End: 34999....Length: 30000
+Start:1....End: 39999....Length: 30000
+Start:1....End: 29999....Length: 30000
+Start:1....End: 34999....Length: 30000
