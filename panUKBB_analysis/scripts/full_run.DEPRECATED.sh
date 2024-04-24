@@ -112,33 +112,22 @@ snakemake --snakefile rules/ldsr_pairwise.smk -j 5 ldsr_results/panUKBB_complete
 #11) Extract this set of SNPs
 	snakemake --snakefile rules/extract_factorize.smk -j 1 gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.1.beta.tsv --configfile config/panUKBB_complete_config.yaml
 #12) Run GLEANER
-	cd /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization
-	sbatch run_scripts/GLEANER_panUKBB_61k_snps.sh
+	sbatch ../../../custom_l1_factorization/run_scripts/GLEANER_panUKBB_6K_snps_2.sh
 #13) Project the factors
-		sbatch extractProject.sh
+	sbatch extractProject.sh
 		#based on the #SNPs analyzed by FactorGo, I'm not sure I need to do that....
 #14) Build the meta-summary stats
 	ml snakemake
 
-	#snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_61K/loading_ss_files_Meta/ --configfile config/panUKBB_complete_config.yaml
+	snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_6.1K/loading_ss_files_Meta/ --configfile config/panUKBB_complete_config.yaml
 
-	#snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_61K/loading_ss_files_MetaAdj/ --configfile config/panUKBB_complete_config.yaml
+	snakemake --snakefile  rules/project_assess.smk  -j 1 results/panUKBB_complete_6.1K/loading_ss_files_MetaAdj/ --configfile config/panUKBB_complete_config.yaml
 
 #15) Run the full LDSC
 	#Adjusted version, which is what we will use
-	#snakemake --snakefile  rules/project_assess.smk  -j 7 results/panUKBB_complete_61K/MetaAdj_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/
+	snakemake --snakefile  rules/project_assess.smk  -j 7 results/panUKBB_complete_6.1K/MetaAdj_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/
 	#Standard version:
-	snakemake --snakefile  rules/project_assess.smk  -j 5 results/panUKBB_complete_61K/Meta_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/ --dry-run
+	snakemake --snakefile  rules/project_assess.smk  -j 5 results/panUKBB_complete_6.1K/Meta_ldsc_enrichment_Multi_tissue_chromatin/factor_global_fdr.heatmap.png --configfile config/panUKBB_complete_config.yaml --profile  profiles/rockfish/ --dry-run
 
 ########Alternative version- run it directly on the factors
-#Build the summary stats directly
-mkdir -p /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_61K/loading_ss_files_NONE/
-Rscript src/buildSumStatsDirect.R --loadings /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_61K/latent.loadings.txt \
-       --factors /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_61K/latent.factors.txt \
-       --output /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_61K/loading_ss_files_NONE/ \
-       --samp_file /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.1.n.tsv \
-       --samp_se /scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.1.se.tsv \
-       --snp_reflist /data/abattle4/lab_data/GWAS_summary_statistics/PanUKBB/high_quality_common_variants_EUR.txt.bgz
 
-#17) run LDSC on those
-snakemake --snakefile rules/project_assess.smk results/panUKBB_complete_61K/NONE_ldsc_enrichment_Multi_tissue_chromatin//factor_global_fdr.heatmap.png
