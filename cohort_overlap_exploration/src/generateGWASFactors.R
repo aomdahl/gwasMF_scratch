@@ -30,8 +30,8 @@ option_list <- list(
               help="Output dir")
 )
 #t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
-t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V1_U1_maf0.4_n500.high_covar_1block_SCALED.yml",
-      "--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.4_n500.high_covar_1block_SCALED/fake")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/updated_variance_scaling/V6_U6_mafmixed_n100000.high_covar_1block_cont_scaling.yml",
+      "--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs//V6_U6_mafmixed_n100000.high_covar_1block_cont_scaling/fake")
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
@@ -70,7 +70,7 @@ N <- nrow(l)
 if("herit_scaler" %in% yml$n)
 {
   #Has to correspond to the number of features
-  ntraits = ncol(l)
+  ntraits = nrow(f)
   message("Scaling X according to empirical trait heritabilities")
   herit.settings <- unlist(yml[which(yml$n == "herit_scaler"),2])
   
@@ -87,9 +87,6 @@ if("herit_scaler" %in% yml$n)
   cont.herit <- c(12.4,18.0,14.6,8.0,8.1,6.5,15.2,21.8,22.7,23.1,9.1,95.6,0.9)*10^-5
   
   #quick.test
-  x.inter <- fread("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/gwas_extracts/seed2_thresh0.9_h2-0.1_vars1e-5/seed2_thresh0.9_h2-0.1_vars1e-5.FULL_LIST.1e-5.beta.tsv")[,-1] %>% 
-    tidyr::drop_na()
-  variance.scale <- apply(x.inter,2,var)
 
   #choose the one based on the herit.settings
   herit.factors <- switch(herit.settings,
@@ -199,17 +196,24 @@ for(s in 1:N) #N is number of SNPs
 #Alternative version, where we add all the noise at the end
 betas.alt <- mu.tot + all.noise
 #verify
-stopifnot(betas == betas.alt)
+#stopifnot(betas == betas.alt)
 
 #Now scale mu to match our distributional assumptions
 if("herit_scaler" %in% yml$n)
 {
+  #May updates- only scaling the active SNPs to match the desired distribution:
   #get the scaling factors
-  mu.tot.var <- apply(mu.tot, 2, var)
-  scaling.mat <- diag(sqrt(herit.factors/mu.tot.var))
-  mu.scaled <- (mu.tot %*% scaling.mat) 
+  mu.tot.var <- apply(mu.tot, 2, function(x) var(x[x!=0]))
+  #mu.tot.var <- apply(mu.tot, 2, var)
+  #scaling.mat <- diag(sqrt(herit.factors/mu.tot.var))
+  #mu.scaled <- (mu.tot %*% scaling.mat) 
+
+  mu.scaled <- mu.tot
+  
+  for(i in 1:length(mu.tot.var)) {mu.scaled[(mu.scaled[,i] !=0),i] <- mu.scaled[(mu.scaled[,i] !=0),i] * sqrt(herit.factors[i]/mu.tot.var[i])} #scaling just the variants that are active
   #sanity check
-  new.vars <- apply(mu.scaled, 2, var)
+  new.vars <- apply(mu.scaled, 2, function(x) var(x[x != 0]))
+  stopifnot(max(new.vars - herit.factors) < 1e-10)
   betas = mu.scaled + all.noise
   #Some plots if doing this manually
   
@@ -245,6 +249,10 @@ out.beta <- data.frame("SNP" = paste0("rs", 1:N), round(betas, digits = 7)) %>% 
 out.se <- data.frame("SNP" = paste0("rs", 1:N), round(out.ses, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
 out.var <- data.frame("SNP" = paste0("rs", 1:N), round(var.dat, digits = 7)) %>%
   set_colnames(c("SNP", "var_beta", "var_mu:var_beta","var_noise:var_beta", "var_mu:var_noise", "var_m:var_m+var_n", "var_n:var_m+var_n"))
+
+##Added in to run factorGo- write out Z and N:
+out.z <- data.frame("SNP" = paste0("rs", 1:N), round(betas/out.ses, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
+out.n <- data.frame("N"=colMeans(n.mat))
 #total variance, fraction from true signal, fraction from noise, var true /var noise, #var mu over sum var #var noise over sum vara
 #Write out output:
 write.table(x = out.beta, file = paste0(args$output, ".effect_sizes.txt"), quote = FALSE, row.names = FALSE)
@@ -255,6 +263,11 @@ write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, r
 #write out empirical covar
 write.table(x = cor(all.noise), file = paste0(args$output, ".empirical_covar.txt"), quote = FALSE, row.names = FALSE)
 global.var.report <- varReport(betas, global.signal, global.noise)
+
+#Write out for factorGo
+write.table(x=out.z, file = paste0(args$output, ".z.txt"), quote = FALSE, row.names = FALSE,sep = "\t")
+write.table(x=out.n, file = paste0(args$output, ".N.txt"), quote = FALSE, row.names = FALSE)
+
 
 sink(paste0(args$output, ".variance_notes.txt"))
 cat(paste0("Globally, ", round(mean(global.var.report[5])*100, digits =2), "% of sample variation from true value.\n"))

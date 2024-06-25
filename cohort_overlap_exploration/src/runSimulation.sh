@@ -24,14 +24,34 @@ ml anaconda
     K=`grep -e "^K," $YAML | cut -f 2 -d ","`
     BIC=`grep "bic_param," $YAML | cut -f 2 -d ","`
     INIT=`grep "init," $YAML | cut -f 2 -d ","`
+    SCALE=`grep "scale," $YAML | cut -f 2 -d ","`
+    SCALE_VAR=""
+    SHRINK=`grep "covar_shrinkage," $YAML | cut -f 2 -d ","`
+    if [ "$SCALE" = "TRUE" ]; then
+      SCALE_VAR="--step_scaling"
+      fi
+      #Manage the shrinkage if its not there
+    SHRINK_VAR=""
+    echo "$SHRINK"
+    if [[ ! -z "$SHRINK" ]] ; then
+      SHRINK_VAR="--WLgamma $SHRINK"
+	echo "shrinkage included"    
+fi
+
+
     echo $INIT
     for i in $(eval echo "{1..$NITER}"); do
 #for i in 1 2; do
     echo "Simulation iter $i"
-        Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R  \
+    echo """     Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R \ 
         --se_data ${ODIR}/sim${i}.std_error.txt --beta_data ${ODIR}/sim${i}.effect_sizes.txt --seed ${i} \
+        --z_scores ${ODIR}/sim${i}.z.txt -n ${ODIR}/sim${i}.N.txt \
+	--outdir ${ODIR}/factorization_results/sim${i}. --only_run $MNAMES --K $K --no_plots --bic_var $BIC --init_mat $INIT \
+        --C ${ODIR}/sim${i}.c_matrix.txt $SCALE_VAR $SHRINK_VAR"""
+
+     Rscript /home/aomdahl1/scratch16-abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/matrix_factorization.R    --se_data ${ODIR}/sim${i}.std_error.txt --beta_data ${ODIR}/sim${i}.effect_sizes.txt --seed ${i} \
         --outdir ${ODIR}/factorization_results/sim${i}. --only_run $MNAMES --K $K --no_plots --bic_var $BIC --init_mat $INIT \
-        --C ${ODIR}/sim${i}.c_matrix.txt
+        --C ${ODIR}/sim${i}.c_matrix.txt $SCALE_VAR $SHRINK_VAR 
 done
 echo "------------------------------------"
 echo "Beginning simulation scoring"
