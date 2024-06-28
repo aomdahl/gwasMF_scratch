@@ -90,9 +90,9 @@ if("herit_scaler" %in% yml$n)
 
   #choose the one based on the herit.settings
   herit.factors <- switch(herit.settings,
-         "disease" = rep(dis.herit,5)[1:ntraits],
-         "mixed" = c(rep(dis.herit,5)[1:floor(ntraits/2)],rep(cont.herit,5)[1:floor(ntraits/2)]),
-         "continuous" = rep(cont.herit,5)[1:ntraits],
+         "disease" = sample(dis.herit,size=ntraits,replace = TRUE),
+         "mixed" = c(sample(dis.herit,size=floor(ntraits/2),replace = TRUE),sample(cont.herit,size=floor(ntraits/2),replace = TRUE)),
+         "continuous" = sample(cont.herit,size=ntraits,replace = TRUE),
          "ukbb_real" = rep(variance.scale,5)[1:ntraits])
   scaling.d <- diag(herit.factors)
   #need to multiply each column of mu by  sqrt(scaling.d[i]/var(i))
@@ -137,10 +137,14 @@ if(!is.positive.definite(C))
 {
   message("C is not PD, adjusting now...")
   library(corpcor)
-  C.updated <- make.positive.definite(C, tol = 1e-3)
+  C.updated <- make.positive.definite(C, tol = 1e-5)
   #percent change
   prop.change <- norm(C- C.updated, type = "F")/norm(C, type = "F")
   C <- C.updated
+}
+if(!all(diag(C) == 1))
+{
+  message("Warning- not all diagonal elements == 1. This simulation is likely to give some weird results.")
 }
 #NOTE: could also implement in terms of the matrix normal, a single line. That would work too, but I
 #think (?) would be the same
@@ -195,13 +199,11 @@ for(s in 1:N) #N is number of SNPs
 
 #Alternative version, where we add all the noise at the end
 betas.alt <- mu.tot + all.noise
-#verify
-#stopifnot(betas == betas.alt)
 
 #Now scale mu to match our distributional assumptions
 if("herit_scaler" %in% yml$n)
 {
-  #May updates- only scaling the active SNPs to match the desired distribution:
+  #May updates- only scaling the non-zero SNPs to match the desired distribution:
   #get the scaling factors
   mu.tot.var <- apply(mu.tot, 2, function(x) var(x[x!=0]))
   #mu.tot.var <- apply(mu.tot, 2, var)
