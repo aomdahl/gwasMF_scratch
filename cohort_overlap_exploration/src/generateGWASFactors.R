@@ -142,9 +142,14 @@ if(!is.positive.definite(C))
   prop.change <- norm(C- C.updated, type = "F")/norm(C, type = "F")
   C <- C.updated
 }
-if(!all(diag(C) == 1))
+#if(!all(diag(C) == 1))
+if(isFALSE(all.equal(diag(C),1)))
 {
   message("Warning- not all diagonal elements == 1. This simulation is likely to give some weird results.")
+  print(diag(C))
+  print(which(diag(C)!=1))
+  print(1-diag(C))
+  print(paste0(args$output, ".c_matrix.txt"))
 }
 #NOTE: could also implement in terms of the matrix normal, a single line. That would work too, but I
 #think (?) would be the same
