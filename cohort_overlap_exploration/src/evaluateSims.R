@@ -33,10 +33,14 @@ option_list <- list(
 )
 
 #debug interactive
+
 t = c("--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.3_n100gwasMF_optim_covar_high_fixed_1/factorization_results/summary",
   "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V1_U1_maf0.3_n100.high_covar_fixed.yml",
   "--sim_path=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V1_U1_maf0.3_n100gwasMF_optim_covar_high_fixed_1/factorization_results/",  "--scale_data")
 #V1_U1_maf0.01_n100.yml.gwasMF_only.yml
+t = c("--output=//scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/summary",
+      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V7_U7_mafmixed_n50000.no_covar_cont_scaling.yml",
+      "--sim_path=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/",  "--scale_data")
 source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwasMF/R/sparsity_scaler.R")
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
@@ -74,6 +78,8 @@ for(m in methods.run)
 {
   r_performance <- matrix(NA, nrow = niter, ncol = 8)
   for(i in 1:niter){
+    #print(i)
+    #print(m)
     if(!file.exists(paste0(s, "/sim",i, ".", m, ".loadings.txt")) & i > 1)
       {
          message("WARNING: missing file: ", paste0(s, "/sim",i, ".", m, ".loadings.txt"))

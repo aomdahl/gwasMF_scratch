@@ -6,7 +6,9 @@ unitNorm <- function(x)
 }
 unitNorms <- function(M)
 {
-  apply(M, 2, function(x) unitNorm(x))
+  ret <- apply(M, 2, function(x) unitNorm(x))
+  ret[is.na(ret)] <- 0
+  ret
 }
 
 #Changes:
@@ -60,9 +62,28 @@ evaluateSingleMatrixConstruction <- function(truem, predm)
   }
 }
 
+#updated.mat <-fillWithZeros(trueF, fp, lp=lp)
+fillWithZeros <- function(trueF, fp, lp = NULL)
+{
+  trueF <- as.matrix(trueF)
+  fp <- as.matrix(fp)
+  if(ncol(fp) < ncol(trueF)){
+    message("missing factors, will set to 0...")
+    dif = ncol(trueF) - ncol(fp)
+    fp = cbind(fp, matrix(rep(0, nrow(fp) * dif), ncol = dif))
+    if(!is.null(lp))
+    {
+      lp = cbind(lp, matrix(rep(0, nrow(lp) * dif), ncol = dif))
+    }
+    
+  }
+  return(list("fp" = fp, "lp" = lp))
+}
 
 #Ordering may be specified as a list of lists, with possible orders
-evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose = FALSE, ordering = NULL,...){
+#sel.u, sel.v, res$U, res$V
+#evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.factors,unit.scale = FALSE)
+evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose = FALSE, ordering = NULL,corr.type = "pearson",...){
   if(is.null(lp) | length(lp) == 0)
   {
     message("empty table")
@@ -81,12 +102,9 @@ evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose =
 
 
   #fill in missing columns with 0s
-  if(ncol(fp) < ncol(trueF)){
-    message("missing factors, will set to 0...")
-    dif = ncol(trueF) - ncol(fp)
-    fp = cbind(fp, matrix(rep(0, nrow(fp) * dif), ncol = dif))
-    lp = cbind(lp, matrix(rep(0, nrow(lp) * dif), ncol = dif))
-  }
+  updated.mat <-fillWithZeros(trueF, fp, lp=lp)
+  fp <- updated.mat$fp; lp <- updated.mat$lp
+
   #fill in NAs
   fp[is.na(fp)] = 0
   lp[is.na(lp)] = 0
@@ -95,8 +113,8 @@ evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose =
   suppressWarnings(library('combinat'))
   if(K > 9 & is.null(ordering))
   {
-    message("There are too many latent factors for comprehensive examination of options. Do a greedy search.")
-    return()
+    message("There are too many latent factors for comprehensive examination of options. Reverting to a greedy search, in which U and V are treated separately.")
+    return(c(greedyMaxCorr(trueL, lp,cor.type = corr.type), greedyMaxCorr(trueF, fp,cor.type = corr.type)))
   } else if(easy)
   {
     if(is.null(ordering))
@@ -219,7 +237,8 @@ tableCor <- function(pred, true, ordering, sign.prior = NULL){
 getallR2 <- function(sign.ordering, ordering, pred, actual, unit.scale = FALSE)
 {
   nreps = nrow(actual)
-  all.options.factors <- apply(sign.ordering, 1, function(s) {smat <- do.call("rbind", lapply(1:nreps, function(x) s)); lapply(ordering, function(x) pred[,x] * smat)})
+  all.options.factors <- apply(sign.ordering, 1, function(s) 
+    {smat <- do.call("rbind", lapply(1:nreps, function(x) s)); lapply(ordering, function(x) pred[,x] * smat)})
   res.mat <- matrix(NA,nrow(sign.ordering),length(ordering))
   #For each of those, estimate the R2
   if(unit.scale){actual <- unitNorms(actual) }
@@ -239,5 +258,209 @@ getallR2 <- function(sign.ordering, ordering, pred, actual, unit.scale = FALSE)
   return(res.mat)
 }
 
+
+#####5/31
+###A greedy implementation to evaluate factor construction, one matrix at a time.
+#The main recursive call- requires
+#Correlation matrix between remaining factors
+#R2 matrix of remaining factors
+#signs- vector of the signs assigned to each column
+#pairs-a list where each entry is a tuple of (reference vect, pred vect) that match to each other
+#returns signs and pairs at the end.
+#recurseGreedyMap(r.mat,r2, c(dir), list(dt))
+recurseGreedyMap <- function(cor, r2, signs, pairs)
+{
+  dt <- which(r2 == max(r2), arr.ind = TRUE)[1,] #just go with the first one...
+  dir <- sign(cor[dt[1], dt[2]])
+  if(all(r2 == 0) | ncol(r2) == 1)
+  {
+    return(list("signs"=signs, "pairs" = pairs))
+  }
+  pairs[[length(pairs) + 1]] <- dt
+  
+  cor[dt[1],] <- 0; cor[,dt[2]] <- 0
+  r2[dt[1],] <- 0; r2[,dt[2]] <- 0
+  recurseGreedyMap(cor,r2, c(signs, dir), pairs)
+}
+
+#' Correlation between matrix columns optimized for my application
+#'
+#' @param x first matrix 
+#' @param y second matrix
+#' @param cor.type desired type (pearson, kendall currentlty accepted)
+#'
+#' @return matrix of correlation estimates (no p-values)
+#' @export
+customCorr <- function(x,y, cor.type = "pearson")
+{
+  if(cor.type == "kendall")
+  {
+    r.mat <- t(apply(x, 2, function(a) apply(y, 2, function(b) pcaPP::cor.fk(a,b))))
+  }else
+  {
+    r.mat <- cor(x,y, method=cor.type);
+  }
+  r.mat
+}
+#Only does it for one vector, the one you specify first
+#greedyMaxCorr(true.v, pred.f)
+greedyMaxCorr <- function(true.v, fp, verbose = FALSE, cor.type = "pearson")
+{
+  ret <- fillWithZeros(true.v, fp)
+  r.mat <- customCorr(true.v, ret$fp, cor.type=cor.type);
+
+  #fast way to do this with cor.fk
+  
+  r.mat[is.na(r.mat)] <- 0
+  #r2 <-  cor(true.v, ret$fp,method=cor.type)^2; r2[is.na(r2)] <- 0
+  r2 <-  r.mat^2; r2[is.na(r2)] <- 0
+  dt <- which(r2 == max(r2), arr.ind = TRUE)[1,]
+  dir <- sign(r.mat[dt[1], dt[2]])
+  
+  #case- there are multiple maximums. Just pick one to start at.....
+  
+  #Zero-out the R terms that aren't helping us.....
+  r.mat[dt[1],] <- 0; r.mat[,dt[2]] <- 0
+  r2[dt[1],] <- 0; r2[,dt[2]] <- 0
+  matched.cols <- recurseGreedyMap(r.mat,r2, c(dir), list(dt))
+
+  order.list <- 1:ncol(true.v)
+  true.order <- sapply(matched.cols$pairs, function(x) x[1]) %>%  c(., order.list[!(1:ncol(true.v) %in% .)])
+  pred.order <- sapply(matched.cols$pairs, function(x) x[2])%>%  c(., order.list[!(1:ncol(true.v) %in% .)])
+  pred.signs <-  c(matched.cols$signs, rep(1,(ncol(true.v) - length(matched.cols$signs))))
+  #scale
+  
+  #pred.vector <- as.vector(as.matrix(ret$fp[,..pred.order] %>% unitNorms(.)) %*% diag(pred.signs))
+  #true.vector <- as.vector(as.matrix(true.v[,..true.order] %>% unitNorms(.)))
+  #cor(pred.vector,true.vector)
+  pred.one <- as.matrix(ret$fp[,pred.order] %>% unitNorms(.)) %*% diag(pred.signs)
+  pred.two <- (as.matrix(true.v[,true.order]) %>% unitNorms(.))
+  c_ <- stackAndAssessCorr(pred.one,pred.two)
+  if(!verbose)
+  {
+    return(c_)
+  }else
+  {
+    return(list("corr"=c_, "order.true"=true.order, "order.pred"=pred.order, "signs"=pred.signs))
+  }
+  
+}
+
+testGreedyMaxCorr <- function()
+{
+  #Manual example for checking performacne
+  A <- matrix(rnorm(50),nrow=10)
+  B <- matrix(0,nrow=10, ncol = 5)
+  for(i in 1:5)
+  {
+    print(i%%5+1)
+    B[,(i%%5+1)] <- A[,i]*(i/3) + rnorm(10,sd=0.1) + rnorm(10,sd=0.03)
+    
+  }
+  cor(A,B)
+  #Correct order: 
+  test <- greedyMaxCorr(A, B, verbose = TRUE, cor.type = "pearson")
+  test.tab <- data.frame("A_order"= test$order.true, "B_order" =test$order.pred) %>% arrange(`A_order`)
+  stopifnot(all(test.tab$B_order==c(2,3,4,5,1)))
+  
+  A.c <- A
+  A.c[,1] <- A[,2]
+  A.c[,2] <- A[,5]
+  A.c[,3] <- A[,4]
+  A.c[,4] <- A[,3]
+  A.c[,5] <- A[,1]
+  test2 <- greedyMaxCorr(A.c, B, verbose = TRUE, cor.type = "pearson")
+  test2.tab <- data.frame("A_order"= test2$order.true, "B_order" =test2$order.pred) %>% arrange(`A_order`)
+  stopifnot(all(test2.tab$B_order==c(3,1,5,4,2)))
+  #Second test- add some zeroes in there.
+  B[,3] <- rep(0,10)
+  #Correct order: 
+  test <- greedyMaxCorr(A, B, verbose = TRUE, cor.type = "pearson")
+  test.tab <- data.frame("A_order"= test$order.true, "B_order" =test$order.pred) %>% arrange(`A_order`)
+  stopifnot(all(test.tab$B_order==c(2,3,4,5,1)))
+  
+  #Shuffle A a bit up
+
+  
+}
+
+pseudoProcrustes <- function(A,B, corr.type="pearson")
+{
+  ret <- fillWithZeros(A, B)
+  #TODO- why do we change the order of both matrices? Dpesn't make sense to me....
+  cor.dat <- greedyMaxCorr(A, ret$fp, verbose = TRUE, cor.type = corr.type)
+  new.A <- as.matrix(A[,cor.dat$order.true]); new.B <- as.matrix(ret$fp[,cor.dat$order.pred] %*% diag(cor.dat$signs))
+  list("A" = new.A, "B" = new.B, "greedy.match"=cor.dat, "factor.cors" = diag(customCorr(new.A, new.B, cor.type = corr.type)))
+}
+
+stackAndAssessCorr <- function(A,B, cor.type = "pearson")
+{
+  pred.vector <- as.vector(A)
+  true.vector <- as.vector(B)
+  customCorr(pred.vector,true.vector, cor.type = cor.type)
+}
+
+#Taken from https://rpubs.com/mengxu/procrustes_analysis
+#procestes.corr <- fullProcrustes(lead, scnd)
+procrustes <- function(A, B){
+  
+  if(ncol(A) ==1 & ncol(B)==1)
+  {
+    A.normalized <- scale(A)
+    B.normalized <- scale(B)
+    RSS <- norm(A.normalized - B.normalized,  type = "F")
+    return(list(A.normalized = A.normalized, B.normalized = B.normalized, rotation.mtx = 1, B.transformed = B.normalized, RSS = RSS))
+  }
+  
+  # center and normalize A 
+  A.centered <- t(scale(t(A), center = TRUE, scale = FALSE))
+  A.size <- norm(A.centered, type = "F") / (ncol(A) * nrow(A))
+  A.normalized <- A.centered / A.size
+  
+  # center and normalize B
+  B.centered <- t(scale(t(B), center = TRUE, scale = FALSE))
+  B.size <- norm(B.centered, type = "F") / (ncol(B) * nrow(B))
+  B.normalized <- B.centered / B.size
+
+  # Rotation matrix T 
+  #if the matrix is big, just get the first few SVs
+  m = B.normalized %*% t(A.normalized)
+  if(nrow(m) > 1000 & ncol(m) > 1000)
+  {
+    message("Large matrix, need to use fast SVD. Please wait...")
+    #svd.results <- corpcor::fast.svd(m)
+    #Executive decision to just do 20 for speed
+    svd.results <- RSpectra::svds(m, 20)
+  }else{
+    svd.results <- svd(m)
+  }
+  
+  U <- svd.results$u
+  V <- svd.results$v
+  tr <- V %*% t(U)
+  
+  # B transformed
+  B.transformed <- tr %*% B.normalized
+  
+  # Error after superimposition
+  RSS <- norm(A.normalized - B.transformed,  type = "F")
+  
+  # Return
+  return(list(A.normalized = A.normalized, B.normalized = B.normalized, rotation.mtx = T, B.transformed = B.transformed, RSS = RSS))
+}
+
+# fullProcrustes(lead, scnd)
+fullProcrustes <- function(A,B)
+{
+  ret <- fillWithZeros(A, B)
+  procrustes(as.matrix(A), as.matrix(ret$fp))
+  
+}
+
+stackAndAssessNaive <- function(A,B)
+{
+  ret <- fillWithZeros(A, B)
+  stackAndAssessCorr(A, ret$fp)
+}
 
 
