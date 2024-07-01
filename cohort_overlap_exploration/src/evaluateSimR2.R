@@ -97,7 +97,6 @@ evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose =
 
   #make sure all are matrices
 
-
   trueL <- as.matrix(trueL); trueF <- as.matrix(trueF); lp <- as.matrix(lp); fp <- as.matrix(fp)
 
 

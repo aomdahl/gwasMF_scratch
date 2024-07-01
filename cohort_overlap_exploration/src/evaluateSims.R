@@ -1,14 +1,3 @@
-#Script to
-unitNorm <- function(x)
-{
-  x/norm(x, "2")
-}
-unitNorms <- function(M)
-{
-  apply(M, 2, function(x) unitNorm(x))
-}
-
-
 suppressMessages(library("optparse"))
 suppressMessages(library("data.table"))
 suppressMessages(library("magrittr"))
@@ -74,10 +63,15 @@ true.k <- ncol(true.factors)
 sim.performance <- NULL
 f_i =1
 nmethods = length(methods.run)
+ref.list <- list()
+pred.list <- list()
 for(m in methods.run)
 {
   r_performance <- matrix(NA, nrow = niter, ncol = 8)
   for(i in 1:niter){
+    lookup_id=paste0(m,"_", i)
+    pred.list[[lookup_id]] <- list()
+    ref.list[[lookup_id]] <- list("U"=true.loadings, "V"=true.factors)
     #print(i)
     #print(m)
     if(!file.exists(paste0(s, "/sim",i, ".", m, ".loadings.txt")) & i > 1)
@@ -92,15 +86,15 @@ for(m in methods.run)
     }
     #print(i)
     #print(paste0(s, "/sim",i, ".", m, ".loadings.txt"))
-    pred.loadings <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".loadings.txt")))
-    pred.factors <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".factors.txt")))
+    pred.list[[lookup_id]][["U"]] <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".loadings.txt")))
+    pred.list[[lookup_id]][["V"]] <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".factors.txt")))
     if(args$scale_data)
     {
      # message("Scaling both true and loaded data for convenient comparison")
-      if(!all(pred.loadings == 0))
+      if(!all(pred.list[[lookup_id]][["U"]] == 0))
       {
-        pred.loadings <-unitNorms(pred.loadings)
-        pred.factors <- unitNorms(pred.factors)
+        pred.list[[lookup_id]][["U"]] <-unitNorms(pred.list[[lookup_id]][["U"]])
+        pred.list[[lookup_id]][["V"]] <- unitNorms(pred.list[[lookup_id]][["V"]])
       }else
       {
         message("Unable to scale data; all elements 0'd out.")
@@ -110,21 +104,28 @@ for(m in methods.run)
     reconstruction <- fread(paste0(s, "/sim",i, ".", m, ".recon_error.txt"))
 
     #Get K
-    ks <- ncol(pred.factors)
-    sparsity.v <- matrixSparsity(pred.factors,initK = true.k, wrt.init = TRUE)
-    sparsity.u <- matrixSparsity(pred.loadings,initK = true.k, wrt.init = TRUE)
-    if(all(pred.loadings == 0))
+    ks <- ncol(pred.list[[lookup_id]][["V"]])
+    sparsity.v <- matrixSparsity(pred.list[[lookup_id]][["V"]],initK = true.k, wrt.init = TRUE)
+    sparsity.u <- matrixSparsity(pred.list[[lookup_id]][["U"]],initK = true.k, wrt.init = TRUE)
+    if(all(pred.list[[lookup_id]][["U"]] == 0))
     {
       ks <- 0
     }
 
   #maybe have the option to scale be embedded in here?
-    r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.factors,unit.scale = FALSE),
+    #The columns here are: c("method", 'R2_L','R2_F',"RSE", "R2_X", "K_out","sparsityV", "sparsityU", "iter")
+    #compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.procrust=TRUE)
+    #Test.findings
+    #Old version
+    r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]],unit.scale = FALSE),
                            reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], ks,sparsity.v,sparsity.u, i)
     f_i = f_i+1
   }
   sim.performance <- rbind(sim.performance, data.frame("method" = m, r_performance))
 }
+##now the alternative version:
+updated.calcs <- extractAndTabularizeRunGeneric(list(makeTableOfComparisons(ref.list, pred.list, by_order = FALSE)))
+
 #Now, read in whitened if they are there....
 if(args$whitened)
 {
@@ -143,29 +144,51 @@ if(args$whitened)
            message("WARNING: missing file: ", paste0(s, "/sim",i, ".", "whitened.", m, ".loadings.txt"))
            break
       }
-      pred.loadings <- fread(paste0(s, "/sim",i, ".", "whitened.", m, ".loadings.txt"))
-      pred.factors <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".factors.txt"))
+      pred.list[[lookup_id]][["U"]] <- fread(paste0(s, "/sim",i, ".", "whitened.", m, ".loadings.txt"))
+      pred.list[[lookup_id]][["V"]] <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".factors.txt"))
       if(args$scale_data)
       {
         message("Scaling both true and loaded data for convenient comparison")
         pred.loadings <- apply(pred.loadings, 2, function(x) x/norm(x, "2"))
-        pred.factors <- apply(pred.factors, 2, function(x) x/norm(x, "2"))
+        pred.list[[lookup_id]][["V"]] <- apply(pred.list[[lookup_id]][["V"]], 2, function(x) x/norm(x, "2"))
       }
 
       reconstruction <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".recon_error.txt"))
-      r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.factors),
+      r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.list[[lookup_id]][["V"]]),
                              reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], i)
       f_i = f_i+1
     }
     sim.performance <- rbind(sim.performance, data.frame("method" = paste0(m, "_whitened"), r_performance))
   }
 }
-
-
-
 colnames(sim.performance) <- c("method", 'R2_L','R2_F',"RSE", "R2_X", "K_out","sparsityV", "sparsityU", "iter")
+
+#Combine the old and the new
+full.sim.performance <- cbind(sim.performance, updated.calcs$V %>% select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% 
+                                set_colnames(c("runID_V", "PRC_V", "Kappa_V", "Corr_mine_V", "Procrust_pearson_V", "Distance_V")),
+updated.calcs$U %>% select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% set_colnames(c("runID_U", "PRC_U", "Kappa_U",  "Corr_mine_U", "Procrust_pearson_U", "Distance_U")),
+updated.calcs$Xhat_norms) %>% rename("Xhat_dist"=dist)
+
+
+
+
+if(all(full.sim.performance$runID_U == full.sim.performance$runID_V))
+{
+  if(all(paste0(full.sim.performance$method, "_", full.sim.performance$iter) == full.sim.performance$runID_V))
+  {
+    full.sim.performance <- full.sim.performance %>% select(-runID_V, -runID_U)
+  } else
+  {
+    message("ERROR: simulations don't line up in assessment")
+    exit()
+  }
+}
+
+stopifnot(all(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
+stopifnot(all(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
+
 #Now plot it, if desired
-write.table(sim.performance, file = paste0(args$output, ".tabular_performance.tsv"), quote = FALSE, row.names = FALSE)
+write.table(full.sim.performance, file = paste0(args$output, ".tabular_performance.tsv"), quote = FALSE, row.names = FALSE)
 if(args$plot)
 {
   #Plots of F and L
