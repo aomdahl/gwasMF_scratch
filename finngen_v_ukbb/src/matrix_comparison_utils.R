@@ -49,7 +49,7 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.p
     rss.by.procrust <- procestes.corr$RSS
   }
 
-  #message("### Using pseudoProcrustes to calculate correlation for speed, change this in final run.")
+ # message("### Using pseudoProcrustes to calculate correlation for speed, change this in final run.")
   pseudo.procestes.corr <- aligned.corr$greedy.match$corr
   
   #do a simple BINARY precision variance assessment
@@ -148,14 +148,14 @@ threeClassKappa <- function(lead, scnd, by_factor = TRUE)
   scnd.classes <- splitThreeClasses(scnd)
   lead.vector <- as.vector(lead.classes) #(stacks columns)
   scnd.vector <- as.vector(scnd.classes)
-  global.scores <- psych::cohen.kappa(data.frame(lead.vector, scnd.vector))
-  message("Now by factor...")
+  global.scores <- suppressMessages(psych::cohen.kappa(data.frame(lead.vector, scnd.vector)))
+  #message("Now by factor...")
   #Do it by column too
   #Be warned- this results in very sparse setups and so can yield error pars that are invalid.
   by.col = NA
   if(by_factor)
   {
-    by.col <- lapply(1:ncol(lead.classes), function(i) psych::cohen.kappa(data.frame(lead.classes[,i], scnd.classes[,i])))
+    by.col <- lapply(1:ncol(lead.classes), function(i) suppressMessages(psych::cohen.kappa(data.frame(lead.classes[,i], scnd.classes[,i]))))
   }
 
   return(list("global"=global.scores, "by.factor"=by.col))
@@ -249,6 +249,10 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   full.df.U <- NULL
   for(n in both)
   {
+    if(grepl("GLEANER",n,ignore.case = TRUE))
+    {
+      message("here...")
+    }
     nfd <- compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
     comp.v<-nfd[[1]]; global.df.V<-nfd[[2]]; comp.u<-nfd[[3]]; global.df.U<-nfd[[4]];full.df.V <- nfd[[5]]; full.df.U<- nfd[[6]]
     #Comparison of X directly

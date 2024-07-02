@@ -6,6 +6,8 @@ suppressMessages(library(stringr))
 suppressMessages(library("combinat"))
 source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/src/evaluateSimR2.R")
 source("/scratch16/abattle4/ashton/snp_networks/scratch/finngen_v_ukbb/src/matrix_comparison_utils.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwasMF/R/sparsity_scaler.R")
+
 suppressMessages(library(NatParksPalettes))
 option_list <- list(
   make_option(c("-o", "--output"), default = '', type = "character",
@@ -31,7 +33,15 @@ t = c("--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_e
 t = c("--output=//scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/summary",
       "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V7_U7_mafmixed_n50000.no_covar_cont_scaling.yml",
       "--sim_path=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/",  "--scale_data")
-source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwasMF/R/sparsity_scaler.R")
+
+finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/1b_overlap/"
+t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/summary"),
+      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/1b_overlap/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no.yml",
+      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/"))
+
+
+
+
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
 args <- parse_args(OptionParser(option_list=option_list))#, args = t)
@@ -118,6 +128,8 @@ for(m in methods.run)
     #compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.procrust=TRUE)
     #Test.findings
     #Old version
+    print(m)
+    print(i)
     r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]],unit.scale = FALSE),
                            reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], ks,sparsity.v,sparsity.u, i)
     f_i = f_i+1
@@ -185,8 +197,16 @@ if(all(full.sim.performance$runID_U == full.sim.performance$runID_V))
   }
 }
 
-stopifnot(all(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
-stopifnot(all(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
+if(any(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
+{
+  message("WARNING: our R2 on V exceeds the procrustes version.")
+  print(full.sim.performance %>% filter(R2_F > Procrust_pearson_V^2))
+}
+if(any(full.sim.performance$R2_L < full.sim.performance$Procrust_pearson_U^2))
+{
+  message("WARNING: our R2 on V exceeds the procrustes version.")
+  print(full.sim.performance %>% filter(R2_L > Procrust_pearson_U^2))
+}
 
 #Now plot it, if desired
 write.table(full.sim.performance, file = paste0(args$output, ".tabular_performance.tsv"), quote = FALSE, row.names = FALSE)

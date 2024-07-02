@@ -83,6 +83,9 @@ fillWithZeros <- function(trueF, fp, lp = NULL)
 #Ordering may be specified as a list of lists, with possible orders
 #sel.u, sel.v, res$U, res$V
 #evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.factors,unit.scale = FALSE)
+#This version requires that L and F have the same ordering.
+#May need to circle back on this...
+#Its possible
 evaluteFactorConstruction <- function(trueL, trueF, lp, fp, easy=TRUE, verbose = FALSE, ordering = NULL,corr.type = "pearson",...){
   if(is.null(lp) | length(lp) == 0)
   {
@@ -328,12 +331,11 @@ greedyMaxCorr <- function(true.v, fp, verbose = FALSE, cor.type = "pearson")
   pred.order <- sapply(matched.cols$pairs, function(x) x[2])%>%  c(., order.list[!(1:ncol(true.v) %in% .)])
   pred.signs <-  c(matched.cols$signs, rep(1,(ncol(true.v) - length(matched.cols$signs))))
   #scale
-  
-  #pred.vector <- as.vector(as.matrix(ret$fp[,..pred.order] %>% unitNorms(.)) %*% diag(pred.signs))
-  #true.vector <- as.vector(as.matrix(true.v[,..true.order] %>% unitNorms(.)))
-  #cor(pred.vector,true.vector)
-  pred.one <- as.matrix(ret$fp[,pred.order] %>% unitNorms(.)) %*% diag(pred.signs)
-  pred.two <- (as.matrix(true.v[,true.order]) %>% unitNorms(.))
+  ##7/02- we don't want to be unit norm scaling here, we save that for the scaled run only.
+  #pred.one <- as.matrix(ret$fp[,pred.order] %>% unitNorms(.)) %*% diag(pred.signs)
+  #pred.two <- (as.matrix(true.v[,true.order]) %>% unitNorms(.))
+  pred.one <- as.matrix(ret$fp[,pred.order]) %*% diag(pred.signs)
+  pred.two <- (as.matrix(true.v[,true.order]))
   c_ <- stackAndAssessCorr(pred.one,pred.two)
   if(!verbose)
   {
@@ -448,12 +450,23 @@ procrustes <- function(A, B){
   return(list(A.normalized = A.normalized, B.normalized = B.normalized, rotation.mtx = T, B.transformed = B.transformed, RSS = RSS))
 }
 
+procrustesVegan <- function(A,B)
+{
+  procrust <- vegan::procrustes(A,B,scale=FALSE)
+  # Error after superimposition
+  RSS <- norm(procrust$X - procrust$Yrot,  type = "F")
+  
+  # Return
+  return(list(A.normalized = procrust$X, B.normalized = procrust$Yrot, rotation.mtx = T, B.transformed = procrust$Yrot, RSS = RSS))
+}
+
+
 # fullProcrustes(lead, scnd)
 fullProcrustes <- function(A,B)
 {
   ret <- fillWithZeros(A, B)
-  procrustes(as.matrix(A), as.matrix(ret$fp))
-  
+  #procrustes(as.matrix(A), as.matrix(ret$fp))
+  procrustesVegan(as.matrix(A), as.matrix(ret$fp))
 }
 
 stackAndAssessNaive <- function(A,B)
