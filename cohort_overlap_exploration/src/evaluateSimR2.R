@@ -68,7 +68,7 @@ fillWithZeros <- function(trueF, fp, lp = NULL)
   trueF <- as.matrix(trueF)
   fp <- as.matrix(fp)
   if(ncol(fp) < ncol(trueF)){
-    message("missing factors, will set to 0...")
+    #message("missing factors, will set to 0...")
     dif = ncol(trueF) - ncol(fp)
     fp = cbind(fp, matrix(rep(0, nrow(fp) * dif), ncol = dif))
     if(!is.null(lp))

@@ -5,6 +5,7 @@ suppressMessages(library("dplyr"))
 suppressMessages(library(stringr))
 suppressMessages(library("combinat"))
 source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/src/evaluateSimR2.R")
+source("/scratch16/abattle4/ashton/snp_networks/scratch/finngen_v_ukbb/src/matrix_comparison_utils.R")
 suppressMessages(library(NatParksPalettes))
 option_list <- list(
   make_option(c("-o", "--output"), default = '', type = "character",

@@ -49,7 +49,7 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.p
     rss.by.procrust <- procestes.corr$RSS
   }
 
-  message("### Using pseudoProcrustes to calculate correlation for speed, change this in final run.")
+  #message("### Using pseudoProcrustes to calculate correlation for speed, change this in final run.")
   pseudo.procestes.corr <- aligned.corr$greedy.match$corr
   
   #do a simple BINARY precision variance assessment
@@ -191,7 +191,7 @@ loadGLEANERResultsLists <- function(dir_finngen, dir_ukbb)
 #compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
 compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, global.df.V,global.df.U, overall.df.V, overall.df.U)
 {
-  print(n)
+  #print(n)
   fg.v <- as.matrix(finngen.list[[n]]$V)
   uk.v <- as.matrix(ukbb.list[[n]]$V)
   comp.v[[n]] <- compareModelMatricesComprehensive(fg.v,uk.v)
@@ -268,7 +268,7 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   
   pr.dat.v <- data.frame(t(global.df.V)) %>% tibble::rownames_to_column("rn") %>% 
     separate(rn, into = c("BIC", "Factors"), sep = "_K") %>% 
-    mutate("BIC" = gsub(replacement = "", pattern = "BIC-", x = BIC),"Factors" = gsub(replacement = "", pattern = "-", x = Factors)) %>% print()
+    mutate("BIC" = gsub(replacement = "", pattern = "BIC-", x = BIC),"Factors" = gsub(replacement = "", pattern = "-", x = Factors)) #%>% print()
   pr.dat.v$recall <- as.numeric(pr.dat.v$recall)
   pr.dat.v$precision <- as.numeric(pr.dat.v$precision)
   pr.dat.v$correlation <- as.numeric(pr.dat.v$correlation)
@@ -276,7 +276,7 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   
    pr.dat.u <- data.frame(t(global.df.U)) %>% tibble::rownames_to_column("rn") %>% 
     separate(rn, into = c("BIC", "Factors"), sep = "_K") %>% 
-    mutate("BIC" = gsub(replacement = "", pattern = "BIC-", x = BIC),"Factors" = gsub(replacement = "", pattern = "-", x = Factors)) %>% print()
+    mutate("BIC" = gsub(replacement = "", pattern = "BIC-", x = BIC),"Factors" = gsub(replacement = "", pattern = "-", x = Factors)) #%>% print()
   pr.dat.u$recall <- as.numeric(pr.dat.u$recall)
   pr.dat.u$precision <- as.numeric(pr.dat.u$precision)
   pr.dat.u$correlation <- as.numeric(pr.dat.u$correlation)
