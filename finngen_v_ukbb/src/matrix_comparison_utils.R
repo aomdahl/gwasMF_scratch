@@ -84,7 +84,16 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.p
 #Binarized such that 0/1
 getBinaryPRCurve <- function(lead, scnd)
 {
+  #BAD ashton- don't fix code like this. 
+  #return(list("caret.report.bkwd"=NA,"caret.report.fwd"=NA,
+  #            "metrics.bwkd" = NA, "metrics.fwd"=NA, "pr.second"=NA, "pr.first"=NA))
   library(caret)
+  if(any(is.na(lead))|any(is.na(scnd)))
+  {
+    message("Found some NA, not good")
+    print(lead)
+    print(scnd)
+  }
   lead.binarized <- lead
   scnd.binarized <- scnd
   lead.binarized[lead.binarized != 0] <- 1
@@ -93,8 +102,9 @@ getBinaryPRCurve <- function(lead, scnd)
   actual <- as.vector(lead.binarized)
   #Using one first
   xtab <- table(predicted, actual)
+  #print(xtab)
   #If entries are all ones, than skip this
-  if(all(predicted == 1) | all(actual == 1))
+  if(all(predicted == 1) | all(actual == 1) | nrow(xtab) < 2 | ncol(xtab) < 2 | all(predicted == 0) | all(actual == 0) )
   {
     conf.forward <- NA;
     conf.backward <- NA
@@ -115,7 +125,18 @@ getBinaryPRCurve <- function(lead, scnd)
                           "f1"=   Metrics::f1(predicted, actual))
   
   #PR curve:
-  scnd.scores <- scnd^2/max(scnd^2)
+  if(!all(scnd == 0))
+  {
+    scnd.scores <- scnd^2/max(scnd^2)
+  }
+  else
+  {
+    empt.list <- list("type"="PR", "auc.integral"=NA,"auc.davis.goadrich"=NA)
+    return(list("caret.report.bkwd"=conf.backward,"caret.report.fwd"=conf.forward,
+                "metrics.bwkd" = reverse.metrics, "metrics.fwd"=forward.metrics, "pr.second"=empt.list, "pr.first"=empt.list))
+  }
+  
+  
   #scores of all the trues.
   positives <- scnd.scores[lead.binarized != 0]
   negatives <- scnd.scores[lead.binarized == 0]
@@ -195,6 +216,7 @@ compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, glob
   fg.v <- as.matrix(finngen.list[[n]]$V)
   uk.v <- as.matrix(ukbb.list[[n]]$V)
   comp.v[[n]] <- compareModelMatricesComprehensive(fg.v,uk.v)
+  
   #statistics overall
   global.df.V <- cbind(global.df.V, 
                      c(comp.v[[n]]$metrics.A.first$recall,
@@ -249,10 +271,6 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   full.df.U <- NULL
   for(n in both)
   {
-    if(grepl("GLEANER",n,ignore.case = TRUE))
-    {
-      message("here...")
-    }
     nfd <- compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
     comp.v<-nfd[[1]]; global.df.V<-nfd[[2]]; comp.u<-nfd[[3]]; global.df.U<-nfd[[4]];full.df.V <- nfd[[5]]; full.df.U<- nfd[[6]]
     #Comparison of X directly

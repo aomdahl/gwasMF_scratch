@@ -41,6 +41,12 @@ t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_
 
 
 
+finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/no_overlap/"
+t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none/factorization_results/summary"),
+      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none.yml",
+      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none/factorization_results/"))
+
+
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
@@ -78,6 +84,7 @@ ref.list <- list()
 pred.list <- list()
 for(m in methods.run)
 {
+  message("Assessing simulations from ", m)
   r_performance <- matrix(NA, nrow = niter, ncol = 8)
   for(i in 1:niter){
     lookup_id=paste0(m,"_", i)
@@ -128,8 +135,6 @@ for(m in methods.run)
     #compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.procrust=TRUE)
     #Test.findings
     #Old version
-    print(m)
-    print(i)
     r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]],unit.scale = FALSE),
                            reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], ks,sparsity.v,sparsity.u, i)
     f_i = f_i+1
@@ -197,12 +202,12 @@ if(all(full.sim.performance$runID_U == full.sim.performance$runID_V))
   }
 }
 
-if(any(full.sim.performance$R2_F < full.sim.performance$Procrust_pearson_V^2))
+if(any(full.sim.performance$R2_F > full.sim.performance$Procrust_pearson_V^2))
 {
   message("WARNING: our R2 on V exceeds the procrustes version.")
   print(full.sim.performance %>% filter(R2_F > Procrust_pearson_V^2))
 }
-if(any(full.sim.performance$R2_L < full.sim.performance$Procrust_pearson_U^2))
+if(any(full.sim.performance$R2_L > full.sim.performance$Procrust_pearson_U^2))
 {
   message("WARNING: our R2 on V exceeds the procrustes version.")
   print(full.sim.performance %>% filter(R2_L > Procrust_pearson_U^2))
