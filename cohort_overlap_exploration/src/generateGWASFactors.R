@@ -32,6 +32,8 @@ option_list <- list(
 #t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/udler_based_500/k4/noise2/udler2_realistic-high-1_r-75_noise2/udler2_realistic-high-1_r-75_noise2.yml")
 t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/updated_variance_scaling/V6_U6_mafmixed_n100000.high_covar_1block_cont_scaling.yml",
       "--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs//V6_U6_mafmixed_n100000.high_covar_1block_cont_scaling/fake")
+t = c("--input=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none.yml",
+      "--output=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none/sim1")
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 args <- parse_args(OptionParser(option_list=option_list))
@@ -61,6 +63,8 @@ noise.scaler = 1
 if("noise_scaler" %in% yml$n)
 {
 	noise.scaler = as.numeric(yml[which(yml$n == "noise_scaler"),2])
+	if(noise.scaler != 1)
+	{message("WARNING: noise scaling is being modified......")}
 }
 message(paste0("Noise scaler is ", noise.scaler))
 maf.mat <- as.matrix(fread(unlist(yml[which(yml$n == "maf"),2])))
@@ -210,17 +214,17 @@ if("herit_scaler" %in% yml$n)
 {
   #May updates- only scaling the non-zero SNPs to match the desired distribution:
   #get the scaling factors
-  mu.tot.var <- apply(mu.tot, 2, function(x) var(x[x!=0]))
+  mu.tot.var <- apply(mu.tot, 2, function(x) var(x[x!=0])) #scaling the variance of causal SNPs only
   #mu.tot.var <- apply(mu.tot, 2, var)
   #scaling.mat <- diag(sqrt(herit.factors/mu.tot.var))
   #mu.scaled <- (mu.tot %*% scaling.mat) 
 
   mu.scaled <- mu.tot
   
-  for(i in 1:length(mu.tot.var)) {mu.scaled[(mu.scaled[,i] !=0),i] <- mu.scaled[(mu.scaled[,i] !=0),i] * sqrt(herit.factors[i]/mu.tot.var[i])} #scaling just the variants that are active
+  for(i in 1:length(mu.tot.var)) {mu.scaled[(mu.scaled[,i] !=0),i] <- mu.scaled[(mu.scaled[,i] !=0),i] * sqrt(herit.factors[i]/mu.tot.var[i])} #scaling just the variants that are CAUSAL
   #sanity check
   new.vars <- apply(mu.scaled, 2, function(x) var(x[x != 0]))
-  stopifnot(max(new.vars - herit.factors) < 1e-10)
+  stopifnot(max(new.vars - herit.factors) < 1e-16)
   betas = mu.scaled + all.noise
   #Some plots if doing this manually
   
@@ -232,6 +236,7 @@ if("herit_scaler" %in% yml$n)
     pba <- cor(betas.alt); rownames(pba) = paste0("T", 1:10); colnames(pba) = paste0("T", 1:10)
     plotCorrelationHeatmap(pba,typin = "None",title = "Correlation structure of original beta hats")
   }
+  mu.tot <- mu.scaled
 }
 #Scale so z-scores are z-scores? Not sure if this is necessary, but might be worth including.
 #If my initial estimates of u, v are centered at 0, this shouldn't be necessary
@@ -252,6 +257,8 @@ if(FALSE)
 
 library(magrittr)
 out.beta <- data.frame("SNP" = paste0("rs", 1:N), round(betas, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
+out.beta_true <- data.frame("SNP" = paste0("rs", 1:N), round(mu.tot, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
+stopifnot(max(abs((betas-mu.scaled) - all.noise)) < 1e-15)
 #TODOIPDATE
 out.se <- data.frame("SNP" = paste0("rs", 1:N), round(out.ses, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
 out.var <- data.frame("SNP" = paste0("rs", 1:N), round(var.dat, digits = 7)) %>%
@@ -275,6 +282,14 @@ global.var.report <- varReport(betas, global.signal, global.noise)
 write.table(x=out.z, file = paste0(args$output, ".z.txt"), quote = FALSE, row.names = FALSE,sep = "\t")
 write.table(x=out.n, file = paste0(args$output, ".N.txt"), quote = FALSE, row.names = FALSE)
 
+#Write global data, if its not there.....
+global_beta = paste0(gsub(args$output, pattern = "sim\\d+", replacement = ""),"noise-free_effect_sizes.txt")
+if(!file.exists(global_beta))
+{
+  message("writing global beta without noise file.")
+  write.table(x=out.beta_true, file = global_beta, quote = FALSE, row.names = FALSE)
+  
+}
 
 sink(paste0(args$output, ".variance_notes.txt"))
 cat(paste0("Globally, ", round(mean(global.var.report[5])*100, digits =2), "% of sample variation from true value.\n"))

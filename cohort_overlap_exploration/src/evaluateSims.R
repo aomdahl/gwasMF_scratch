@@ -21,7 +21,10 @@ option_list <- list(
   make_option(c("-w", "--whitened"), default = FALSE, type = "logical",
               help="Include whitened", action = "store_true"),
   make_option(c("-n", "--scale_data"), default = FALSE, type = "logical",
-              help="Scale true and predicted V/U to have unit norm.", action = "store_true")
+              help="Scale true and predicted V/U to have unit norm.", action = "store_true"),
+  make_option(c("--sim_raw"), default = "", type = "character",
+              help="Path to the actual simulation files, not the tests")
+  
 )
 
 #debug interactive
@@ -42,18 +45,20 @@ t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_
 
 
 finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/no_overlap/"
-t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none/factorization_results/summary"),
-      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none.yml",
-      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-none_No-none/factorization_results/"))
-
-
+t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none/factorization_results/summary"),
+      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none.yml",
+      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none/factorization_results/"))
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
 args <- parse_args(OptionParser(option_list=option_list))#, args = t)
 
 #                   args = c("--input=/Users/aomdahl/Library/CloudStorage/OneDrive-JohnsHopkins/Research_Ashton_MacBook_Pro/snp_network/scratch/cohort_overlap_exploration/babytest1"))
-
+if(args$sim_raw =="")
+{
+  message("setting sim raw directory as one up from sim_path")
+  args$sim_raw = gsub(pattern="factorization_results\\/",x=args$sim_path, replacement="")
+}
 #Rscript src/evaluateSims.R --output simulating_factors/udler_based_500/udler_1_simple_no-corr_no-overlap/factorization_results/ -p -y  simulating_factors/udler_based_500/udler_1_simple_no-corr_no-overlap/udler_1_simple_no-corr_no-overlap.yml-s simulating_factors/udler_based_500/udler_1_simple_no-corr_no-overlap/factorization_results/
 #Organized by directory per sim.
 #corresponding script is in ldsc_all_traits/src/factMetaAssessment
@@ -67,6 +72,8 @@ yml <- read.table(args$yaml, sep = ",")
 methods.run <- ((yml %>% filter(V1 == "test_methods"))$V2 %>% strsplit(.,":" ))[[1]]
 true.loadings <- as.matrix(fread((yml %>% filter(V1 == "loadings"))$V2))
 true.factors <-  as.matrix(fread((yml %>% filter(V1 == "factors"))$V2))
+true.betas <- as.matrix(fread(paste0(args$sim_raw, "/noise-free_effect_sizes.txt"))[,-1])
+true.se <- as.matrix(fread(paste0(args$sim_raw, "/sim1.std_error.txt"))[,-1])
 if(args$scale_data)
 {
   true.loadings <- unitNorms(true.loadings)
@@ -82,10 +89,11 @@ f_i =1
 nmethods = length(methods.run)
 ref.list <- list()
 pred.list <- list()
+n_features=12
 for(m in methods.run)
 {
   message("Assessing simulations from ", m)
-  r_performance <- matrix(NA, nrow = niter, ncol = 8)
+  r_performance <- matrix(NA, nrow = niter, ncol = n_features)
   for(i in 1:niter){
     lookup_id=paste0(m,"_", i)
     pred.list[[lookup_id]] <- list()
@@ -106,6 +114,7 @@ for(m in methods.run)
     #print(paste0(s, "/sim",i, ".", m, ".loadings.txt"))
     pred.list[[lookup_id]][["U"]] <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".loadings.txt")))
     pred.list[[lookup_id]][["V"]] <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".factors.txt")))
+    pred.list[[lookup_id]][["X_hat"]] <- as.matrix(fread(paste0(s, "/sim",i, ".", m, ".X-hat.txt")))
     if(args$scale_data)
     {
      # message("Scaling both true and loaded data for convenient comparison")
@@ -135,8 +144,10 @@ for(m in methods.run)
     #compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.procrust=TRUE)
     #Test.findings
     #Old version
+    yuan.style <- evaluate_error(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]])
+    xhat_calc <- xhatFit(m, pred.list[[lookup_id]][["X_hat"]], true.betas, true.se) #return(list("rrmse"=rrmse(x_hat_scaled, x_true), "cor"=stackAndAssessCorr(x_hat_scaled, x_true)))
     r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]],unit.scale = FALSE),
-                           reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], ks,sparsity.v,sparsity.u, i)
+                           reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], yuan.style$U_r2, yuan.style$V_r2,"X_RRMSE"=xhat_calc$rrmse,"X_cor"=xhat_calc$cor,  ks,sparsity.v,sparsity.u, i)
     f_i = f_i+1
   }
   sim.performance <- rbind(sim.performance, data.frame("method" = m, r_performance))
@@ -172,6 +183,7 @@ if(args$whitened)
       }
 
       reconstruction <- fread(paste0(s, "/sim",i, ".","whitened.", m, ".recon_error.txt"))
+      yuan.style <- evaluate_error(true.loadings, true.factors, pred.loadings, pred.factors)
       r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.loadings, pred.list[[lookup_id]][["V"]]),
                              reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], i)
       f_i = f_i+1
@@ -179,12 +191,12 @@ if(args$whitened)
     sim.performance <- rbind(sim.performance, data.frame("method" = paste0(m, "_whitened"), r_performance))
   }
 }
-colnames(sim.performance) <- c("method", 'R2_L','R2_F',"RSE", "R2_X", "K_out","sparsityV", "sparsityU", "iter")
+colnames(sim.performance) <- c("method", 'R2_L','R2_F',"RSE", "R2_X","yuan_U", "yuan_V","X_RRMSE","X_cor", "K_out","sparsityV", "sparsityU", "iter")
 
 #Combine the old and the new
-full.sim.performance <- cbind(sim.performance, updated.calcs$V %>% select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% 
+full.sim.performance <- cbind(sim.performance, updated.calcs$V %>% dplyr::select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% 
                                 set_colnames(c("runID_V", "PRC_V", "Kappa_V", "Corr_mine_V", "Procrust_pearson_V", "Distance_V")),
-updated.calcs$U %>% select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% set_colnames(c("runID_U", "PRC_U", "Kappa_U",  "Corr_mine_U", "Procrust_pearson_U", "Distance_U")),
+updated.calcs$U %>% dplyr::select(BIC, PRC, GlobalKappa,correlation, Procrustes_pearson, Euclidian_dist) %>% set_colnames(c("runID_U", "PRC_U", "Kappa_U",  "Corr_mine_U", "Procrust_pearson_U", "Distance_U")),
 updated.calcs$Xhat_norms) %>% rename("Xhat_dist"=dist)
 
 
@@ -202,16 +214,16 @@ if(all(full.sim.performance$runID_U == full.sim.performance$runID_V))
   }
 }
 
-if(any(full.sim.performance$R2_F > full.sim.performance$Procrust_pearson_V^2))
-{
-  message("WARNING: our R2 on V exceeds the procrustes version.")
-  print(full.sim.performance %>% filter(R2_F > Procrust_pearson_V^2))
-}
-if(any(full.sim.performance$R2_L > full.sim.performance$Procrust_pearson_U^2))
-{
-  message("WARNING: our R2 on V exceeds the procrustes version.")
-  print(full.sim.performance %>% filter(R2_L > Procrust_pearson_U^2))
-}
+#if(any(full.sim.performance$R2_F > full.sim.performance$Procrust_pearson_V^2))
+#{
+#  message("WARNING: our R2 on V exceeds the procrustes version.")
+#  print(full.sim.performance %>% filter(R2_F > Procrust_pearson_V^2))
+#}
+#if(any(full.sim.performance$R2_L > full.sim.performance$Procrust_pearson_U^2))
+#{
+#  message("WARNING: our R2 on V exceeds the procrustes version.")
+#  print(full.sim.performance %>% filter(R2_L > Procrust_pearson_U^2))
+#}
 
 #Now plot it, if desired
 write.table(full.sim.performance, file = paste0(args$output, ".tabular_performance.tsv"), quote = FALSE, row.names = FALSE)
