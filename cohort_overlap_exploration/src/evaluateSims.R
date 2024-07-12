@@ -38,16 +38,10 @@ t = c("--output=//scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_
       "--sim_path=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/",  "--scale_data")
 
 finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/1b_overlap/"
-t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/summary"),
+t = c(paste0("--output=", finalpath, "conv_0.001/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no//factorization_results/summary"),
       "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/1b_overlap/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no.yml",
-      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/"))
+      paste0("--sim_path=", finalpath, "conv_0.001/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/"))
 
-
-
-finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/no_overlap/"
-t = c(paste0("--output=", finalpath, "V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none/factorization_results/summary"),
-      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none.yml",
-      paste0("--sim_path=", finalpath, "V101_U101_MAF-mix_eur_N-10000_RHO-none_No-none/factorization_results/"))
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)
 
@@ -148,6 +142,7 @@ for(m in methods.run)
     xhat_calc <- xhatFit(m, pred.list[[lookup_id]][["X_hat"]], true.betas, true.se) #return(list("rrmse"=rrmse(x_hat_scaled, x_true), "cor"=stackAndAssessCorr(x_hat_scaled, x_true)))
     r_performance[i,] <- c(evaluteFactorConstruction(true.loadings, true.factors, pred.list[[lookup_id]][["U"]], pred.list[[lookup_id]][["V"]],unit.scale = FALSE),
                            reconstruction$Frobenius_norm[1], reconstruction$Correlation[1], yuan.style$U_r2, yuan.style$V_r2,"X_RRMSE"=xhat_calc$rrmse,"X_cor"=xhat_calc$cor,  ks,sparsity.v,sparsity.u, i)
+    r_performance[i,n_features] <- i
     f_i = f_i+1
   }
   sim.performance <- rbind(sim.performance, data.frame("method" = m, r_performance))
@@ -210,7 +205,7 @@ if(all(full.sim.performance$runID_U == full.sim.performance$runID_V))
   } else
   {
     message("ERROR: simulations don't line up in assessment")
-    exit()
+    quit()
   }
 }
 

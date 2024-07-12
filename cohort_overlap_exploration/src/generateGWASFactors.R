@@ -215,46 +215,29 @@ if("herit_scaler" %in% yml$n)
   #May updates- only scaling the non-zero SNPs to match the desired distribution:
   #get the scaling factors
   mu.tot.var <- apply(mu.tot, 2, function(x) var(x[x!=0])) #scaling the variance of causal SNPs only
-  #mu.tot.var <- apply(mu.tot, 2, var)
-  #scaling.mat <- diag(sqrt(herit.factors/mu.tot.var))
-  #mu.scaled <- (mu.tot %*% scaling.mat) 
-
   mu.scaled <- mu.tot
   
-  for(i in 1:length(mu.tot.var)) {mu.scaled[(mu.scaled[,i] !=0),i] <- mu.scaled[(mu.scaled[,i] !=0),i] * sqrt(herit.factors[i]/mu.tot.var[i])} #scaling just the variants that are CAUSAL
+  #Cleaner way to code this:
+  A <- diag(sqrt(herit.factors/mu.tot.var))
+  mu.scaled <- l %*% t(f) %*% A #entries which are 0 won't be affected, so it works out just fine.
+  #stopifnot(all(mu.scaled == mu.scaled.alt))
+  #for(i in 1:length(mu.tot.var)) {mu.scaled[(mu.scaled[,i] !=0),i] <- mu.scaled[(mu.scaled[,i] !=0),i] * sqrt(herit.factors[i]/mu.tot.var[i])} #scaling just the variants that are CAUSAL
   #sanity check
   new.vars <- apply(mu.scaled, 2, function(x) var(x[x != 0]))
   stopifnot(max(new.vars - herit.factors) < 1e-16)
+  #Alternative check- post multiply by A
+
   betas = mu.scaled + all.noise
   #Some plots if doing this manually
   
   pb <- cor(betas); rownames(pb) = paste0("T", 1:10); colnames(pb) = paste0("T", 1:10)
-  bcor <- plotCorrelationHeatmap(pb,typin = "None",title = "Correlation structure of scaled beta hats")
-  suppressMessages(ggsave(plot = bcor, filename = paste0(args$output, ".effect_size_estimate_correlation.png")))
-  if(FALSE){
-    plot(herit.factors, new.vars,pch=19, xlab = "True var (GWAS)", ylab = "Scaled var"); abline(a=0, b= 1, col = "blue")
-    pba <- cor(betas.alt); rownames(pba) = paste0("T", 1:10); colnames(pba) = paste0("T", 1:10)
-    plotCorrelationHeatmap(pba,typin = "None",title = "Correlation structure of original beta hats")
-  }
+  suppressMessages(ggsave(plot = plotCorrelationHeatmap(pb,typin = "None",title = "Correlation structure of scaled beta hats"),
+                          filename = paste0(args$output, ".effect_size_estimate_correlation.png")))
+
   mu.tot <- mu.scaled
 }
-#Scale so z-scores are z-scores? Not sure if this is necessary, but might be worth including.
-#If my initial estimates of u, v are centered at 0, this shouldn't be necessary
-if(FALSE)
-{
-  hist(out.beta[,3]/out.se[,3])
-  z_tilde <- betas/se
-  sigma_z <- sqrt(do.call("rbind", lapply(1:N, function(i) apply(z_tilde, 2, var))))
 
-  meanz <- do.call("rbind", lapply(1:N, function(i) apply(z_tilde, 2,mean)))
-
-  #beta_tilde <- (betas / sigma_z) - (meanz * se/sigma_z)
-  beta_tilde <- betas / sqrt(do.call("rbind", lapply(1:N, function(i) apply(betas, 2, var))))
-  #I need oto think about this a little more., Not sure how well things will work if z scores aren't N(0,1).
-  #Maybe a non issue, idk.
-
-}
-
+###Write out simulations.
 library(magrittr)
 out.beta <- data.frame("SNP" = paste0("rs", 1:N), round(betas, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
 out.beta_true <- data.frame("SNP" = paste0("rs", 1:N), round(mu.tot, digits = 7)) %>% set_colnames(c("SNP", paste0("T", 1:M)))
@@ -272,7 +255,6 @@ out.n <- data.frame("N"=colMeans(n.mat))
 write.table(x = out.beta, file = paste0(args$output, ".effect_sizes.txt"), quote = FALSE, row.names = FALSE)
 write.table(x = out.se, file = paste0(args$output, ".std_error.txt"), quote = FALSE, row.names = FALSE)
 write.table(x=var.dat, file = paste0(args$output, ".variance_data.txt"), quote = FALSE, row.names = FALSE)
-full_cover <- S %*% C %*% t(S)
 write.table(x = C, file = paste0(args$output, ".c_matrix.txt"), quote = FALSE, row.names = FALSE)
 #write out empirical covar
 write.table(x = cor(all.noise), file = paste0(args$output, ".empirical_covar.txt"), quote = FALSE, row.names = FALSE)

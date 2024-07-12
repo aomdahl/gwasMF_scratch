@@ -36,20 +36,31 @@ BuildYAML <- function(row)
  {
 	 ret.list[["herit_scaler"]] <- row$HERIT
   }
+if(is.na(row$SHRINKAGE))
+  {
+	ret.list[["covar_shrinkage"]] <- -1
+  }else
+  {
+	  ret.list[["covar_shrinkage"]] <- row$SHRINKAGE
+  }
 
 
   data.frame("names" = names(ret.list), "vals" = unlist(ret.list))
 }
 
 
-paramfiles <- "./OneDrive - Johns Hopkins/Research_Ashton_MacBook_Pro/snp_network/simulation_to_build.csv"
-conv.files <- "./OneDrive - Johns Hopkins/Research_Ashton_MacBook_Pro/snp_network/names_to_files_sims.csv"
+#paramfiles <- "./OneDrive - Johns Hopkins/Research_Ashton_MacBook_Pro/snp_network/simulation_to_build.csv"
+#conv.files <- "./OneDrive - Johns Hopkins/Research_Ashton_MacBook_Pro/snp_network/names_to_files_sims.csv"
 conv.files <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/setting_files/path_reference.csv"
-paramfiles <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/setting_files/v1_u1_sims.csv"
-opath <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/25_round_sims_april23/"
+#paramfiles <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/setting_files/v1_u1_sims.csv"
+#opath <- "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/25_round_sims_april23/"
 # test if there is at least one argument: if not, return an error
 if (length(args)<2) {
+  message("Usage as follows:")
+  message("parameter_list_file.csv output_path <optional> -c")
+  message("-c : this will print out the commands to run the simulation at the specified settings at the destination path specified with -c")
   stop("At least two arguments must be supplied (input file path and output directory).n", call.=FALSE)
+  
 }
 paramfiles <- args[1]
 opath <- args[2]
@@ -60,9 +71,9 @@ param.setting <- param.setting %>% mutate("fnames" = paste0(V,"_", U, "_MAF-", M
 
 
 conv <-fread(conv.files)
-cats <- c("factors", "loadings", "maf", "K", "iter", "samp_overlap","pheno_corr", "test_methods","noise_scaler","bic_param", "init")
+cats <- c("factors", "loadings", "maf", "K", "iter", "samp_overlap","pheno_corr", "test_methods","noise_scaler","bic_param", "init", "shrinkage")
 if (length(args)==4) {
-message("mkdir -p ", args[4])
+cat("mkdir -p ", args[4], "\n")
   }
 for(i in 1:nrow(param.setting))
 {
@@ -70,7 +81,7 @@ for(i in 1:nrow(param.setting))
   if (length(args)==4) {
     if(args[3] == "-c")
     {
-      message("bash src/runSimulation.sh ", paste0(opath, '/',param.setting[i,]$fnames), " ", args[4], gsub(x=param.setting[i,]$fnames, replacement = "", pattern = ".yml"))
+      cat("bash src/runSimulation.sh ", paste0(opath, '/',param.setting[i,]$fnames), paste0(args[4], gsub(x=param.setting[i,]$fnames, replacement = "", pattern = ".yml"),"/"), "\n")
     }
   }else
   {
