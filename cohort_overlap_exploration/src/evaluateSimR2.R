@@ -516,29 +516,40 @@ evaluate_error <- function(trueL, trueF, lp, fp){
   rankK = ncol(trueF)
   suppressWarnings(library('combinat'))
   ordering = permn(seq(1,rankK))
-  f_cor = rep(0, length(ordering))
-  for(ord in seq(1, length(ordering))){
-    f_cor[ord] = cor(as.vector(trueF), as.vector(fp[,ordering[[ord]]]))^2
+  #Signs
+  n = 5
+  sign.grid <- expand.grid(replicate(n, c(1,-1), simplify = FALSE))
+  #all.combs <- apply(sign.grid,1,function(x) lapply(ordering, function(y) x*y))
+  #long.list <- lapply(all.combs, unlist, use.names=FALSE)
+  ntest <- length(ordering) * nrow(sign.grid)
+  test_i = 1
+  f_cor = rep(0, ntest); l_cor = rep(0, length(ntest))
+  for(ord in 1:length(ordering)){
+    for(i in 1:nrow(sign.grid))
+    {
+      f_cor[test_i] = cor(as.vector(trueF), as.vector(fp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
+      l_cor[test_i] = cor(as.vector(trueL), as.vector(lp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
+      test_i = test_i+1
+    }
   }
-  
-  l_cor = rep(0, length(ordering))
-  for(ord in seq(1, length(ordering))){
-    l_cor[ord] = cor(as.vector(trueL), as.vector(lp[,ordering[[ord]]]))^2
-  }
-  
+
+  #All sign options:
   ord_sum = f_cor + l_cor
-  ord = which.max(ord_sum)
-  lp = lp[,ordering[[ord]]]
-  fp = fp[,ordering[[ord]]]
-  
-  #lp = lp / matrix(rep(apply(lp, 2, function(x) max(abs(x))), nrow(lp)), nrow = nrow(lp), byrow = T)
-  #fp = fp / matrix(rep(apply(fp, 2, function(x) max(abs(x))), nrow(fp)), nrow = nrow(fp), byrow = T)
-  #colnames(fp) = seq(1,ncol(fp))
-  #rownames(fp) = seq(1, nrow(fp))
-  
-  #fp[is.na(fp)] = 0 
-  #lp[is.na(lp)] = 0
-  
+  opt_i = which.max(ord_sum)
+  if(length(opt_i) > 1)
+  {
+    message("Multiple optimal orientations, selecting the first....")
+    opt_i = opt_i[1]
+  }
+  #Translate the global index into the order/sign combination.
+  order_i <- ceiling(opt_i / nrow(sign.grid))
+  sign_i <- opt_i %% nrow(sign.grid) #Only exception is if 
+  #Test
+  best.cor <- cor(as.vector(trueF), as.vector(fp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2 + cor(as.vector(trueL), as.vector(lp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2
+  stopifnot(best.cor == max(ord_sum) )
+  lp = lp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])
+  fp = fp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])
+
   l_r2 = cor(as.vector(trueL), as.vector(lp))^2
   f_r2 = cor(as.vector(trueF), as.vector(fp))^2
   
