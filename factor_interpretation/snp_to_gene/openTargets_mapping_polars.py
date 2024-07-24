@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+July 23, 2024
+Author: Ashton Omdahl, with code scraped from various online posting as noted below
+Code review, cleanup, and scriptifying with the aid of ChatGPT, 2024.
+
+To call from the command line
+python3 your_script.py --query_file path/to/query_file.txt --output_dir path/to/output_dir --parquet_dir path/to/parquet_dir --chunk_size 100000
+
+"""
 import polars as pl
 import pandas as pd
 import subprocess
@@ -7,11 +16,7 @@ import gc
 import psutil
 import time
 import argparse
-"""
-To call from the command line
-python3 your_script.py --query_file path/to/query_file.txt --output_dir path/to/output_dir --parquet_dir path/to/parquet_dir --chunk_size 100000
 
-"""
 
 
 # Load query file
@@ -94,6 +99,10 @@ def iter_slices(df, batch_size):
 
 @track
 def parse_vToG_files(parquet_file_path, chunk_size, query_ids):
+    """
+    This lazy frame iterator is a handy tool, based on code from :
+    https://github.com/pola-rs/polars/issues/10683
+    """
     # Create a lazy frame from the Parquet file
     lazy_df = pl.scan_parquet(parquet_file_path)
     ret_tab = None
