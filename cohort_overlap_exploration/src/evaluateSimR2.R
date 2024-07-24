@@ -249,11 +249,15 @@ getallR2 <- function(sign.ordering, ordering, pred, actual, unit.scale = FALSE)
     if(unit.scale)
     {
       
-      res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) cor(as.vector(unitNorms(x)), as.vector(actual))^2))
+      #res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) cor(as.vector(unitNorms(x)), as.vector(actual))^2))
+      #Updating to handle 0 cases and not throw errors
+      res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) customCorr(as.vector(unitNorms(x)), as.vector(actual))^2))
        
     }else
     {
-      res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) cor(as.vector(x), as.vector(actual))^2))
+      #res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) cor(as.vector(x), as.vector(actual))^2))
+      #Updating to handle 0 cases and not throw errors
+      res.mat[signopt,] <- unlist(lapply(all.options.factors[[signopt]], function(x) customCorr(as.vector(x), as.vector(actual))^2))
     }
     
   }
@@ -285,6 +289,66 @@ recurseGreedyMap <- function(cor, r2, signs, pairs)
   recurseGreedyMap(cor,r2, c(signs, dir), pairs)
 }
 
+
+
+#' Helper to ensure correlation is calculated safely
+#'
+#' @param x either a vector or matrix of values to check, usually the prediction/estimate
+#' @param y either a vector or matrix of values to check, usually the reference
+#'
+#' @return a list with items PASS <logical>, indicating if it passes, and ret_cor <double> specifying the correlation to return if PASS is false.
+#' @export
+#'
+#' @examples
+corrSafteyChecks <- function(x,y, cor.type = "pearson")
+{
+  ret_l <- list("PASS"=TRUE, "ret_cor"=NA)
+  if(all(is.na(x)))
+  {
+      #if all entries are NA, set them to 0
+      x[is.na(x)] <- 0   
+  }
+  if(all(is.na(y)))
+     {
+       #if all entries are NA, set them to 0
+       y[is.na(y)] <- 0   
+  }
+  
+  if(all(x == y))
+  {
+    message("Perfect match!")
+    ret_l <- list("PASS"=FALSE, "ret_cor"=1)
+  }
+  if(is.matrix(x) | is.matrix(y))
+  {
+    var.x <- apply(x,2,var)
+    var.y <- apply(y,2,var)
+    if(all(var.x == 0) | all(var.y == 0))
+    {
+      ret_l <- list("PASS"=FALSE, "ret_cor"=diag(0,ncol(y)))
+    }
+    if(any(var.x == 0) | any(var.y == 0))
+    {
+      if(any(var.x == 0) & any(var.y == 0))
+      {
+        warning("Highly unusual case, please revisit")
+        message("EvaluateSimR2.R- case where both have empty colums.")
+      }
+      #Special case- get the correlation, and make the NA columns all 0
+      suppressWarnings(ret.mat <- cor(x,y, method=cor.type))
+      ret.mat[is.na(ret.mat)] <- 0
+      ret_l <- list("PASS"=FALSE, "ret_cor"=ret.mat)
+    }
+  }else
+  {
+    if(all(x == 0) | all(y == 0))
+    {
+      ret_l <- list("PASS"=FALSE, "ret_cor"=0)
+    }
+  }
+  return(ret_l)
+}
+
 #' Correlation between matrix columns optimized for my application
 #'
 #' @param x first matrix 
@@ -295,14 +359,25 @@ recurseGreedyMap <- function(cor, r2, signs, pairs)
 #' @export
 customCorr <- function(x,y, cor.type = "pearson")
 {
-  if(cor.type == "kendall")
+  #Capturing some extreme edge cases
+
+  saftey.vals <- corrSafteyChecks(x,y, cor.type = cor.type)
+  if(!saftey.vals$PASS)
   {
-    r.mat <- t(apply(x, 2, function(a) apply(y, 2, function(b) pcaPP::cor.fk(a,b))))
+    return(saftey.vals$ret_cor)
   }else
   {
-    r.mat <- cor(x,y, method=cor.type);
+    if(cor.type == "kendall")
+    {
+      r.mat <- t(apply(x, 2, function(a) apply(y, 2, function(b) pcaPP::cor.fk(a,b))))
+    }else
+    {
+      r.mat <- cor(x,y, method=cor.type);
+    }
+    return(r.mat)
   }
-  r.mat
+
+
 }
 #Only does it for one vector, the one you specify first
 #greedyMaxCorr(true.v, pred.f)
@@ -501,12 +576,31 @@ xhatFit <- function(meth, x_hat, x_true, se)
 #Based on code from Yuan He, simplified
 
 
-
+#' Comphrensive and simple R2 between matrices
+#' Based on code from Yuan He, this samples every possible ordering of columns and sign assignment to find the very best one
+#' It then returns the R2 for this optimal arrangement.
+#' @param trueL - known U matrix
+#' @param trueF - known V matrix
+#' @param lp - predicted U matrix
+#' @param fp - predicted V matrix
+#'
+#' @return
+#' @export
+#'
+#' @examples
 evaluate_error <- function(trueL, trueF, lp, fp){
+  #Special case- all entries are 0
   if(all(fp == 0) & all(lp == 0))
   {
-    message("A zero case...")
+    #check that all trueL and trueF aren't zero
+    if(all(trueL == 0) & all(trueF == 0))
+    {
+      message("Should never occur, bad sim.")
+      return(list("U_r2"=1, "V_r2"=1, "reordered_U"=lp,"reordered_V"= fp))
+    }
+    else{
     return(list("U_r2"=0, "V_r2"=0, "reordered_U"=lp,"reordered_V"= fp))
+    }
   }
   if(ncol(fp) < ncol(trueF)){
     dif = ncol(trueF) - ncol(fp)
@@ -527,8 +621,8 @@ evaluate_error <- function(trueL, trueF, lp, fp){
   for(ord in 1:length(ordering)){
     for(i in 1:nrow(sign.grid))
     {
-      f_cor[test_i] = cor(as.vector(trueF), as.vector(fp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
-      l_cor[test_i] = cor(as.vector(trueL), as.vector(lp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
+      f_cor[test_i] = customCorr(as.vector(trueF), as.vector(fp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
+      l_cor[test_i] = customCorr(as.vector(trueL), as.vector(lp[,ordering[[ord]]] %*% diag(sign.grid[i,])))^2
       test_i = test_i+1
     }
   }
@@ -545,14 +639,45 @@ evaluate_error <- function(trueL, trueF, lp, fp){
   order_i <- ceiling(opt_i / nrow(sign.grid))
   sign_i <- opt_i %% nrow(sign.grid) #Only exception is if 
   #Test
-  best.cor <- cor(as.vector(trueF), as.vector(fp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2 + cor(as.vector(trueL), as.vector(lp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2
+  best.cor <- customCorr(as.vector(trueF), as.vector(fp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2 + customCorr(as.vector(trueL), as.vector(lp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])))^2
   stopifnot(best.cor == max(ord_sum) )
   lp = lp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])
   fp = fp[,ordering[[order_i]]] %*% diag(sign.grid[sign_i,])
 
-  l_r2 = cor(as.vector(trueL), as.vector(lp))^2
-  f_r2 = cor(as.vector(trueF), as.vector(fp))^2
+  l_r2 = customCorr(as.vector(trueL), as.vector(lp))^2
+  f_r2 = customCorr(as.vector(trueF), as.vector(fp))^2
   
   
   return(list("U_r2"=l_r2, "V_r2"=f_r2, "reordered_U"=lp,"reordered_V"= fp))
+}
+
+
+
+testEvaluateError <- function()
+{
+  set.seed(2)
+  #Simulate U
+  true.u <- matrix(rnorm(100), nrow=20, ncol=5)
+  mod.u <- true.u + matrix(rnorm(100,sd = 0.5), nrow=20, ncol=5)
+  ref.r2.u <- cor(as.vector(true.u), as.vector(mod.u))^2
+  #Simulate V
+  true.v <- matrix(rnorm(50), nrow=10, ncol=5)
+  mod.v <- true.v + matrix(rnorm(50,sd = 0.5), nrow=10, ncol=5)
+  ref.r2.v <- cor(as.vector(true.v), as.vector(mod.v))^2
+  
+  #move things around
+  cp.u <- mod.u
+  cp.u[,1] <- mod.u[,2] * -1
+  cp.u[,2] <- mod.u[,1] * -1
+  
+  cp.v <- mod.v
+  cp.v[,1] <- mod.v[,2] * -1
+  cp.v[,2] <- mod.v[,1] * -1
+  
+  check.dat <- evaluate_error(true.u, true.v, cp.u, cp.v)
+  stopifnot(check.dat$U_r2 == ref.r2.u)
+  stopifnot(check.dat$V_r2 == ref.r2.v)
+  stopifnot(check.dat$reordered_U == mod.u)
+  stopifnot(check.dat$reordered_V == mod.v)
+  message("All tests passed!")
 }

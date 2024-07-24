@@ -61,6 +61,13 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson", full.p
   stopifnot(kappa.score$global$kappa == kappa.score.backwards$global$kappa)
   ret.list <- list("procrustes.corr"=pseudo.procestes.corr, "factor.procrust.corr" = aligned.corr$factor.cors,"multi.class"=kappa.score, 
                    "rss"=rss.by.procrust, "kendall.corr"=aligned.corr.k$greedy.match$corr, "true.procrustes.corr"=cor.by.procrust)
+  #Update results if all entries are 0:
+  if((all(scnd == 0) & !all(lead == 0)) | (all(lead == 0) & !all(scnd == 0)))
+  {
+    message("An empty factorization appeared. Correlation scores being set to 0.")
+    ret.list$procrustes.corr=0;ret.list$kendall.corr=0;ret.list$true.procrustes.corr=0
+    
+  }
   if(SWAP)
   {
     ret.list$order = "swapped";  ret.list$A = scnd;  ret.list[["B"]]=lead;  
@@ -176,7 +183,8 @@ threeClassKappa <- function(lead, scnd, by_factor = TRUE)
   by.col = NA
   if(by_factor)
   {
-    by.col <- lapply(1:ncol(lead.classes), function(i) suppressMessages(psych::cohen.kappa(data.frame(lead.classes[,i], scnd.classes[,i]))))
+    #BEWARE- suppressing warnings in this part.
+    by.col <- lapply(1:ncol(lead.classes), function(i) suppressWarnings(psych::cohen.kappa(data.frame(lead.classes[,i], scnd.classes[,i]))))
   }
 
   return(list("global"=global.scores, "by.factor"=by.col))
@@ -269,8 +277,18 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   #These get the statistics by factor, allowing us to make boxplots
   full.df.V <- NULL
   full.df.U <- NULL
+  missing.dat <- c()
   for(n in both)
   {
+    #print(n)
+    if(length(ukbb.list[[n]]) == 0 | (length(finngen.list[[n]]) == 0))
+    {
+      missing.dat <- c(missing.dat, n)
+      global.df.V <- cbind(global.df.V, rep(NA,nrow(global.df.V)))
+      global.df.U <- cbind(global.df.U, rep(NA,nrow(global.df.U)))
+      comp.xhat<- c(comp.xhat,NA)
+      next
+    }
     nfd <- compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
     comp.v<-nfd[[1]]; global.df.V<-nfd[[2]]; comp.u<-nfd[[3]]; global.df.U<-nfd[[4]];full.df.V <- nfd[[5]]; full.df.U<- nfd[[6]]
     #Comparison of X directly
@@ -280,13 +298,15 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
     Xhat.fg <- finngen.list[[n]]$U %*% t(finngen.list[[n]]$V)
     Xhat.uk <- ukbb.list[[n]]$U %*% t(ukbb.list[[n]]$V)
     comp.xhat<- c(comp.xhat, norm(Xhat.fg - Xhat.uk, "F"))
+    #
     }
   
+  missing_i <- which(both %in% missing.dat)
   rownames(global.df.V) <- c("recall", "precision", "correlation", "Fg_K-UK_K", "PRC", "GlobalKappa", "Kendall_correlation", "Procrustes_pearson", "Euclidian_dist")
-  colnames(global.df.V)<- both
+  colnames(global.df.V)<- both#[-missing_i]
   
   rownames(global.df.U) <- c("recall", "precision", "correlation", "Fg_K-UK_K", "PRC","GlobalKappa","Kendall_correlation", "Procrustes_pearson", "Euclidian_dist")
-  colnames(global.df.U)<- both
+  colnames(global.df.U)<- both#[-missing_i]
   
   pr.dat.v <- data.frame(t(global.df.V)) %>% tibble::rownames_to_column("rn") %>% 
     separate(rn, into = c("BIC", "Factors"), sep = "_K") %>% 
