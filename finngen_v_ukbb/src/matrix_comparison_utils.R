@@ -24,6 +24,46 @@ pacman::p_load(ggplot2, magrittr, tidyr)
 #A <- matrix(rnorm(1000), nrow = 100)
 #B <- matrix(rnorm(1000), nrow = 100)
 
+
+
+#' Align matrices A and B via correlation and via procrustes
+#'
+#' @param A simple matrix
+#' @param B simple matrix
+#' @param corr.type which type to guide scoring by.
+#'
+#' @return an object containing
+#'  cb_results: a bunch of data from the correlation-based analysis, including the order
+#'  cb_matrices: the output matrices based on this ordering
+#'  pr_results: a bunch of data from the procrustes-based
+#'  pr_matrices:the output matrices based on this ordering (the raw matrices, reordered and signed, no other scaling)
+#' @export
+#'
+#' @examples
+alignMatrices <- function(A,B, corr.type = "pearson")
+{
+  #First, align the matrices to have the same dimensions
+  library(PRROC)
+  prepped <- prepMatricesForAnalysis(A,B)
+  lead <- prepped$lead;  scnd <- prepped$second; SWAP <- prepped$swap
+  
+  #Use my homeade correlation matching
+  pseudo.procrust.results <- corrBasedScoring(lead, scnd, corr.method = corr.type)
+  pseudo.ordered.matrices <- pseudo.procrust.results$corr_ordered_matrices
+  
+  #Use a published procrustes package too
+  procrust.results <- procrustesBasedScoring(lead,scnd, SWAP)
+  procrust.ordered.matrices <- procrust.results$procrust_ordered_matrices
+  
+  list("cb_results"=pseudo.procrust.results, "cb_matrices"=pseudo.ordered.matrices,
+       "pr_results"=procrust.results, "pr_matrices"=procrust.ordered.matrices, "swap"=SWAP, "lead"=lead, "scnd"=scnd)
+}
+
+
+
+
+
+
 #' Assessment of matrix similarity using several different types of metrics
 #' Approaches include pearson and kendall correlation, classification error (Precision-recall curve),
 #' categorization similarity (Cohen's Kappa metric), and Euclidian distance (frobenius norm)
@@ -50,7 +90,7 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson")
   pseudo.ordered.matrices <- pseudo.procrust.results$corr_ordered_matrices
   
   #Use a published procrustes package too
-  procrust.results <- procrustesBasedScoring(lead,scnd)
+  procrust.results <- procrustesBasedScoring(lead,scnd, SWAP)
   procrust.ordered.matrices <- procrust.results$procrust_ordered_matrices
 
   #Need to verify and check orders are consistent here, before we do downstream analysis
@@ -89,6 +129,64 @@ compareModelMatricesComprehensive <- function(A,B, corr.type = "pearson")
 }
 
 
+#' Assessment of matrix similarity as clasfifiers
+#' @param mat.dat 
+#' @param corr.type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+compareMatricesAsClassifiers <- function(mat.dat, corr.type = "pearson")
+{
+  #First, align the matrices to have the same dimensions
+  library(PRROC)
+  lead <- mat.dat$lead;  scnd <- mat.dat$scnd; SWAP <- mat.dat$swap
+  #  list("cb_results"=pseudo.procrust.results, "cb_matrices"=pseudo.ordered.matrices,
+  #"pr_results"=procrust.results, "pr_matrices"=procrust.ordered.matrices, "swap"=SWAP, "lead"=lead, "scnd"=scnd)
+  #assess with greedy correlation based order
+  by_pseudo_procrust_order <- classificationScoring(mat.dat$cb_matrices$lead, mat.dat$cb_matrices$scnd, SWAP)
+  by_true_procrust_order <- classificationScoring(mat.dat$pr_matrices$lead, 
+                                                  mat.dat$pr_matrices$scnd, SWAP)
+  names(by_true_procrust_order) <- gsub(names(by_true_procrust_order), pattern = "^", replacement = "procrust_")
+  names(by_pseudo_procrust_order) <- gsub(names(by_pseudo_procrust_order), pattern = "^", replacement = "corr_based_")
+  
+  #Update the return data
+  ret.list <- c(mat.dat$pr_results,mat.dat$cb_results,
+                by_pseudo_procrust_order,by_true_procrust_order )
+  
+  #Update results if all entries are 0:
+  if((all(scnd == 0) & !all(lead == 0)) | (all(lead == 0) & !all(scnd == 0)))
+  {
+    message("An empty factorization appeared. Correlation scores being set to 0.")
+    ret.list$procrustes.corr=0;ret.list$kendall.corr=0;ret.list$true.procrustes.corr=0
+  }
+  
+  #How closely do our versions compare?
+  ret.list$methods_mismatch <- compareProcrustesAndHomeade(mat.dat$cb_results$corr_based_data, mat.dat$pr_results$procrustes_data,lead,scnd,DEBUG=FALSE)
+  if(SWAP)
+  {
+    ret.list$order = "swapped";  ret.list$A = scnd;  ret.list[["B"]]=lead;  
+  }else
+  {
+    ret.list$order = "preserved";  ret.list$A = lead;  ret.list[["B"]]=scnd;
+  }
+  ret.list
+}
+
+
+
+
+
+#Helper function in case either matrix is empty.
+emptyCheck <- function(repair.me, reference)
+{
+  if(nrow(repair.me) == 1 & ncol(repair.me) == 1 & is.na(repair.me[1,1]))
+  {
+    repair.me <- matrix(0,ncol = 1, nrow=nrow(reference))
+  }
+  repair.me
+}
 #' Put the larger matrix first and fill empty columns with 0s
 #'
 #' @param A 
@@ -111,6 +209,13 @@ prepMatricesForAnalysis <- function(A,B)
     lead <- as.matrix(B)
     scnd <- as.matrix(A)
   }
+  if(nrow(A) != nrow(B))
+  {
+    warning("Matrices don't have the same number of entries, beware.")
+    lead <- emptyCheck(lead, scnd)
+    scnd <- emptyCheck(scnd, lead)
+  }
+  
   ret <- fillWithZeros(lead, scnd)
   scnd <- ret$fp
   list("lead"=lead, "second"=scnd, "swap"=SWAP)
@@ -134,7 +239,11 @@ classificationScoring <- function(lead, scnd, SWAP)
   #Do a multi-class assessment, looking at +/0/-
   kappa.score <- threeClassKappa(lead, scnd)
   kappa.score.backwards <- threeClassKappa(scnd, lead)
-  stopifnot(kappa.score$global$kappa == kappa.score.backwards$global$kappa)
+  if(!is.na(kappa.score$global$kappa)) #fails if its NA
+  {
+    stopifnot(kappa.score$global$kappa == kappa.score.backwards$global$kappa)
+  }
+
   
   ret.list <- list("multi.class"=kappa.score)
   
@@ -162,20 +271,24 @@ classificationScoring <- function(lead, scnd, SWAP)
 #' @param lead alleged reference matrix, unordered
 #' @param scnd alleged predicted matrix, unordered
 #'
-#' @return
+#' @return Results are with the transformation and turning, NOT WITH THE SPARSE VERSION OF THE MATRIX.
 #' @export
 #'
 #' @examples
-procrustesBasedScoring <- function(lead,scnd, DEBUG=FALSE)
+procrustesBasedScoring <- function(lead,scnd, swapped, DEBUG=FALSE)
 {
-  message("Doing full procrustes analysis")
   procestes.corr <- fullProcrustes(lead, scnd) #This is too slow.
 
     procrust.ordered.matrices <- list("lead"=lead, 
                                     "scnd"=matrixSignsProduct(scnd[,procestes.corr$mapping_reorder],procestes.corr$mapping_signs))
   cor.by.procrust <- stackAndAssessCorr(procestes.corr$A.normalized, procestes.corr$B.transformed) #correlation with the raw adjusted matrices
-  rss.by.procrust <- procestes.corr$RSS
-
+  rss.by.procrust <- rrmse(procestes.corr$A.normalized,procestes.corr$B.transformed) #ORDER IS PRED, TRUE
+  if(swapped)
+  {
+    rss.by.procrust <- rrmse(procestes.corr$B.transformed,procestes.corr$A.normalized) #ORDER IS PRED, TRUE
+  }
+  
+  #rss.by.procrust <- rrmse(procrust.ordered.matrices$lead, procrust.ordered.matrices$scnd)
   corr.k.by.procrust <- stackAndAssessCorr(procestes.corr$A.normalized, procestes.corr$B.transformed, cor.type = "kendall")
   
   list("procrustes_data"=procestes.corr, "procrust_ordered_matrices" = procrust.ordered.matrices, 
@@ -206,15 +319,29 @@ corrBasedScoring <- function(lead, scnd, corr.method = "pearson")
   #Below- retain the pearson-based order
   aligned.corr.k <- stackAndAssessCorr(aligned.corr$A, aligned.corr$B, cor.type = "kendall") #This step is slow for some reason....
   
-  RSS <- norm(aligned.corr$A - aligned.corr$B,  type = "F")
-  
+  #RSS <- norm(aligned.corr$A - aligned.corr$B,  type = "F")
+  RSS <- rrmse(aligned.corr$A,aligned.corr$B) #ORDER IS PRED, TRUE
   list("corr_based_data"=aligned.corr, "corr_ordered_matrices" = corr_ordered_matrices, 
        "corr_based_pearson"= pseudo.procestes.corr, "corr_based_rss"=RSS, "corr_based_kendall"=aligned.corr.k)
 }
 
-compareProcrustesAndHomeade <- function(corr.alignment, procrustes.alignment,A,B,lead,scnd,DEBUG=TRUE)
+#' Simple check to see if our correlation based match vs the prorustes based one yield the same alignment
+#'
+#' @param corr.alignment 
+#' @param procrustes.alignment 
+#' @param lead 
+#' @param scnd 
+#' @param DEBUG 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+compareProcrustesAndHomeade <- function(corr.alignment, procrustes.alignment,lead,scnd,DEBUG=TRUE)
 {
   ret.dat <- FALSE
+  A <- dropEmptyCols(lead)
+  B <- dropEmptyCols(scnd)
   #Check- how closely does my alignment match with the procrustes version
   non.matching <- sum(corr.alignment$greedy.match$order.pred != procrustes.alignment$mapping_reorder)
   k.diff <- abs(ncol(A) - ncol(B)) #possible mismatches due to missing columns
@@ -312,7 +439,18 @@ getBinaryPRCurve <- function(lead, scnd)
   
   
   lead.scores <- lead^2/max(lead^2)
+  if(all(lead ==0 ))
+  {
+    lead.scores <- lead
+  }
   #scores of all the trues.
+  if(all(lead.scores == 0))
+  {
+    message("All scores are 0. Randomly making one drawm from a uniform to allow for non-error")
+    warning("All scores are 0. Randomly making one drawm from a uniform to allow for non-error")
+    lead.scores[sample(1:length(lead.scores), size = 1)] <- runif(1)
+    
+  }
   positives <- lead.scores[scnd.binarized != 0]
   negatives <- lead.scores[scnd.binarized == 0]
   curve.scnd.first <- pr.curve(scores.class0 = positives, scores.class1 = negatives, curve = TRUE)
@@ -392,13 +530,34 @@ loadGLEANERResultsLists <- function(dir_finngen, dir_ukbb, dat_source="_final_da
 #n : the arg name to look at
 #BAD CODING PRACTICE- we add directly to the table in this function and then update it accordingly.
 #compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
-compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, global.df.V,global.df.U, overall.df.V, overall.df.U)
+compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, global.df.V,global.df.U, overall.df.V, overall.df.U, check.realign=TRUE)
 {
   #print(n)
   fg.v <- as.matrix(finngen.list[[n]]$V)
   uk.v <- as.matrix(ukbb.list[[n]]$V)
-  comp.v[[n]] <- compareModelMatricesComprehensive(fg.v,uk.v)
+  fg.u <- as.matrix(finngen.list[[n]]$U)
+  uk.u <- as.matrix(ukbb.list[[n]]$U)
+  forced.pairing <- procrustesPairedUV(fg.u,fg.v,uk.v,uk.u)
   
+  #First- align matrices (U, V) by procrustes and by correlation
+  aligned.v <- alignMatrices(fg.v, uk.v)
+  aligned.u <- alignMatrices(fg.u, uk.u)
+  if(check.realign)
+  {
+    align.list <- ensureUVAlign(aligned.u,aligned.v,
+                                aligned.u$lead,aligned.u$scnd,aligned.v$lead,aligned.v$scnd)
+    aligned.v <- align.list$V; aligned.u <- align.list$U
+  }else
+  {
+    align.list <- list(); align.list$alignment <- NA
+  }
+
+  #Verify the update that was needed was made...
+  
+  comp.v[[n]] <- compareMatricesAsClassifiers(aligned.v)
+  comp.u[[n]] <- compareMatricesAsClassifiers(aligned.u)
+  #comp.v[[n]] <- compareModelMatricesComprehensive(fg.v,uk.v)
+  #  comp.u[[n]] <- compareModelMatricesComprehensive(fg.u,uk.u)
   #statistics overall
   cols.corr_based = c("cb_recall", "cb_precision", "cb_pearson", "cb_kendall", "cb_rss", "cb_auc", "cb_kappa")
   corr_based_stats <- with(comp.v[[n]], 
@@ -418,9 +577,8 @@ compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, glob
   #Statistics by factor (DEPRECATED)
   #overall.df.V <- rbind(overall.df.V,data.frame("study" = n, "Corr"=comp.v[[n]]$factor.procrust.corr, "Kappas"=sapply(comp.v[[n]]$multi.class$by.factor, function(x) x$kappa)))
   overall.df.V <- NA
-  fg.u <- as.matrix(finngen.list[[n]]$U)
-  uk.u <- as.matrix(ukbb.list[[n]]$U)
-  comp.u[[n]] <- compareModelMatricesComprehensive(fg.u,uk.u)
+
+
 
   corr_based_stats <- with(comp.u[[n]], 
                            c(corr_based_metrics.A.first$recall,corr_based_metrics.A.first$precision,
@@ -440,9 +598,7 @@ compareFactPrecision <- function(n, finngen.list, ukbb.list, comp.v,comp.u, glob
   #                                              "Kappas"=sapply(comp.u[[n]]$multi.class$by.factor, function(x) x$kappa)))
   overall.df.U <- NA
 
-  return(list(comp.v, global.df.V, comp.u, global.df.U,overall.df.V,overall.df.U,
-              checkUVAlignment(comp.v[[n]],comp.u[[n]],fg.v,fg.u,uk.v,uk.u, source="procrust"), 
-              checkUVAlignment(comp.v[[n]],comp.u[[n]],fg.v,fg.u,uk.v,uk.u, source="corr_based")))
+  return(list(comp.v, global.df.V, comp.u, global.df.U,overall.df.V,overall.df.U, align.list$alignment,forced.pairing)) #last entry-alignment status.
 }
 
 
@@ -552,32 +708,148 @@ repairUVAlignment <- function(v.dat, u.dat, original.fg.v, original.fg.u,origina
   }
 }
 
-repairUVAlignmentProcrustes <- function(matrix.dat, matrix.list)
+#A:lead
+#B:second
+ensureUVAlign <- function(u.dat, v.dat,A_u,B_u, A_v, B_v)
 {
-  reorder.u <- getNewOrder(u.dat)
-  reorder.v <- getNewOrder(v.dat)
-  u.order.rss <- distanceByOrder(original.fg.u, original.fg.v, original.uk.u, original.uk.v, reorder.u)
-  v.order.rss <- distanceByOrder(original.fg.u, original.fg.v, original.uk.u, original.uk.v, reorder.v)
-  if(u.order < v.order)
-  {
-    v.dat <- updateProcrustOrder(v.dat,reorder.u )
-  }else
-  {
-    u.dat <- updateProcrustOrder(u.dat,reorder.v)
-  }
-  return(list(v.dat, u.dat))
+  #If alignemtn needs doing....
+  alignment.repairs <- detectAlignmentIssues(u.dat, v.dat,A_v, B_v) #For this, we need A,B with 0 columns dropped
+  result = switch(  
+    alignment.repairs,  
+    "none"= list("U" = u.dat, "V" = v.dat),  
+    "procrustes"= repairUVAlignmentProcrustes(u.dat, v.dat,A_u,B_u, A_v, B_v),  
+    "corr_based"= repairUVAlignmentCorrBased(u.dat, v.dat,A_u,B_u, A_v, B_v),  
+    "both"= repairBoth(u.dat, v.dat,A_u,B_u, A_v, B_v)
+  )
+c(result, list("alignment"=alignment.repairs))
+}
+
+#' Repair alignment both in procrusts and correlation based famework. Baby helper function
+#'
+#' @param u.dat 
+#' @param v.dat 
+#' @param A_u 
+#' @param B_u 
+#' @param A_v 
+#' @param B_v 
+#'
+#' @return
+#' @export
+repairBoth <- function(u.dat, v.dat,A_u,B_u, A_v, B_v)
+{
+  pf <- repairUVAlignmentProcrustes(u.dat, v.dat,A_u,B_u, A_v, B_v)
+  repairUVAlignmentCorrBased(pf$U, pf$V,A_u,B_u, A_v, B_v)
 }
 
 
- getNewOrder <- function(mat.dat)
+#' Determine if we need to align matrices at all.
+#'
+#' @param v.dat 
+#' @param u.dat 
+#' @param original.fg.v 
+#' @param original.uk.v 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+detectAlignmentIssues <- function(v.dat, u.dat, original.fg.v, original.uk.v)
+{
+  original.fg.v <- dropEmptyCols(original.fg.v)
+  original.uk.v <- dropEmptyCols(original.uk.v)
+  mismatches.procrust <- sum(v.dat$pr_results$procrustes_data$mapping_reorder != u.dat$pr_results$procrustes_data$mapping_reorder)
+  mismatches.corrbased <- sum(v.dat$cb_results$corr_based_data$greedy.match$order.pred != u.dat$cb_results$corr_based_data$greedy.match$order.pred)
+  k.off <- abs(ncol(original.fg.v) - ncol(original.uk.v))
+  if(mismatches.procrust > k.off & mismatches.corrbased > k.off)
+  {
+    return("both")
+  }else if(mismatches.procrust > k.off)
+  {
+    return("procrustes")
+  }else if(mismatches.corrbased > k.off)
+  {
+    return("corr_based")
+  }else
+  {
+    return("none")
+  }
+    
+}
+
+dropEmptyCols <- function(X)
+{
+  non_empty = which(apply(X, 2, function(x) sum(x!=0)) > 0)
+  as.matrix(X[,non_empty])
+}
+repairReorder <- function(u.dat,v.dat,A_u, A_v, B_u, B_v,version)
+{
+  reorder.u <- getNewOrder(u.dat, version)
+  reorder.v <- getNewOrder(v.dat, version)
+  #trueU, trueV, predU,predV,new.order
+  u.order.rss <- distanceByOrder(A_u, A_v, B_u, B_v, reorder.u)
+  v.order.rss <- distanceByOrder(A_u, A_v, B_u, B_v, reorder.v)
+  
+  u.order.r2 <- r2ByOrder(A_u, A_v, B_u, B_v, reorder.u)
+  v.order.r2 <- r2ByOrder(A_u, A_v, B_u, B_v, reorder.v)
+  return(list("u.rss" = u.order.rss, "v.rss" = v.order.rss, "u.r2" = u.order.r2,"v.r2"=v.order.r2, "reorder.u"=reorder.u, "reorder.v" = reorder.v))
+}
+repairUVAlignmentCorrBased<- function(u.dat, v.dat,A_u,B_u, A_v, B_v)
+{
+  message("NOTE: need to realign U and V based on correlation here")
+  
+  r <- repairReorder(u.dat, v.dat,A_u,A_v, B_u, B_v, "corr_based")
+  if(r$u.r2 > r$v.r2)
+  {
+    v.dat <- updateCBOrder(v.dat,B_v,r$reorder.u )
+  }else
+  {
+    u.dat <- updateCBOrder(u.dat,B_u,r$reorder.v)
+  }
+  
+  return(list("V" = v.dat, "U"=u.dat))
+}
+
+
+repairUVAlignmentProcrustes <- function(u.dat, v.dat,A_u,B_u, A_v, B_v)
+{
+  message("NOTE: need to realign U and V based on procrustes here")
+  r <- repairReorder(u.dat, v.dat,A_u,A_v, B_u, B_v, "procrustes")
+  #Note- "with" needs to return something.
+ if(r$u.rss < r$v.rss)
+       {
+        v.dat <- updateProcrustOrder(v.dat, B_v, r$reorder.u )
+      }else {
+        u.dat <- updateProcrustOrder(u.dat, B_u, r$reorder.v)
+      }
+  return(list("V" = v.dat, "U"=u.dat))
+}
+
+ getNewOrder <- function(mat.dat,source)
  {
    #return the original matrix order from the object
-   mat.dat$procrustes_data$mapping_reorder
+   if(source == "procrustes")
+   {
+     list("order" = mat.dat$pr_results$procrustes_data$mapping_reorder,
+          "signs" = mat.dat$pr_results$procrustes_data$mapping_signs)
+     #v.dat$pr_results$procrustes_data$mapping_reorder
+   }else
+   {
+     list("order" =mat.dat$cb_results$corr_based_data$greedy.match$order.pred,
+          "signs" =mat.dat$cb_results$corr_based_data$greedy.match$signs)
+   }
+
  }
  
  distanceByOrder <- function(trueU, trueV, predU,predV,new.order)
  {
-   rrmse(trueU,predU[,new.order]) + rrmse(trueV,predV[,new.order])
+   rrmse(trueU,matrixSignsProduct(predU[,new.order$order], new.order$signs)) + 
+     rrmse(trueV,matrixSignsProduct(predV[,new.order$order], new.order$signs))
+ }
+ 
+ r2ByOrder <- function(trueU, trueV, predU,predV,new.order)
+ {
+   stackAndAssessCorr(trueU,matrixSignsProduct(predU[,new.order$order], new.order$signs))^2 + 
+     stackAndAssessCorr(trueV,matrixSignsProduct(predV[,new.order$order], new.order$signs))^2
  }
  
  #All we need to update here- lead and scnd, x_pearson, x_kendall, x_rss, 
@@ -592,23 +864,43 @@ repairUVAlignmentProcrustes <- function(matrix.dat, matrix.list)
  #Use a published procrustes package too
  #procrust.results <- procrustesBasedScoring(lead,scnd)
  #procrust.ordered.matrices <- procrust.results$procrust_ordered_matrices
- updateProcrustOrder <- function(obj, new.order)
+ ##HERE HERE HERE
+ updateProcrustOrder <- function(obj, base.matrix, new.order)
+ {
+   #  #  list("cb_results"=pseudo.procrust.results, "cb_matrices"=pseudo.ordered.matrices,
+   #"pr_results"=procrust.results, "pr_matrices"=procrust.ordered.matrices, "swap"=SWAP)
+   update <- obj
+   #update matrices
+   update$pr_matrices$scnd <- matrixSignsProduct(base.matrix[,new.order$order], new.order$signs)
+
+   #update order
+   update$pr_results$procrustes_data$mapping_reorder <- new.order$order
+   update$pr_results$procrustes_data$mapping_signs <- new.order$signs
+   #update corr (rho and pearson)
+   update$pr_results$procrustes_pearson <- stackAndAssessCorr(update$pr_matrices$lead,update$pr_matrices$scnd,cor.type = "pearson")
+   update$pr_results$procrustes_kendall <- stackAndAssessCorr(update$pr_matrices$lead,update$pr_matrices$scnd,cor.type = "kendall")
+   #update RSS
+   update$pr_results$procrustes_rss <- rrmse(update$pr_matrices$lead,update$pr_matrices$scnd)
+   return(update)
+ }
+
+ 
+ updateCBOrder <- function(obj, base.matrix, new.order)
  {
    update <- obj
    #update matrices
-   update$procrust_A.ordered
-   update$procrust_B.ordered
-   update$procrust_ordered_matrices$lead
+   update$cb_matrices$scnd <- matrixSignsProduct(base.matrix[,new.order$order], new.order$signs)
+   #corr.alignment$greedy.match$order.pred != procrustes.alignment$mapping_reorder
    #update order
-   update$procrustes_data$mapping_reorder
-   update$procrustes_data$mapping_signs
+   update$cb_results$corr_based_data$greedy.match$order.pred <- new.order$order
+   update$cb_results$corr_based_data$greedy.match$signs <- new.order$signs
    #update corr (rho and pearson)
-   update$procrustes_pearson
-   update$procrustes_kendall
+   update$cb_results$corr_based_pearson <- stackAndAssessCorr(update$cb_matrices$lead,update$cb_matrices$scnd,cor.type = "pearson")
+   update$cb_results$corr_based_kendall <- stackAndAssessCorr(update$cb_matrices$lead,update$cb_matrices$scnd,cor.type = "kendall")
    #update RSS
-   update$procrustes_rss <- "test"
+   update$cb_results$corr_based_rss <- rrmse(update$cb_matrices$lead,update$cb_matrices$scnd)
+   return(update)
  }
-
 ##
 #Pass in the lists of runs, and perform the comparison tests for each, and write the results out in an easy-to-read table.
 #Note that this is not a fast function, the comparison step is kinda slow.
@@ -616,7 +908,7 @@ repairUVAlignmentProcrustes <- function(matrix.dat, matrix.list)
 #makeTableOfComparisons(no.shrink.results$finngen, no.shrink.results$ukbb)
 #Re-factor this code: give global scores as well as distributional scores across factors
 #direct.gamma.comparisons <- makeTableOfComparisons(std_block.results$finngen, std_block.results$ukbb)
-makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
+makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE,...)
 {
   both <- intersect(names(ukbb.list), names(finngen.list))
   if(by_order)
@@ -628,17 +920,20 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   comp.v <- list()
   comp.u <- list()
   comp.xhat <- list()
-  comp.mimsatched.procrust <- c()
-  comp.mimsatched.corr_based <- c()
+  comp.mimsatched <- c()
   #These get the global statistics, summarizing the entire factorization
   global.df.V <- NULL
   global.df.U <- NULL
   #These get the statistics by factor, allowing us to make boxplots
   full.df.V <- NULL
   full.df.U <- NULL
+  forced.pairing.dat <- NULL
   missing.dat <- c()
   for(n in both)
   {
+    #"BIC-std_K-KAISER"
+#"BIC-dev_K-MAX"
+    #BIC-std_K-K-2
     print(n)
     if(length(ukbb.list[[n]]) == 0 | (length(finngen.list[[n]]) == 0))
     {
@@ -648,12 +943,9 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
       comp.xhat<- c(comp.xhat,NA)
       next
     }
-    if(n == "BIC-std_K-MAX")
-    {
-      #message("P.")
-    }
-    nfd <- compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U)
-    comp.v<-nfd[[1]]; global.df.V<-nfd[[2]]; comp.u<-nfd[[3]]; global.df.U<-nfd[[4]];full.df.V <- nfd[[5]]; full.df.U<- nfd[[6]]
+    nfd <- compareFactPrecision(n, finngen.list, ukbb.list, comp.v,comp.u,global.df.V,global.df.U,full.df.V,full.df.U,...)
+    comp.v<-nfd[[1]]; global.df.V<-nfd[[2]]; comp.u<-nfd[[3]]; global.df.U<-nfd[[4]];full.df.V <- nfd[[5]]; full.df.U<- nfd[[6]];
+    forced.pairing.dat <- rbind(forced.pairing.dat, unlist(nfd[[8]]))
     #Comparison of X directly
     #Make sure the orders are the same.
     stopifnot(all(finngen.list[[n]]$trait.names == ukbb.list[[n]]$trait.names))
@@ -662,13 +954,23 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
     Xhat.uk <- ukbb.list[[n]]$U %*% t(ukbb.list[[n]]$V)
     if(any(dim(Xhat.uk) != dim(Xhat.fg)))
     {
+      if(any(is.na(Xhat.fg)))
+      {
+        message("fg matrix is empty")
+        Xhat.fg <- matrix(0,nrow=nrow(Xhat.uk), ncol=ncol(Xhat.uk))
+      }
+      if(any(is.na(Xhat.uk)))
+      {
+        message("uk matrix is empty")
+        Xhat.uk <- matrix(0,nrow=nrow(Xhat.fg), ncol=ncol(Xhat.fg))
+      }
       message("Unsolved problem here... why?")
     }
     #updating to be the root mean squared error:
-    #comp.xhat<- c(comp.xhat, norm(Xhat.fg - Xhat.uk, "F"))
-    comp.xhat<- c(comp.xhat, sqrt((norm(Xhat.fg - Xhat.uk, "F")^2)/ (ncol(Xhat.fg) * nrow(Xhat.fg))))
-    comp.mimsatched.procrust <-  c(comp.mimsatched.procrust, nfd[[7]])
-    comp.mimsatched.corr_based <-  c(comp.mimsatched.corr_based, nfd[[8]])
+    #comp.xhat<- c(comp.xhat, sqrt((norm(Xhat.fg - Xhat.uk, "F")^2)/ (ncol(Xhat.fg) * nrow(Xhat.fg))))
+    comp.xhat<- c(comp.xhat, rrmse(Xhat.fg,Xhat.uk))
+    
+    comp.mimsatched <-  c(comp.mimsatched, nfd[[7]])
     }
   
   missing_i <- which(both %in% missing.dat)
@@ -691,6 +993,8 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
     separate(rn, into = c("BIC", "Factors"), sep = "_K") %>% 
     mutate("BIC" = gsub(replacement = "", pattern = "BIC-", x = BIC),"Factors" = gsub(replacement = "", pattern = "-", x = Factors))  %>%
      mutate_at(colnames(.)[-c(1,2,3)], as.numeric)
+   
+   forced.pairing.dat <- cbind(pr.dat.u %>% select(BIC, Factors),forced.pairing.dat )
    #%>% print()
   #pr.dat.u$recall <- as.numeric(pr.dat.u$recall)
   #pr.dat.u$precision <- as.numeric(pr.dat.u$precision)
@@ -699,8 +1003,8 @@ makeTableOfComparisons <- function(finngen.list, ukbb.list, by_order = FALSE)
   
   #Directly compare the output X matrices. This may be a better metric
     #Add some more comprehensive data tables too
-  return(list("V"=pr.dat.v, "U"=pr.dat.u, "X_hat.norms"=comp.xhat,"U-V-aligned_procrust"=comp.mimsatched.procrust,"U-V-aligned_corr_based"= comp.mimsatched.corr_based,
-              "full.V" =full.df.V, "full.U" = full.df.U))
+  return(list("V"=pr.dat.v, "U"=pr.dat.u, "X_hat.norms"=comp.xhat,"U-V-misaligned"=comp.mimsatched,
+              "full.V" =full.df.V, "full.U" = full.df.U, "forced_u_pairing"=forced.pairing.dat))
   
 }
 

@@ -37,10 +37,10 @@ t = c("--output=//scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_
       "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/V7_U7_mafmixed_n50000.no_covar_cont_scaling.yml",
       "--sim_path=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/fast_runs/V7_U7_mafmixed_n50000.no_covar_cont_scaling//factorization_results/",  "--scale_data")
 
-finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/1b_overlap/"
-t = c(paste0("--output=", finalpath, "conv_0.001/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no//factorization_results/summary"),
-      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/1b_overlap/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no.yml",
-      paste0("--sim_path=", finalpath, "conv_0.001/V101_U101_MAF-mix_eur_N-mixed_RHO-1b_high_mixed_p_No-1b_high_no/factorization_results/"))
+finalpath="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/no_overlap/"
+t = c(paste0("--output=", finalpath, "V101_U102_MAF-mix_eur_N-10000_RHO-none_No-none//factorization_results/summary"),
+      "--yaml=/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/yaml_files/final_sims_june_2024/no_overlap/V101_U102_MAF-mix_eur_N-10000_RHO-none_No-none.yml",
+      paste0("--sim_path=", finalpath, "V101_U102_MAF-mix_eur_N-10000_RHO-none_No-none/factorization_results/"))
 
 
 #args <- parse_args(OptionParser(option_list=option_list), args = t)

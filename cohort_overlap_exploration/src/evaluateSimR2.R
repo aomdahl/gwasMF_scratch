@@ -77,6 +77,11 @@ fillWithZeros <- function(trueF, fp, lp = NULL)
     }
     
   }
+  #Another special case I found....
+  if(nrow(fp) == 0)
+  {
+    fp <- matrix(0, nrow = nrow(trueF), ncol = ncol(trueF))
+  }
   return(list("fp" = fp, "lp" = lp))
 }
 
@@ -360,14 +365,18 @@ corrSafteyChecks <- function(x,y, cor.type = "pearson")
 customCorr <- function(x,y, cor.type = "pearson")
 {
   #Capturing some extreme edge cases
-
+  is.matrix = TRUE
   saftey.vals <- corrSafteyChecks(x,y, cor.type = cor.type)
+  if(is.null(dim(x)) & is.null(dim(y)))
+  {
+    is.matrix = FALSE
+  }
   if(!saftey.vals$PASS)
   {
     return(saftey.vals$ret_cor)
   }else
   {
-    if(cor.type == "kendall")
+    if(cor.type == "kendall" & is.matrix)
     {
       r.mat <- t(apply(x, 2, function(a) apply(y, 2, function(b) pcaPP::cor.fk(a,b))))
     }else
@@ -392,6 +401,7 @@ greedyMaxCorr <- function(true.v, fp, verbose = FALSE, cor.type = "pearson")
   #r2 <-  cor(true.v, ret$fp,method=cor.type)^2; r2[is.na(r2)] <- 0
   r2 <-  r.mat^2; r2[is.na(r2)] <- 0
   dt <- which(r2 == max(r2), arr.ind = TRUE)[1,]
+  stopifnot(max(r2) == r2[matrix(dt,ncol=2)])
   dir <- sign(r.mat[dt[1], dt[2]])
   
   #case- there are multiple maximums. Just pick one to start at.....
@@ -409,7 +419,7 @@ greedyMaxCorr <- function(true.v, fp, verbose = FALSE, cor.type = "pearson")
   ##7/02- we don't want to be unit norm scaling here, we save that for the scaled run only.
   #pred.one <- as.matrix(ret$fp[,pred.order] %>% unitNorms(.)) %*% diag(pred.signs)
   #pred.two <- (as.matrix(true.v[,true.order]) %>% unitNorms(.))
-  pred.one <- as.matrix(ret$fp[,pred.order]) %*% diag(pred.signs)
+  pred.one = matrixSignsProduct(ret$fp[,pred.order], pred.signs)
   pred.two <- (as.matrix(true.v[,true.order]))
   c_ <- stackAndAssessCorr(pred.one,pred.two)
   if(!verbose)
@@ -417,10 +427,41 @@ greedyMaxCorr <- function(true.v, fp, verbose = FALSE, cor.type = "pearson")
     return(c_)
   }else
   {
-    return(list("corr"=c_, "order.true"=true.order, "order.pred"=pred.order, "signs"=pred.signs))
+    #set the true order to what it was, and the pred order as modified:
+    order.f <- order(true.order)
+    true.order = true.order[order.f]
+    pred.order = pred.order[order.f]
+    return(list("corr"=c_, "order.true"=true.order, "order.pred"=pred.order, "signs"=(pred.signs)))
   }
   
 }
+
+
+
+
+#' Helper function convert the sign based on a list of signs
+#' Needed to catch the special case when signs is length 1
+#' @param mat mmatrix to multiply
+#' @param signs list of signs to change
+#'
+#' @return matrrix * diag(signs)
+#' @export
+#'
+#' @examples
+matrixSignsProduct <- function(mat, signs)
+{
+  if(length(signs) == 1)
+  {
+    message("Single col case.")
+    sc <- as.matrix(mat) * signs
+  }else
+  {
+    sc <- as.matrix(mat) %*% diag(signs)
+  }
+  sc
+}
+
+
 
 testGreedyMaxCorr <- function()
 {
@@ -462,10 +503,11 @@ testGreedyMaxCorr <- function()
 
 pseudoProcrustes <- function(A,B, corr.type="pearson")
 {
-  ret <- fillWithZeros(A, B)
+  #ret <- fillWithZeros(A, B)
   #TODO- why do we change the order of both matrices? Dpesn't make sense to me....
-  cor.dat <- greedyMaxCorr(A, ret$fp, verbose = TRUE, cor.type = corr.type)
-  new.A <- as.matrix(A[,cor.dat$order.true]); new.B <- as.matrix(ret$fp[,cor.dat$order.pred] %*% diag(cor.dat$signs))
+  cor.dat <- greedyMaxCorr(A, B, verbose = TRUE, cor.type = corr.type)
+  new.A <- as.matrix(A[,cor.dat$order.true]);
+  new.B <- matrixSignsProduct(B[,cor.dat$order.pred],cor.dat$signs )
   list("A" = new.A, "B" = new.B, "greedy.match"=cor.dat, "factor.cors" = diag(customCorr(new.A, new.B, cor.type = corr.type)))
 }
 
@@ -527,27 +569,50 @@ procrustes <- function(A, B){
 
 procrustesVegan <- function(A,B, scale = TRUE)
 {
-  procrust <- vegan::procrustes(A,B,scale=scale)
+  procrust <- vegan::procrustes(A,B,scale=scale) #Did we want symmetric or not?
+  #"symmetric is set to TRUE, both solutions are first scaled to unit variance, giving a more scale-independent and symmetric statistic, often known as Procrustes m2"
+  #https://john-quensen.com/tutorials/procrustes-analysis/
+  #look at "rotation" and "translation" to get the change
   # Error after superimposition
-  RSS <- norm(procrust$X - procrust$Yrot,  type = "F")
+  cor.comp <- cor(procrust$Yrot,B) #
+  get.coords.x <- unlist(apply(cor.comp^2, 1, which.max))
+  mismatch.potential.sum =sum(apply(B,2, function(x) sum(x != 0)) == 0)
+  if(mismatch.potential.sum == 1) {mismatch.potential.sum = 2}
+  #RSS <- norm(procrust$X - procrust$Yrot,  type = "F")
+  RSS <- rrmse(procrust$Yrot,procrust$X) #ORDER IS PRED, TRUE
+  #get the signs for verification of order
+  order <- apply(procrust$rotation^2, 2, which.max)
+  
+  mismatch <- sum(get.coords.x != order)
+  if(mismatch > mismatch.potential.sum)
+  {
+    message("POSSIBLE MAPPING ISSUE with procrustes. DO NOT PROCEED")
+    warning("POSSIBLE MAPPING ISSUE with procrustes. DO NOT PROCEED")
+  }
+  #Is this consistent with what I'd think?
+  
+  
+  signs <- sign(procrust$rotation[matrix(c(1:length(order), order),ncol=2)])
+
   
   # Return
-  return(list(A.normalized = procrust$X, B.normalized = procrust$Yrot, rotation.mtx = T, B.transformed = procrust$Yrot, RSS = RSS))
+  return(list(A.normalized = procrust$X, B.normalized = procrust$Yrot, rotation.mtx = T, B.transformed = procrust$Yrot, RSS = RSS,
+              "mapping_reorder"=order, "mapping_signs"=signs))
 }
 
 
 # fullProcrustes(lead, scnd)
 fullProcrustes <- function(A,B)
 {
-  ret <- fillWithZeros(A, B)
+  #ret <- fillWithZeros(A, B)
   #procrustes(as.matrix(A), as.matrix(ret$fp))
-  procrustesVegan(as.matrix(A), as.matrix(ret$fp))
+  procrustesVegan(as.matrix(A), as.matrix(B))
 }
 
 stackAndAssessNaive <- function(A,B)
 {
-  ret <- fillWithZeros(A, B)
-  stackAndAssessCorr(A, ret$fp)
+  #ret <- fillWithZeros(A, B)
+  stackAndAssessCorr(A, B)
 }
 
 ############Looking at Xhats...
@@ -681,3 +746,61 @@ testEvaluateError <- function()
   stopifnot(check.dat$reordered_V == mod.v)
   message("All tests passed!")
 }
+
+#A u-first orientation.
+procrustesPairedUV <- function(fg.u,fg.v,uk.v,uk.u)
+{
+  #Enforce order - we want fg first. Given with respect to FG in all cases.
+  v.dat <- prepMatricesForAnalysis(fg.v,uk.v); 
+  u.dat <- prepMatricesForAnalysis(fg.u,uk.u)
+  if(v.dat$swap)
+  {
+    uk.v <- v.dat$lead
+    fg.v <- v.dat$second
+    uk.u <- u.dat$lead
+    fg.u <- u.dat$second
+  }else
+  {
+    fg.v <- v.dat$lead
+    uk.v <- v.dat$second
+    fg.u <- u.dat$lead
+    uk.u <- u.dat$second
+  }
+  
+  procrust <- vegan::procrustes(fg.u,uk.u,scale=TRUE) #Did we want symmetric or not?
+  
+  remake <-scale(uk.u,scale=FALSE) %*% procrust$rotation *  procrust$scale
+  stopifnot(all(remake == procrust$Yrot))
+  rrmse.u <- rrmse(procrust$Yrot, procrust$X) #ORDER IS PRED, TRUE
+  scaled.vt <- scale(t(uk.v),scale=FALSE)
+  if( procrust$scale == 0)
+  {
+    #all 0 matrix, not really sure what to do with this...
+    #If NA'd, its a 0 matrix.
+    transformed.vt <- scaled.vt * 0
+  }else
+  {
+    transformed.vt <- solve(procrust$rotation *  procrust$scale) %*% scaled.vt
+  }
+  
+  scaled.fg.v <- scale(t(fg.v),scale=FALSE)
+  rrmse.v <- rrmse(scaled.fg.v, transformed.vt)
+  #alternative???- does worse. Go with above
+  #scaled.vt <- t(scale((uk.v),scale=FALSE))
+  #transformed.vt <- solve(procrust$rotation *  procrust$scale) %*% scaled.vt
+  #rrmse(scale(t(fg.v),scale=FALSE), transformed.vt)
+  #Apply the inverse transformation to F?
+  
+  u.pearson <- stackAndAssessCorr(procrust$Yrot, procrust$X)
+  v.pearson <- stackAndAssessCorr(scaled.fg.v, transformed.vt)
+  
+  
+  u.kendall <- stackAndAssessCorr(procrust$Yrot, procrust$X,cor.type = "kendall")
+  v.kendall <- stackAndAssessCorr(scaled.fg.v, transformed.vt,cor.type = "kendall")
+  
+  
+  list("rmse_v"=rrmse.v, "rmse_u"=rrmse.u, 
+       "pearson_v" = v.pearson, "pearson_u"= u.pearson, 
+       "kendall_v"=v.kendall, "kendall_u"=u.kendall)
+}
+
