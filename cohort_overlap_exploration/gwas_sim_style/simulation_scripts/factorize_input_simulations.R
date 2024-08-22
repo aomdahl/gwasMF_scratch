@@ -6,7 +6,8 @@ option_list <- list(
   make_option(c("--with_covar"), type = 'logical', help = "Use flag if want to include covariance adjustment. False by default", default = FALSE, action="store_true"),
   make_option(c("-o", "--output"), type = 'character', help = "Output file path"),
   make_option(c("-s", "--start"), type = 'integer', help = "Start index", default = 1),
-  make_option(c("-c", "--ncores"), type = 'numeric', help = "how many cores you wwant. if not specified, detcts (dangerous)", default=-1)
+  make_option(c("-c", "--ncores"), type = 'numeric', help = "how many cores you wwant. if not specified, detcts (dangerous)", default=-1),
+  make_option(c("--convergence_criteria"), type = 'numeric', help = "Convergence stopping setting for gleaner", default = 0.001)
 )
 
 quiet <- function(x) { 
@@ -121,7 +122,7 @@ for(i in argv$start:length(sim.betas))
   {
     suppressMessages(gleaner.runs.covar[[i]] <- runSingle("GLEANER_glmnet", as.matrix(sim.betas[[i]]), K=rank-1, se_m=as.matrix(sim.se[[i]]), 
                                          covar = as.matrix(sim.cov[[i]]), covar_se=as.matrix(sim.cov_se[[i]]), bic.var = "sklearn",
-                                       init.mat = "V", is.sim = TRUE, enforce_blocks=FALSE, shrinkWL="strimmer",
+                                       init.mat = "V", is.sim = TRUE, enforce_blocks=FALSE, shrinkWL="strimmer",conv_objective =argv$convergence_criteria,
                                        save.path = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/sandbox/gleaner"))#not accounting for BIC typoe #Uhoh- we should be outputting something, otherwise the signal cutting is just too strong....
     
   }
