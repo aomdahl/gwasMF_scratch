@@ -1,0 +1,429 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+Here, we are fleshing out the sensitivity analyesis on $\alpha, \lambda$ to showcase what an impact these things have.
+
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/scratch/finngen_v_ukbb/src/matrix_comparison_utils.R")
+fg_ <- "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/finngen_benchmark_2/conservative_1e-5/param_sensitivity_analysis//"
+```
+
+Get all the files to read in...
+```{r}
+out.files <- list.files(path=fg_, pattern="*_final_dat.RData" )
+stringr::str_match(out.files , pattern = "BIC_K-41_a([\\.0-9e-]+)_l([\\.0-9e-]+)_final_dat.RData")
+```
+Okay, looks good. Let's make sure to check for empty things. This might be worth fixing in gleanr- want outputs to be all 0s
+```{r}
+all_finngen_dat <- list()
+k.tab <- NULL
+for(f in out.files)
+{
+  run.dat <- stringr::str_match(f , pattern = "BIC_K-41_a([\\.0-9e-]+)_l([\\.0-9e-]+)_final_dat.RData")
+    load(paste0(fg_,f))
+  all_finngen_dat[[paste0("a",run.dat[2], "_l", run.dat[3])]] <- ret
+  nK <- ncol(ret$V)
+
+  if(all(ret$V == 0) | all(ret$U == 0))
+    {
+      message("Empty one:", f)
+    nK <- 0
+  }else if(ncol(ret$V) != ncol(ret$U))
+  {
+    message("concerning case, please advise")
+    nK <- min(ncol(ret$V),ncol(ret$U))
+  }
+  
+    if(ncol(ret$V) == 0)
+    {
+       message("Empty one:", f)
+    }
+    k.tab <- rbind(k.tab, data.frame("a" = run.dat[2],"l"= run.dat[3],"final_K" = nK ))
+}
+
+```
+Also add the run with dynamic Bic selection on K=41
+```{r}
+load("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/finngen_benchmark_2/conservative_1e-5/covar_influence/BIC-sklearn_eBIC_K-41_final_dat.RData")
+all_finngen_dat[[paste0("a", ret$autofit_alpha[1], "_l", ret$autofit_lambda[1])]] <- ret
+k.tab <- rbind(k.tab, data.frame("a" = ret$autofit_alpha[1],"l"= ret$autofit_lambda[1],"final_K" = ret$K)) #, "empty"="nonempty" ))
+```
+
+Let's visualize the # of K
+```{r}
+
+k.tab <- data.frame(apply(k.tab, 2, as.numeric)) %>% mutate("empty"=ifelse(final_K == 0, "empty", "nonempty"))
+#ggplot(k.tab,(aes(x=log10(a),y=log10(l), size=final_K, color=empty))) + geom_point() + theme_bw() + xlab(bquote("log10" ~ alpha ~ "setting")) + ylab(bquote("log10" ~ lambda ~ "setting"))
+
+#ggplot(k.tab,(aes(x=1,y=final_K, fill=empty))) + geom_bar(stat="identity") + theme_bw() + 
+#  theme(axis.title.x = element_blank(), axis.text.x = element_blank()) + ylab("# of factors") + facet_grid(a~l)
+
+#ggplot(k.tab,(aes(x=log10(a),y=final_K, fill=empty))) + geom_bar(stat="identity") + theme_classic() +  ylab("# of factors") + facet_wrap(~log10(l), nrow=1) + 
+#  scale_x_continuous(breaks = c(-5,-4,-3,-2,-1,0)) + 
+#  theme(strip.placement = "outside")
+
+#I don't think including mine makes sense- instead, just a line
+library(patchwork)
+factors.plot <- ggplot(k.tab[-37,],(aes(x=log10(a),y=final_K))) + geom_bar(stat="identity") + theme_classic() +  ylab("# of factors") + facet_wrap(~log10(l), nrow=1) + 
+  scale_x_continuous(breaks = c(-5,-4,-3,-2,-1,0)) +  xlab(bquote("log10("*alpha*")")) +
+  theme(strip.placement = "outside") + geom_hline(yintercept = ret$K, lty="dashed", color="gray") + plot_annotation(title = bquote("log10("*lambda*")")) &
+  theme(plot.title = element_text(hjust = 0.53,vjust=-1,size = 10))
+
+```
+Point- its a little hard to compare directly to our approach.
+COPIED FUNCTIONS from the `fig_x_finngen_ukbb_svd.R` script. Need to review these:
+```{r}
+alignAndCompare <- function(run1.dat, run2.dat)
+{
+  v.dat <- prepMatricesForAnalysis(run1.dat$V,run2.dat$V); 
+  u.dat <- prepMatricesForAnalysis(run1.dat$U,run2.dat$U)
+  if(all(v.dat$second == 0)) { }
+  stopifnot(!v.dat$swap)
+  fg.v <- v.dat$lead; uk.v <- v.dat$second
+  fg.u <- u.dat$lead; uk.u <- u.dat$second
+  greedyMaxPairedCor(fg.u,fg.v, uk.u,uk.v,order_only = TRUE)
+}
+
+
+getRRMSE <- function(run1.dat, run2.dat)
+{
+  finngen.x <- as.matrix(run1.dat$U %*% t(run1.dat$V))
+  ukbb.x <- as.matrix(run2.dat$U %*% t(run2.dat$V))
+  rrmse(ukbb.x, finngen.x)
+}
+
+```
+
+
+Okay, now how similar are they jones?
+Slow down has to do with kendal
+```{r}
+look_perf <- NULL
+for(r1 in seq_along(all_finngen_dat))
+{
+  r1.dat <- all_finngen_dat[[r1]]
+   if(all(r1.dat$V == 0) | all(r1.dat$U == 0))
+    {
+      next
+    }
+  for(r2 in seq_along(all_finngen_dat))
+  {
+    if(r2 <= r1)
+    {
+      next
+    }
+    r2.dat <- all_finngen_dat[[r2]]
+    if(all(r2.dat$V == 0) | all(r2.dat$U == 0))    {
+      next
+    }
+    message(names(all_finngen_dat)[r1], " ", names(all_finngen_dat)[r2])
+    cor.similarity <- alignAndCompare(r1.dat, r2.dat)
+    rrmse_score <- getRRMSE(r1.dat, r2.dat)
+    look_perf <- rbind(look_perf, data.frame("r1"=names(all_finngen_dat)[r1], "r2"=names(all_finngen_dat)[r2],
+               "corV"=cor.similarity$corr_v, "corU"=cor.similarity$corr_u, "rrmse"=rrmse_score))
+  }
+}
+```
+
+YAY!
+```{r}
+save(look_perf,file="/scratch16/abattle4/ashton/snp_networks/scratch/manuscript_reviews/sensitivity_results.RData")
+data.frame(look_perf)
+```
+
+```{r}
+look_perf <- data.frame(look_perf) %>% separate(col = "r1", sep="_", into = c("r1_alpha","r1_lambda")) %>%
+  separate(col = "r2", sep="_", into = c("r2_alpha","r2_lambda")) %>% 
+  mutate(across(c(r2_alpha, r1_alpha), ~ as.numeric(gsub(pattern = "a",x = ., replacement = "")))) %>%
+  mutate(across(c(r2_lambda, r1_lambda), ~ as.numeric(gsub(pattern = "l",x = ., replacement = "")))) 
+look_perf.long <- look_perf %>% pivot_longer(cols=c("r2_alpha","r1_alpha"),values_to = "alpha",names_to = "run_mat") %>%
+   pivot_longer(cols=c("r2_lambda","r1_lambda"),values_to = "lambda",names_to = "run_mat_")
+
+ggplot(look_perf, aes(x=log10(r1_alpha),y=log10(r2_alpha),color=corV^2)) + geom_jitter(size=3) + theme_bw()
+
+look_perf %<>% mutate("main_run"=ifelse(r2_alpha == look_perf[129,]$r2_alpha, "main", "sensitivity"))
+ggplot(look_perf %>% filter(main_run != "main"), aes(x=log10(r1_alpha),y=log10(r2_alpha),color=corV^2)) + geom_jitter(size=3) + theme_bw()
+```
+Look at the concordance of top factors?
+
+
+Look at the top SNPs nominated by the top factors. Are these the same? Consistent
+Eh can't do that here
+```{r}
+names(all_finngen_dat)
+plotFactors(all_finngen_dat[["a1e-05_l1e-05"]]$V, trait_names = all_finngen_dat[["a1e-05_l1e-05"]]$trait.names, title = "most inclusive")
+```
+factor 1
+```{r}
+getFactorSpecificConsistencyIndex <- function(dat_mat, index)
+{
+  factor_1_consistency <- NULL
+  i=index
+  for(r1 in seq_along(dat_mat))
+  {
+    r1.dat <- dat_mat[[r1]]
+    for(r2 in seq_along(dat_mat))
+    {
+      if(r2 <= r1)
+      {
+        next
+      }
+      r2.dat <- dat_mat[[r2]]
+      #Prep
+      r1.clean <- zeroFix(r1.dat$V[,i],r1.dat$U[,i])
+      r2.clean <- zeroFix(r2.dat$V[,i],r2.dat$U[,i])
+      cor.similarity.v <- cor.test(r1.clean[[1]], r2.clean[[1]])
+      cor.similarity.u <- cor.test(r1.clean[[2]], r2.clean[[2]])
+      factor_1_consistency <- rbind(factor_1_consistency, data.frame("r1"=names(dat_mat)[r1], "r2"=names(dat_mat)[r2],
+                 "corV"=cor.similarity.v$estimate, "corU"=cor.similarity.u$estimate))
+    }
+  }
+factor_1_consistency
+}
+
+zeroFix <- function(vin, uin)
+{
+  if(all(vin == 0))
+  {
+    return(list(as.matrix(vin), as.matrix(rep(0,length(uin)))))
+  }
+   if(all(uin == 0))
+  {
+    return(list(as.matrix(rep(0,length(vin))), as.matrix(uin)))
+   }
+  return(list(vin,uin))
+}
+```
+
+Get factor consistency by target:
+```{r}
+#dat_mat <- extended.aligned.dat
+#target_col_U= max.U[,1]
+#target_col_V=max.V[,1]
+getFactorSpecificConsistencyTarget <- function(dat_mat, target_col_U, target_col_V, index)
+{
+  factor_1_consistency <- NULL
+  for(r1 in seq_along(dat_mat))
+  {
+    r1.dat <- dat_mat[[r1]]
+    for(r2 in seq_along(dat_mat))
+    {
+      if(r2 <= r1)
+      {
+        next
+      }
+      r2.dat <- dat_mat[[r2]]
+      #match indices:
+      best.index.r1 <- getBestIndex(r1.dat, target_col_U,target_col_V,check_index = index)
+      best.index.r2 <- getBestIndex(r2.dat, target_col_U,target_col_V,check_index = index)
+      #Prep- shouldn't be necessary because already done, verify this.
+      r1.clean <- zeroFix(r1.dat$V[,best.index.r1],r1.dat$U[,best.index.r1])
+      r2.clean <- zeroFix(r2.dat$V[,best.index.r2],r2.dat$U[,best.index.r2])
+      #score
+      cor.similarity.v <- cor.test(r1.clean[[1]], r2.clean[[1]])
+      cor.similarity.u <- cor.test(r1.clean[[2]], r2.clean[[2]])
+      factor_1_consistency <- rbind(factor_1_consistency, data.frame("r1"=names(dat_mat)[r1], "r2"=names(dat_mat)[r2],
+                 "corV"=cor.similarity.v$estimate, "corU"=cor.similarity.u$estimate))
+    }
+  }
+factor_1_consistency
+}
+
+
+getFactorSpecificSNPs <- function(dat_mat,snp_list, target_col_U, target_col_V, index)
+{
+  snp_dat <- list()
+  for(r1 in seq_along(dat_mat))
+  {
+    r1.dat <- dat_mat[[r1]]
+    best.index.r1 <- getBestIndex(r1.dat, target_col_U,target_col_V,check_index = index)
+    r1.clean <- zeroFix(r1.dat$V[,best.index.r1],r1.dat$U[,best.index.r1])
+    snp_dat[[r1]] <- prioritize_snps(as.matrix(abs(r1.clean[[2]])), snp_list, method="top_fe")
+  }
+  snp_dat
+}
+
+
+
+#extended.all[[27]]
+#target_col_V <- ret$V[,1]
+#target_col_U <- ret$U[,1]
+getBestIndex <- function(dat_mat, target_col_U,target_col_V, check_index = NA)
+{
+  if(!is.na(check_index))
+  {
+    #looking at index 3, means that there must be at leaest 3 non-zero columns.
+    nonzero.cols <- sum(apply(dat_mat[[1]],2,function(x) sum(x!=0) > 0))
+    if(nonzero.cols < check_index)
+    {
+      warning("too few non-zero columns for the index specified. Choosing an empty column to return")
+      return(which(apply(dat_mat[[1]],2,function(x) sum(x!=0) == 0))[1])
+    }
+    
+  }
+  
+      v.cor <- cor(dat_mat[[1]],as.matrix(target_col_V))
+      u.cor <- cor(dat_mat[[2]],as.matrix(target_col_U))
+      global.choice <- (v.cor + u.cor)^2
+      reti <- which.max(global.choice)[1]
+      if(is.na(reti))
+      {
+        warning("No best index, returning 1")
+        return(1)
+      }
+
+
+  reti
+}
+
+
+
+```
+
+
+Update all the matrices to have 41 factors, just for convenience:
+```{r}
+max.V <- all_finngen_dat$`a1e-05_l1e-05`$V
+max.U <- all_finngen_dat$`a1e-05_l1e-05`$U
+max.dat <- list("V"=max.V, "U"=max.U)
+extended.all <- lapply(all_finngen_dat,function(x)
+  list("V"=prepMatricesForAnalysis(max.V,x$V)$second,
+       "U"=prepMatricesForAnalysis(max.U,x$U)$second,
+       "snp.ids"=x$snp.ids))
+#check the dimensions:
+table(sapply(extended.all, function(x) ncol(x$V)))
+table(sapply(extended.all, function(x) ncol(x$U)))
+
+#Align all to the largest matrix so we are on the same playing field
+extended.aligned <- lapply(extended.all,function(x)
+  greedyMaxPairedCor(max.U,max.V, x$U,x$V,order_only = TRUE))
+#Get out just the data we care for
+extended.aligned.dat <- lapply(extended.aligned, function(x) list("V"=x$scnd_v, "U"=x$scnd_u))
+```
+The greedyMaxPairedCor re-orders both m atrices. So that won't work.
+Factor 1
+```{r}
+#f1 <- getFactorSpecificConsistency(extended.aligned.dat, 1)
+#f1.original <- getFactorSpecificConsistency(extended.all, 1)
+f1.best <- getFactorSpecificConsistencyTarget(extended.aligned.dat, max.U[,1], max.V[,1], index=1)
+
+
+#ggplot(f1 %>% drop_na(), aes(x=r1,y=r2,fill=corV^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)#
+
+#ggplot(f1 %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+#ggplot(f1.original %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+ggplot(f1.best %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+```
+Factor 2:
+```{r}
+f2 <- getFactorSpecificConsistency(extended.all, 2)
+f2.best <-getFactorSpecificConsistencyTarget(extended.aligned.dat, max.U[,2], max.V[,2])
+ggplot(f2 %>% drop_na(), aes(x=r1,y=r2,fill=corV^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+ggplot(f2 %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red")
+
+ggplot(f2.best %>% drop_na(), aes(x=r1,y=r2,fill=corV^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+ggplot(f2.best %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red")
+```
+Factor 3:
+```{r}
+f3 <- getFactorSpecificConsistency(extended.all, 3)
+ggplot(f3 %>% drop_na(), aes(x=r1,y=r2,fill=corV^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+ggplot(f3 %>% drop_na(), aes(x=r1,y=r2,fill=corU^2)) + geom_tile() + scale_fill_gradient2(low = "blue", mid = "white", high = "red")
+```
+
+FIRST: align all to the big one.
+
+Top SNPs?
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/getTopGenes_helper.R")
+#snps.at.top <- lapply(extended.all, function(x) prioritize_snps(as.matrix(abs(x$U[,1])), x$snp.ids, method="top_fe"))
+
+f1.snp.dat <- getFactorSpecificSNPs(extended.aligned.dat, extended.all[[1]]$snp.ids, max.U[,1], max.V[,1], index=1)
+nfactors <- 3
+first.n.factor.snps <- lapply(1:nfactors, function(i) getFactorSpecificSNPs(extended.aligned.dat, extended.all[[1]]$snp.ids, max.U[,i], max.V[,i], index=i))
+```
+Number of SNPs per:
+```{r}
+num.snps.first_n <- do.call("rbind",lapply(1:length(first.n.factor.snps), function(i) {
+  x=first.n.factor.snps[[i]]
+
+  data.frame("r1"=names(extended.aligned.dat), 
+             "n_snps"=sapply(x, function(y) length(y[[1]])),
+             "factor"=i)
+  })) %>% 
+  separate(col = "r1", sep="_", into = c("r1_alpha","r1_lambda")) %>%
+  mutate(across(c(r1_alpha), ~ as.numeric(gsub(pattern = "a",x = ., replacement = "")))) %>%
+  mutate(across(c(r1_lambda), ~ as.numeric(gsub(pattern = "l",x = ., replacement = "")))) 
+
+num.snps.first_n
+```
+```{r}
+drop.val <- unique(num.snps.first_n$r1_alpha)[7]
+
+n.snps.tab <- ggplot(num.snps.first_n %>% filter(r1_alpha != drop.val), aes(x=log10(r1_alpha),y=n_snps)) + 
+  geom_bar(stat="identity") + facet_grid(factor ~ log10(r1_lambda)) + xlab(bquote("log10("*alpha*")")) + ylab("# top factor SNPs") + 
+  theme_classic() + plot_annotation(title = bquote("log10("*lambda*")")) &
+  theme(plot.title = element_text(hjust = 0.53,vjust=-1,size = 10)) 
+
+library(cowplot)
+n.snps.tab.final <- ggdraw(n.snps.tab) +
+  draw_label("Factor",   # Change "Factor" to whatever label you need
+             x = 1,      # x = 1 puts it at the right margin
+             y = 0.5,    # y = 0.5 vertically centers the label
+             angle = -90, # Rotate the label so it reads vertically
+             vjust = 1,
+             hjust = 0.5,
+             size = 10)
+
+```
+Okay, th enumbe rof top NSPPs nominated is pretty consistent
+Then look at overlap between them
+
+We want to get of those with valid outputs, what proportion have agreeing snps? or which proportion of snps are concordant across all of them?
+```{r}
+num_zero_runs_per_factor <- sapply(1:nfactors, function(i) length(unique((num.snps.first_n %>% filter(n_snps == 0, factor==i) %>% mutate("unique_id"=paste0(r1_alpha, ":", r1_lambda)))$unique_id)))
+
+num_nonzero_runs_per_factor <- sapply(1:nfactors, function(i) length(unique((num.snps.first_n %>% filter(n_snps != 0, factor==i) %>% mutate("unique_id"=paste0(r1_alpha, ":", r1_lambda)))$unique_id)))
+```
+
+SNPs nominated in all:
+```{r}
+
+all.snps.in <- unique(unlist(first.n.factor.snps[[1]]))
+snp.count.f1 <- data.frame("snps" = all.snps.in, "freq" = do.call("cbind", lapply(first.n.factor.snps[[1]], function(x) as.numeric(all.snps.in %in% x[[1]]))) %>% 
+                             rowSums()) %>% mutate("prop"=freq/num_nonzero_runs_per_factor[1])
+hist(snp.count.f1$freq)
+
+snp.counts.all <- do.call("rbind", lapply(1:nfactors, function(i){
+  data.frame("snps" = all.snps.in, "freq" = do.call("cbind", lapply(first.n.factor.snps[[i]], function(x) as.numeric(all.snps.in %in% x[[1]]))) %>% 
+                             rowSums()) %>% mutate("prop"=freq/num_nonzero_runs_per_factor[i], "factor"=i)
+}))
+
+
+
+#ggplot(snp.counts.all, aes(x=freq,fill=factor)) + geom_histogram() + facet_wrap(~factor) + theme_bw()
+snp_agreement_at_top <-ggplot(snp.counts.all, aes(x=prop)) + geom_histogram() + facet_wrap(~factor) +
+  theme_classic() + xlab("Proportion of matrices nominating a given SNP\n(where factor is non-zero)") + ylab("Number of SNPs")+ plot_annotation(title = "Factor") &
+  theme(plot.title = element_text(hjust = 0.53,vjust=-1,size = 10)) 
+#ggplot(snp.counts.all, aes(x=freq,fill=factor)) + geom_density() + facet_wrap(~factor) + theme_bw()
+
+```
+SNP agreement decays quickly.
+So, we now have 3 plots we want to share:
+```{r}
+snp_agreement_at_top
+n.snps.tab.final
+factors.plot
+cowplot::plot_grid(cowplot::plot_grid(factors.plot,snp_agreement_at_top, nrow = 1, labels = c("A", "B")),
+n.snps.tab.final, nrow = 2, labels=c("","C"))
+#Size:1200 x 6Ω
+```
+
+Center point around a=1e-4, l=1e-2
+
+a:3.3e-4,6,6e-4,3.3e-5,6.6e-5
+l:3.3e-3,6.6e-3,3.3e-2,6.6e-2
+

@@ -1,0 +1,220 @@
+---
+title: "Supplemental figures for special cases ."
+output: html_notebook
+---
+Here, creating the simulation based figure
+Note that previous sims were incorrect in that they didn't quite use the sd specifications in the right way. We should be able to get this to work
+## Update the paths below to reflect the new locations, things have been mooved about!"
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/simulation_processing_tools.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/factorization_methods.R")
+pacman::p_load(data.table, magrittr, dplyr,stringr, ggplot2, RColorBrewer)
+
+```
+
+### Special cases 1-3: No dense factors, many dense factors, and some "denser" factors
+```{r}
+no.covar <- mergeTabularResults(query="",
+                                base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/",
+                                quiet=TRUE)%>% mutate("Covar"=  "none")
+
+
+oneb.covar <- mergeTabularResults(query="",
+                                  base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_1b_overlap/",
+                                  quiet=TRUE) %>% mutate("Covar"=  "1b")
+
+twob.covar <- mergeTabularResults(query="",
+                                  base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_2b_overlap//",
+                                  quiet=TRUE) %>% mutate("Covar"=  "2b")
+```
+
+### Special case 3: some *denser* factors
+
+```{r}
+no.covar.nonsparse <- mergeTabularResults(query="",
+                                base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_mid-density_no_overlap//",
+                                quiet=TRUE)%>% mutate("Covar"=  "none")
+
+
+oneb.covar.nonsparse <- mergeTabularResults(query="",
+                                  base.dir ="/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_mid-density_1b_overlap//",
+                                  quiet=TRUE) %>% mutate("Covar"=  "1b")
+
+twob.covar.nonsparse <- mergeTabularResults(query="",
+                                  base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_mid-density_2b_overlap//",
+                                  quiet=TRUE) %>% mutate("Covar"=  "2b")
+```
+
+Make sure to get the N set in the right order
+```{r}
+n.levels = c("5000","10000","50000","1e+05","2e+05","mixed")
+joined.special.cases <- rbind(no.covar, oneb.covar, twob.covar,no.covar.nonsparse,oneb.covar.nonsparse,twob.covar.nonsparse) %>% 
+  select(-R2_L, -R2_F,-joint_pr_auc_v,-joint_pr_auc_u,-joint_pr_kappa_v,-joint_pr_kappa_u,-joint_pr_pearson_v,-joint_pr_pearson_u) %>%
+  rowwise() %>%
+  mutate("V_mat"=stringr::str_match(fname,pattern="^(V\\d+)_U")[2],
+         "U_mat"=stringr::str_match(fname,pattern="V\\d+_(U\\d+)_MAF")[2]) %>% 
+  mutate("test_type"=case_when(V_mat == "V105" ~"no_dense",
+                               V_mat == "V106" ~ "no_dense",
+                               V_mat == "V107" ~ "3_dense",
+                               V_mat == "V109" ~ "5_dense",
+                               V_mat == "V110" ~ "low_sparsity",
+                               V_mat == "V111" ~ "low_sparsity")) %>% ungroup()
+head(joined.special.cases)
+```
+
+## Aesthetic ordering and coloration elements
+Build the color pallete
+```{r}
+"new.method"=c("SVD (avg)", "SVD (elbow)", "SVD-adj (avg)","SVD-adj (elbow)","flash", "GLEANR-U","GLEANR")
+
+full.list=c("SVD", "SVD (avg)", "SVD (elbow)","SVD-adj", "SVD-adj (avg)","SVD-adj (elbow)",
+            "flash","flash (Z)","flash (Kronecker)","FactorGo","GLEANR-U","GLEANR")
+flash.cols <- brewer.pal(5,"Greens")[3:5]
+pca.unadj.cols <- brewer.pal(3,"Blues")
+pca.adj.cols <- brewer.pal(8,"BuPu")[c(5,6,8)]
+pca.adj.cols <- brewer.pal(3,"Purples")
+GLEANR.cols <- brewer.pal(2,"Oranges")[2:3]
+factorgo.cols <- brewer.pal(5,"PuRd")[4]
+
+all.colors <- c(pca.unadj.cols,pca.adj.cols, flash.cols, factorgo.cols,GLEANR.cols )
+color.map.pub <- data.frame("method_label"=full.list, "color" = all.colors)
+
+myColors <- color.map.pub$color
+names(myColors) <- levels(cons.matrix$method_label)
+colScale <- scale_colour_manual(name = "Method",values = myColors)
+fillScale <- scale_fill_manual(name = "Method",values = myColors)
+```
+
+```{r}
+name.map = data.frame("method_label"=c("SVD", "flash (Z)", "flash", "flash (Kronecker)","SVD (avg)", "GLEANR", "GLEANR-U", "SVD-adj", "SVD (beta)", "FactorGo"), "method" = unique(cons.matrix$method))
+level_order=name.map$method_label
+```
+Apply the colors:
+```{r}
+cons.matrix %<>% left_join(.,name.map, by="method") %>% 
+  mutate("method_label"=factor(method_label, levels=color.map.pub$method_label)) %>% 
+  arrange(method_label) %>% filter(method != "SVD_beta",method_label != "flash (Z)")
+
+cons.factor %<>% left_join(.,name.map, by="method") %>% 
+  mutate("method_label"=factor(method_label, levels=color.map.pub$method_label)) %>% 
+  arrange(method_label) %>% filter(method != "SVD_beta",method_label != "flash (Z)")
+  
+cons.entry %<>% left_join(.,name.map, by="method") %>% 
+  mutate("method_label"=factor(method_label, levels=color.map.pub$method_label)) %>% 
+  arrange(method_label) %>% filter(method != "SVD_beta",method_label != "flash (Z)")
+```
+Clean up labels
+```{r}
+pop_names <- as_labeller(
+     c(`5000` = "N=5k", `10000` = "N=10k",`50000` = "N=50k", 
+       `1e+05` = "N=100k",`2e+05` = "N=200k", "mixed"="N=[10K,200K]",
+     `1b`="1-block", `2b`="2-block", `none`="No overlap"))
+
+# Supplemental figure
+drop.methods <- c("flash (Z)", "SVD (elbow)","SVD (elbow)","SVD-adj (elbow)","SVD-adj (avg)", "SVD (avg)")
+```
+
+### Make the factor plots
+#### Per factor variance
+V
+```{r}
+v.sim.factor <- ggplot(cons.factor %>% filter((!method_label %in% drop.methods), matrix == "V"), 
+aes(x = method_label, y = factor_vars, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab("Variance across factors") + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("Variance across simulations runs with respect to V")
+v.sim.factor
+
+v.leg <- ggpubr::get_legend(v.sim.factor)
+```
+U:
+```{r}
+u.sim.factor <- ggplot(cons.factor %>% filter((!method_label %in% drop.methods), matrix == "U"), 
+                aes(x = method_label, y = factor_vars, fill = method_label)) +
+  geom_boxplot() + 
+  facet_grid(Covar~N,labeller = pop_names) +  theme_bw(14) +xlab("Factorization method")  + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + 
+  ylab(bquote(R^2 ~ "with simulated U")) +
+  fillScale + theme(strip.background =element_rect(fill="white"), legend.position = "left") +
+  guides(fill = guide_legend(ncol = 2, 
+                             override.aes = list(shape = 22, 
+                                                 size = 8, 
+                                                 linetype = 0, 
+                                                 color = NA))) + 
+  theme(legend.text=element_text(size=12)) + 
+  theme(legend.position="none",margin(t = 0, r = -1, b = 0, l = 0, unit = "pt")) + 
+  ggtitle("Covariance adjustment improves reconstruction of simulated genetic factors") + 
+  theme(plot.title = element_text(size=10,color="dimgrey"))  
+```
+
+#### Per entry variance
+V
+```{r}
+v.sim.entry <- ggplot(cons.entry %>% filter((!method_label %in% drop.methods), matrix == "V"), 
+aes(x = method_label, y = entry_var, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab("Variance across entries") + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("Variance across simulations runs with respect to V")
+v.sim.entry
+```
+U:
+```{r}
+u.sim.entry <- ggplot(cons.entry %>% filter((!method_label %in% drop.methods), matrix == "U"), 
+                aes(x = method_label, y = entry_var, fill = method_label)) +
+  geom_boxplot() + 
+  facet_grid(Covar~N,labeller = pop_names) +  theme_bw(14) +xlab("Factorization method")  + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + 
+  ylab("Variance per entry") +
+  fillScale + theme(strip.background =element_rect(fill="white"), legend.position = "left") +
+  guides(fill = guide_legend(ncol = 2, 
+                             override.aes = list(shape = 22, 
+                                                 size = 8, 
+                                                 linetype = 0, 
+                                                 color = NA))) + 
+  theme(legend.text=element_text(size=12)) + 
+  theme(legend.position="none",margin(t = 0, r = -1, b = 0, l = 0, unit = "pt")) + 
+  ggtitle("Covariance adjustment improves reconstruction of simulated genetic factors") + 
+  theme(plot.title = element_text(size=10,color="dimgrey"))  
+
+u.sim.entry
+```
+
+#### Per matrix
+V
+```{r}
+v.sim.matrix <- ggplot(cons.matrix %>% filter((!method_label %in% drop.methods), matrix == "V"), 
+aes(x = method_label, y = matrix_vars, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab("Variance across matrices") + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("Variance across simulations runs with respect to V")
+v.sim.matrix
+```
+U:
+```{r}
+u.sim.matrix <- ggplot(cons.matrix %>% filter((!method_label %in% drop.methods), matrix == "U"), 
+                aes(x = method_label, y = matrix_vars, fill = method_label)) +
+  geom_boxplot() + 
+  facet_grid(Covar~N,labeller = pop_names) +  theme_bw(14) +xlab("Factorization method")  + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + 
+  ylab("Variance across matrices") +
+  fillScale + theme(strip.background =element_rect(fill="white"), legend.position = "left") +
+  guides(fill = guide_legend(ncol = 2, 
+                             override.aes = list(shape = 22, 
+                                                 size = 8, 
+                                                 linetype = 0, 
+                                                 color = NA))) + 
+  theme(legend.text=element_text(size=12)) + 
+  theme(legend.position="none",margin(t = 0, r = -1, b = 0, l = 0, unit = "pt")) + 
+  ggtitle("Covariance adjustment improves reconstruction of simulated genetic factors") + 
+  theme(plot.title = element_text(size=10,color="dimgrey"))  
+
+u.sim.matrix
+```

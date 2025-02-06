@@ -1,0 +1,437 @@
+---
+title: "Permutation background evaluation"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+First, load in all the permutation data, and generate like 45 qq plots.
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization//src/factorEvaluationHelper.R")
+source("/scratch16/abattle4/ashton/snp_networks/scratch/factor_interpretation/src/get_pLI.R")
+source("/data/abattle4/aomdahl1/gene_utils/qqplot.R")
+pacman::p_load(magrittr, dplyr, ggplot2, data.table, ggsignif)
+```
+## P-value distribution
+Intermediate here now, getting results for alexis.
+Some don't have fulll..
+```{r}
+permuted <- fread("/scratch16/abattle4/ashton/snp_networks//scratch/manuscript_reviews/permute_testing/assess_test1/permuted_enrichment_results.tsv")
+p="/scratch16/abattle4/ashton/snp_networks//scratch/manuscript_reviews/permute_testing/"
+dirs <- list.dirs(p) 
+#get just a sublist for now
+dirs <- dirs[2:9]
+full.permuted.res <- NULL
+full.permuted.alt <- NULL
+for(d in dirs)
+{
+  if(grepl(x=d,pattern="assess_test_seed") & grepl(x=d,pattern="00$")){
+    cfile =paste0(d, "/permuted_enrichment_results.tsv")
+    if(file.exists(cfile)){
+      message("Found valid file ", basename(d))
+      full.permuted.res <- rbind(full.permuted.res,fread(cfile) %>% mutate("dir_name"=basename(d)))
+    }
+  }
+    if(grepl(x=d,pattern="assess_test_seed") & grepl(x=d,pattern="_byROW")){
+      cfile =paste0(d, "/permuted_enrichment_results.tsv")
+      if(file.exists(cfile)){
+        message("Found valid file ", basename(d))
+        full.permuted.alt <- rbind(full.permuted.alt,fread(cfile) %>% mutate("dir_name"=basename(d)))
+      }
+  }
+}
+```
+Look
+```{r}
+full.permuted.res %>% group_by(factor, gene_set) %>% summarize("ntests"=n())
+full.permuted.alt %>% group_by(factor, gene_set) %>% summarize("ntests"=n())
+```
+
+## How different do we expect these 2 permutation schemes to be really?
+```{r}
+plot.compare <- list("fisher" = list(), "max_logit" = list(), "avg_logit" = list())
+
+for(g in unique(full.permuted.res$gene_set))
+{
+  for(f in unique(full.permuted.res$factor))
+  {
+    title=paste0("F",f," | ",g )
+    std <- full.permuted.res %>% filter(gene_set == g, factor == f)
+    alt <- full.permuted.alt %>% filter(gene_set == g, factor == f)
+    qqunif.plot(list(std$fisher_p, alt$fisher_p), main=title)
+    plot.sub[[as.character(f)]][["fisher"]][[g]] <- qqunif.plot((t %>% filter(!is.na(fisher_p)))$fisher_p, main=title)
+    plot.sub[[as.character(f)]][["pseudo_fisher"]][[g]] <- qqunif.plot((t %>% filter(!is.na(pseudofisher_p)))$pseudofisher_p, main=title)
+    plot.sub[[as.character(f)]][["max_logit"]][[g]] <- qqunif.plot((t %>% filter(!is.na(maxlogit_p)))$maxlogit_p, main=title)
+    plot.sub[[as.character(f)]][["avg_logit"]][[g]] <- qqunif.plot((t %>% filter(!is.na(avglogit_p)))$avglogit_p, main=title)
+  }
+}
+plot.sub
+```
+
+
+Great, the right number of tests.
+```{r}
+ggplot(full.permuted.res, aes(x=fisher_p)) + geom_histogram() + 
+  facet_grid(factor~gene_set) + theme_bw() + ggtitle("Fisher P-values")
+#so no issue with inflation to be sure.....
+ggplot(permuted, aes(x=avglogit_p)) + geom_histogram() + 
+  facet_grid(factor~gene_set)+ ggtitle("avg logit P-values")
+#It seems like for a few tests there may be some inflation- especially for the platelet function gene set
+ggplot(permuted, aes(x=maxlogit_p)) + geom_histogram() + 
+  facet_grid(factor~gene_set)+ ggtitle("max logit P-values")
+```
+Max logit is for sure the most inflated. Try qq plots?
+Note that this isn't very efficient, better to do this with `purrr::walk`, but I need everything filtered
+```{r}
+makeAllQQ <- function(dfin, snd_tab = NULL)
+{
+
+  plot.sub <- list("fisher" = list(), "max_logit" = list(), "avg_logit" = list())
+
+for(g in unique(dfin$gene_set))
+{
+  for(f in unique(dfin$factor))
+  {
+    title=paste0("F",f," | ",g )
+    if(is.null(snd_tab)){
+      t <- dfin %>% filter(gene_set == g, factor == f)
+      plot.sub[[as.character(f)]][["fisher"]][[g]] <- qqunif.plot((t %>% filter(!is.na(fisher_p)))$fisher_p, main=title)
+      plot.sub[[as.character(f)]][["max_logit"]][[g]] <- qqunif.plot((t %>% filter(!is.na(maxlogit_p)))$maxlogit_p, main=title)
+      plot.sub[[as.character(f)]][["avg_logit"]][[g]] <- qqunif.plot((t %>% filter(!is.na(avglogit_p)))$avglogit_p, main=title)
+      plot.sub[[as.character(f)]][["pseudo_fisher"]][[g]] <- qqunif.plot((t %>% filter(!is.na(pseudofisher_p)))$pseudofisher_p, main=title)
+
+    }else {
+      message("2 plot case")
+      #This means we have 2 lists we are looking to plot.
+      t <- dfin %>% filter(gene_set == g, factor == f)
+      alt <- snd_tab %>% filter(gene_set == g, factor == f)
+      plot.sub[[as.character(f)]][["fisher"]][[g]] <- qqunif.plot(
+        list((t %>% filter(!is.na(fisher_p)))$fisher_p,(alt %>% filter(!is.na(fisher_p)))$fisher_p),
+        main=title)
+      
+       plot.sub[[as.character(f)]][["max_logit"]][[g]] <- qqunif.plot(
+        list((t %>% filter(!is.na(maxlogit_p)))$maxlogit_p,(alt %>% filter(!is.na(maxlogit_p)))$maxlogit_p),
+        main=title)
+       
+        plot.sub[[as.character(f)]][["avg_logit"]][[g]] <- qqunif.plot(
+        list((t %>% filter(!is.na(avglogit_p)))$avglogit_p,(alt %>% filter(!is.na(avglogit_p)))$avglogit_p),
+        main=title)
+    }
+
+  }
+}
+plot.sub
+
+}
+std.shuf.qqplots <- makeAllQQ(full.permuted.res)
+alt.shuff.qqplots <- makeAllQQ(full.permuted.alt)
+both.qq.plots <- makeAllQQ(full.permuted.res, snd_tab=full.permuted.alt)
+```
+
+##In the full shuffle case:
+Average logit
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["avg_logit"]],nrow=1), nrow=3)
+```
+Max logit:
+```{r}
+
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["max_logit"]],nrow=1), nrow=3)
+```
+Hypergeometric:
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["fisher"]],nrow=1), nrow=3)
+```
+Pseudo-hypergeometric:
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["pseudo_fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["pseudo_fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["pseudo_fisher"]],nrow=1), nrow=3)
+```
+
+##In the row-only shuffle case:
+Average logit
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["avg_logit"]],nrow=1), nrow=3)
+```
+Max logit:
+```{r}
+
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["max_logit"]],nrow=1), nrow=3)
+```
+Hypergeometric:
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = std.shuf.qqplots[["4"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["11"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = std.shuf.qqplots[["23"]][["fisher"]],nrow=1), nrow=3)
+```
+
+### COMPARING  both
+Average logit
+1700x800
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = both.qq.plots[["4"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["11"]][["avg_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["23"]][["avg_logit"]],nrow=1), nrow=3)
+
+#max logit
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = both.qq.plots[["4"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["11"]][["max_logit"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["23"]][["max_logit"]],nrow=1), nrow=3)
+```
+Hypergeometric:
+```{r}
+cowplot::plot_grid(
+  cowplot::plot_grid(plotlist = both.qq.plots[["4"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["11"]][["fisher"]],nrow=1),
+cowplot::plot_grid(plotlist = both.qq.plots[["23"]][["fisher"]],nrow=1), nrow=3)
+```
+
+## Evaluating the real enrichments
+Idea: plot with positive probability across real tests, colored by the simulation p-value
+```{r}
+#real.deal <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/manuscript_reviews/permute_testing/assess_test1/enrichment_results.tsv")
+real.deal <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/manuscript_reviews/permute_testing/assess_test_seed22_100/enrichment_results.tsv")
+
+ash.look.max.logit <- ash(real.deal$maxlogit_b, real.deal$maxlogit_SE)
+perf.max.logit <- ash.look.max.logit$result %>% mutate("factor"=real.deal$factor, "gene_set"=real.deal$gene_set)
+
+ash.look.avg.logit <- ash(real.deal$avglogit_b, real.deal$avglogit_SE)
+perf.avg.logit <- ash.look.avg.logit$result %>% mutate("factor"=real.deal$factor, "gene_set"=real.deal$gene_set)
+
+ash.look.fisher.or <- ash(log(real.deal$fisher_OR + 0.001), real.deal$fisher_logOR_SE)
+perf.fisher.or <- ash.look.fisher.or$result %>% mutate("factor"=real.deal$factor, "gene_set"=real.deal$gene_set)
+
+ash.look.pseudofisher.or <- ash(real.deal$pseudofisher_logOR, real.deal$pseudofisher_logOR_SE)
+perf.pseudofisher.or <- ash.look.pseudofisher.or$result %>% mutate("factor"=real.deal$factor, "gene_set"=real.deal$gene_set)
+
+
+cowplot::plot_grid(
+  ggplot(perf.max.logit,aes(x=as.factor(factor), y=PositiveProb, fill=lfsr)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit"),
+  ggplot(perf.avg.logit,aes(x=as.factor(factor), y=PositiveProb, fill=lfsr)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("avg logit"),
+  ggplot(perf.fisher.or,aes(x=as.factor(factor), y=PositiveProb, fill=lfsr)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("fisher OR"),nrow=3)
+
+```
+
+so its pretty clear that in at least 2 cases, we have inflated statistics.
+Let's get empirical p-values for the real deal data
+```{r}
+getEmpiricalP <- function(real.df, sim.df)
+{
+  empirical.p.std <- NULL
+for(rowi in 1:nrow(real.df))
+{
+  row = real.df[rowi,]
+  filt.dat <- sim.df %>% filter(factor == row$factor, gene_set == row$gene_set)
+  empirical.p.std <- rbind(empirical.p.std, data.frame("factor"=row$factor, "gene_set"=row$gene_set,
+  "p_or" = sum(filt.dat$fisher_OR >= row$fisher_OR)/sum(!is.na(filt.dat$fisher_OR)),
+  "p_psuedo_or" = sum(filt.dat$pseudofisher_OR >= row$pseudofisher_OR)/sum(!is.na(filt.dat$pseudofisher_OR)),
+  "p_maxlogit_z" = sum(abs(filt.dat$maxlogit_b/filt.dat$maxlogit_SE) >= abs(row$maxlogit_b/row$maxlogit_SE),na.rm = TRUE)/sum(!is.na(filt.dat$maxlogit_b)),
+  "p_avglogit_z" = sum(abs(filt.dat$avglogit_b/filt.dat$avglogit_SE) >= abs(row$avglogit_b/row$avglogit_SE), na.rm = TRUE)/sum(!is.na(filt.dat$avglogit_b))))
+}
+empirical.p.std
+}
+
+```
+Now examine both:
+```{r}
+empirical.p.std <- getEmpiricalP(real.deal, full.permuted.res)
+empirical.p.alt <- getEmpiricalP(real.deal, full.permuted.alt)
+```
+How different do we expect these to be?
+```{r}
+par(mfrow=c(1,3))
+plot(empirical.p.std$p_or, empirical.p.alt$p_or, pch=19, xlab="Full-shuffle empirical p-values", ylab="Row-shuffle empirical p-values",main="Fisher Test p-values");abline(a=0,b=1, col="blue")
+plot(empirical.p.std$p_maxlogit_z, empirical.p.alt$p_maxlogit_z, pch=19, xlab="Full-shuffle empirical p-values", ylab="Row-shuffle empirical p-values",main="Max logit p-values");abline(a=0,b=1, col="blue")
+plot(empirical.p.std$p_avglogit_z, empirical.p.alt$p_avglogit_z, pch=19, xlab="Full-shuffle empirical p-values", ylab="Row-shuffle empirical p-values",main="Mean logit p-values");abline(a=0,b=1, col="blue")
+```
+
+## Visualize all this
+Okay, now a combined plot with the bayesian stuff and these new p-values:
+(I don't actually love this because a p-value doesn't really make sense in a Bayesian setting)
+### First, the standard shuffle
+```{r}
+max.logit.all <- left_join(perf.max.logit, empirical.p.std,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes")))%>% select(-p_or,-p_avglogit_z)
+
+avg.logit.all <- left_join(perf.avg.logit, empirical.p.std,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes")))%>% select(-p_maxlogit_z,-p_or)
+
+fisher.or.all <- left_join(perf.fisher.or, empirical.p.std,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes"))) %>% select(-p_maxlogit_z,-p_avglogit_z)
+
+pseudofisher.or.all <- left_join(perf.pseudofisher.or, empirical.p.std,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes"))) %>% select(-p_maxlogit_z,-p_avglogit_z,-p_or)
+```
+Plots:
+Maxlogit approach
+```{r}
+ggplot(max.logit.all,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_maxlogit_z))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+```
+```{r}
+ggplot(avg.logit.all,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_avglogit_z))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+```
+Fisher test
+```{r}
+ggplot(fisher.or.all,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_or))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("Fisher's conditional odds ratio") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+```
+I'm warming up to this fisher test plot more and more. I think maybe we go with this.
+**Psuedo-fisher**
+This doesn't look so good- everything is pretty inflated.
+```{r}
+ggplot(pseudofisher.or.all,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_psuedo_or))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("Fisher's conditional odds ratio") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+```
+
+Let's try the more aggressive switching scheme:
+```{r}
+max.logit.all.alt <- left_join(perf.max.logit, empirical.p.alt,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes")))%>% select(-p_or,p_avglogit_z)
+
+avg.logit.all.alt <- left_join(perf.avg.logit, empirical.p.alt,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes")))%>% select(-p_maxlogit_z,p_or)
+
+fisher.or.all.alt <- left_join(perf.fisher.or, empirical.p.alt,by=c("factor", "gene_set")) %>% mutate("gene_set"=factor(gene_set, levels=c("early_Megakaryopoiesis","late_mk","protoplatelet","platelet_function","macro_genes"))) %>% select(-p_maxlogit_z,p_avglogit_z)
+```
+AND THE PLOTS:
+```{r}
+ggplot(max.logit.all.alt,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_maxlogit_z))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+
+ggplot(avg.logit.all.alt,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_avglogit_z))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+
+ggplot(fisher.or.all.alt,aes(x=as.factor(factor), y=PositiveProb, fill=-log10(p_or))) + 
+  geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) + theme_bw() + ggtitle("max logit") + 
+   scale_fill_gradient(low="blue",high="red",limits=c(0,3))
+```
+### Alternative approach- us in ASHr directly
+```{r}
+joined.all.for.ashr <- rbind(full.permuted.res %>% mutate("source"="permuted") %>% select(-dir_name),
+      real.deal %>% mutate("source"="actual"))
+for.ashr.list <- split(joined.all.for.ashr, joined.all.for.ashr$gene_set)
+```
+Just trying it...
+```{r}
+
+factor.4.only <- joined.all.for.ashr %>% filter(factor==4)
+ash.factor4.all <- ash(factor.4.only$pseudofisher_logOR, factor.4.only$pseudofisher_logOR_SE)
+adjusted.factor4.results <- ash.factor4.all$result %>% mutate("source"=factor.4.only$source, "factor"=factor.4.only$factor, "gene_set"=factor.4.only$gene_set)
+
+ggplot(adjusted.factor4.results, aes(x=lfdr, y=lfsr,color=source)) +geom_point() + facet_wrap(~gene_set)
+
+
+ggplot(adjusted.factor4.results, aes(x=PositiveProb, y=lfsr,color=source)) +geom_point() + facet_wrap(~gene_set)
+```
+How many permuted values have a positive probability as extreme as ours? Or a posterior mean effect as great
+```{r}
+
+```
+ Maybe split up by gene test?
+```{r}
+em_ash <- ash(for.ashr.list$early_Megakaryopoiesis$pseudofisher_logOR, for.ashr.list$early_Megakaryopoiesis$pseudofisher_logOR_SE)
+hist(em_ash$result$qvalue)
+hist(em_ash$result$svalue)
+```
+ 
+```{r}
+em_ash_fisher <- ash(for.ashr.list$early_Megakaryopoiesis$fisher_logOR, for.ashr.list$early_Megakaryopoiesis$fisher_logOR_SE)
+hist(em_ash_fisher$result$qvalue)
+
+em_ash_maxlogit <- ash(for.ashr.list$early_Megakaryopoiesis$maxlogit_b, for.ashr.list$early_Megakaryopoiesis$maxlogit_SE)
+hist(em_ash_maxlogit$result$qvalue)
+```
+```{r}
+per.tests.lib <- list()
+for(i in 1:seq_along(for.ashr.list))
+{
+  gene_set = names(for.ashr.list)[i]
+  curr_set <- for.ashr.list[[i]]
+  per.tests.lib[[gene_set]] <- rbind(
+    ash(curr_set$maxlogit_b, curr_set$maxlogit_SE)$result %>% mutate("source"=curr_set$source, "gene_set"=curr_set, "factor"=curr_set$factor, "method"="maxlogit"),
+    ash(curr_set$avglogit_b, curr_set$avglogit_SE)$result %>% mutate("source"=curr_set$source, "gene_set"=curr_set, "factor"=curr_set$factor, "method"="avglogit"),
+    ash(curr_set$pseudofisher_logOR, curr_set$pseudofisher_logOR_SE)$result%>% mutate("source"=curr_set$source, "gene_set"=curr_set, "factor"=curr_set$factor, "method"="psuedo"),
+    ash(curr_set$fisher_logOR, curr_set$fisher_logOR_SE)$result %>% mutate("source"=curr_set$source, "gene_set"=curr_set, "factor"=curr_set$factor, "method"="fisher"))
+}
+
+
+
+colnames(set_ash_fisher)
+ggplot(set_ash_fisher %>% filter(source == "actual"), aes(x=as.factor(factor),y=PositiveProb,fill=qvalue))+geom_bar(stat="identity")
+```
+Okay, now for a single test:
+Well this is dumb
+```{r}
+method_="psuedo"
+getTargetTab <- function(dat, method_, source_="actual")
+{
+    pseudo.adjusted.all <- do.call("rbind", lapply(1:length(dat), function(i)
+    {
+      name=names(dat)[i]
+      dat[[i]] %>% filter(method == method_) %>% mutate("gene_set"=name) %>% filter(source == source_)
+  }))
+  pseudo.adjusted.all
+}  
+
+```
+Now on each:
+Tried Q-value, but I don't think this is quite right
+
+```{r}
+pseudo.adjusted.all <-getTargetTab(per.tests.lib, "psuedo")
+ggplot(pseudo.adjusted.all, aes(x=factor(factor), y=PositiveProb,fill=qvalue)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) +
+   scale_fill_gradient(low="blue",high="red")
+```
+Std fisher:
+```{r}
+fisher.adjusted.all <-getTargetTab(per.tests.lib, "fisher")
+ggplot(fisher.adjusted.all, aes(x=factor(factor), y=PositiveProb,fill=qvalue)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) +
+   scale_fill_gradient(low="blue",high="red")
+```
+Max logit:
+
+```{r}
+maxlogit.adjusted.all <-getTargetTab(per.tests.lib, "maxlogit")
+ggplot(maxlogit.adjusted.all, aes(x=factor(factor), y=PositiveProb,fill=qvalue)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) +
+   scale_fill_gradient(low="blue",high="red")
+```
+avg logit:
+
+```{r}
+maxlogit.adjusted.all <-getTargetTab(per.tests.lib, "avglogit")
+ggplot(maxlogit.adjusted.all, aes(x=factor(factor), y=PositiveProb,fill=qvalue)) + geom_bar(stat="identity") + facet_wrap(~gene_set, nrow=1) +
+   scale_fill_gradient(low="blue",high="red")
+```
+Is our test well calibrated?
+Waht is the distribution of hte local false sign rates?
+```{r}
+fisher.adjusted.bg <-getTargetTab(per.tests.lib, "fisher", source_="permuted")
+hist(fisher.adjusted.bg$lfsr)
+hist(fisher.adjusted.bg$svalue)
+qqplot(fisher.adjusted.bg$svalue)
+```
+

@@ -1,0 +1,233 @@
+---
+title: "Supplemental figures for special cases ."
+output: html_notebook
+---
+Here, creating the simulation based figure
+Note that previous sims were incorrect in that they didn't quite use the sd specifications in the right way. We should be able to get this to work
+## Update the paths below to reflect the new locations, things have been mooved about!"
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/gwas_sim_style/simulation_processing_tools.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/factorization_methods.R")
+pacman::p_load(data.table, magrittr, dplyr,stringr, ggplot2, RColorBrewer)
+
+```
+
+### Special cases 1-3: No dense factors, many dense factors, and some "denser" factors
+```{r}
+no.covar <- mergeTabularResults(query="",
+                                base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/",
+                                quiet=TRUE)%>% mutate("Covar"=  "none")
+
+
+oneb.covar <- mergeTabularResults(query="",
+                                  base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_1b_overlap/",
+                                  quiet=TRUE) %>% mutate("Covar"=  "1b")
+
+twob.covar <- mergeTabularResults(query="",
+                                  base.dir = "/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_2b_overlap//",
+                                  quiet=TRUE) %>% mutate("Covar"=  "2b")
+```
+
+Make sure to get the N set in the right order
+```{r}
+n.levels = c("5000","10000","50000","1e+05","2e+05","mixed")
+joined.special.cases <- rbind(no.covar, oneb.covar, twob.covar) %>% 
+  select(-R2_L, -R2_F,-joint_pr_auc_v,-joint_pr_auc_u,-joint_pr_kappa_v,-joint_pr_kappa_u,-joint_pr_pearson_v,-joint_pr_pearson_u) %>%
+  rowwise() %>%
+  mutate("V_mat"=stringr::str_match(fname,pattern="^(V\\d+)_U")[2],
+         "U_mat"=stringr::str_match(fname,pattern="V\\d+_(U\\d+)_MAF")[2]) %>% 
+  mutate("test_type"=case_when(V_mat == "V105" ~"no_dense",
+                               V_mat == "V106" ~ "no_dense",
+                               V_mat == "V107" ~ "sparse_bonus_run",
+                               V_mat == "V109" ~ "sparse_bonus_run",
+                               V_mat %in% c("V113", "V115")  ~ "all_dense",
+                               V_mat %in% c("V114", "V116")  ~ "3_dense",
+                               V_mat %in% c("V110", "V111")  ~ "low_sparsity") 
+         %>% ungroup()
+head(joined.special.cases)
+```
+
+## Aesthetic ordering and coloration elements
+Make sure to get the N set in the right order
+```{r}
+n.levels = c("5000","10000","50000","1e+05","2e+05","mixed")
+joined.special.cases %<>%  mutate("N"=factor(N,levels=n.levels))
+```
+Make sure the names are updated to be clean:
+```{r}
+name.map = data.frame("method_label"=c("SVD", "flash (Z)", "flash", "flash (Kronecker)","SVD (avg)", "GLEANR", "GLEANR-U", "SVD-adj", "SVD (beta)", "FactorGo"), "method" = unique(joined.special.cases$method))
+level_order=name.map$method_label
+```
+
+Build the color pallete
+```{r}
+color.map.pub <-buildPubColors()
+```
+Apply the colors:
+```{r}
+joined.special.cases %<>% left_join(.,name.map, by="method") %>% 
+  mutate("method_label"=factor(method_label, levels=color.map.pub$method_label)) %>% 
+  arrange(method_label) %>% filter(method != "SVD_beta",method_label != "flash (Z)")
+```
+Clean up labels
+```{r}
+pop_names <- as_labeller(
+     c(`5000` = "N=5k", `10000` = "N=10k",`50000` = "N=50k", 
+       `1e+05` = "N=100k",`2e+05` = "N=200k", "mixed"="N=[10K,200K]",
+     `1b`="1-block", `2b`="2-block", `none`="No overlap"))
+
+# Supplemental figure
+drop.methods <- c("flash (Z)", "SVD (elbow)","SVD (elbow)","SVD-adj (elbow)","SVD-adj (avg)", "SVD (avg)")
+
+#build the color list:
+
+col.list <- buildColorList(color.map.pub,joined.special.cases$method_label)
+fillScale <- col.list$fillScale
+colScale <- col.list$colScale
+```
+
+### Make the factor plots
+```{r}
+core.dat.plt <- joined.special.cases %>% select(method, yuan_U, yuan_V, BIC,MAF,N,fname, Covar,V_mat, U_mat, test_type, method_label)
+```
+
+#### Case 1: no dense factors
+V
+```{r}
+v.sim.no_dense <- ggplot(core.dat.plt %>% filter(test_type == "no_dense")  %>% filter(!(method_label %in% drop.methods), 
+aes(x = method_label, y = yuan_V, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab(bquote(R^2~"wrt V")) + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("R2 with respective to V with no dense factors")
+
+v.sim.no_dense
+```
+U:
+```{r}
+u.sim.no_dense <- ggplot(core.dat.plt %>% filter(test_type == "no_dense")  %>% filter(!(method_label %in% drop.methods), 
+aes(x = method_label, y = yuan_U, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab(bquote(R^2~"wrt U")) + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("R2 with respective to U with no dense factors in V")
+
+u.sim.no_dense
+```
+
+#### 2) multiple dense factors
+V
+```{r}
+v.sim.3_dense <- ggplot(core.dat.plt %>% filter(test_type == "3_dense") %>% filter(!(method_label %in% drop.methods)), 
+aes(x = method_label, y = yuan_V, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab(bquote(R^2~"wrt V")) + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("R2 with respective to V with 3 dense factors")
+
+v.sim.3_dense
+```
+Dig in to this, our good performance is unexpected:
+Look at iter 10
+```{r}
+tabular.performance <- fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/V107_U103_MAF-mix_eur_N-50000_RHO-none_No-none/factorization_results/summary.tabular_performance.tsv") %>% arrange(-yuan_V)
+tabular.performance
+
+gleanr.v <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/V107_U103_MAF-mix_eur_N-50000_RHO-none_No-none/factorization_results/sim10.GLEANER_glmnet.factors.txt"))
+gleanr.u <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/V107_U103_MAF-mix_eur_N-50000_RHO-none_No-none/factorization_results/sim10.GLEANER_glmnet.loadings.txt"))
+
+#Flash_SE is the better performing one it looks like. Verify this behaves as intended
+flashr.v <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/V107_U103_MAF-mix_eur_N-50000_RHO-none_No-none/factorization_results/sim10.FLASH_SE.factors.txt"))
+flashr.u <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/simulation_outputs/final_sims_june_2024/special_no_overlap/V107_U103_MAF-mix_eur_N-50000_RHO-none_No-none/factorization_results/sim10.FLASH_SE.loadings.txt"))
+
+ref.v <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V107_M10_K5_3dense.csv"))
+ref.v.full <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V109_M10_K5_5dense.csv"))
+ref.u <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/U103_N100_K5.csv"))
+```
+
+Okay, step back. Let's make sure all the new sims match our expectations.
+
+
+
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/matrix_similarity_scoring/evaluateSimR2.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/src/matrix_similarity_scoring/matrix_comparison_utils.R")
+
+ref_v_gleanr <- evaluate_error(unitNorms(ref.u), unitNorms(ref.v), unitNorms(gleanr.u), unitNorms(gleanr.v)) #Why is this so much longer than the std version?
+ref_v_flashr <- evaluate_error(unitNorms(ref.u), unitNorms(ref.v), unitNorms(flashr.u), unitNorms(flashr.v)) #Why is this so much longer than the std version?
+
+cowplot::plot_grid(
+  plotFactors(as.matrix(unitNorms(ref.v)), trait_names = paste0("T", 1:10), title="Ref V",cluster=FALSE),
+plotFactors(as.matrix(ref_v_gleanr$reordered_V), trait_names = paste0("T", 1:10), title="GLEANR V",cluster = FALSE),
+plotFactors(as.matrix(ref_v_flashr$reordered_V), trait_names = paste0("T", 1:10), title="flashR V",cluster = FALSE),
+nrow=1)
+
+```
+
+U:
+```{r}
+u.sim.entry <- ggplot(cons.entry %>% filter(!(method_label %in% drop.methods), matrix == "U"), 
+                aes(x = method_label, y = entry_var, fill = method_label)) +
+  geom_boxplot() + 
+  facet_grid(Covar~N,labeller = pop_names) +  theme_bw(14) +xlab("Factorization method")  + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + 
+  ylab("Variance per entry") +
+  fillScale + theme(strip.background =element_rect(fill="white"), legend.position = "left") +
+  guides(fill = guide_legend(ncol = 2, 
+                             override.aes = list(shape = 22, 
+                                                 size = 8, 
+                                                 linetype = 0, 
+                                                 color = NA))) + 
+  theme(legend.text=element_text(size=12)) + 
+  theme(legend.position="none",margin(t = 0, r = -1, b = 0, l = 0, unit = "pt")) + 
+  ggtitle("Covariance adjustment improves reconstruction of simulated genetic factors") + 
+  theme(plot.title = element_text(size=10,color="dimgrey"))  
+
+u.sim.entry
+```
+
+#Pause on the above, need to revisit and fix.
+
+### Factors with middling density.
+Visualize them for sanity's sake (sims 110 and 111):
+```{r}
+ref.v.mid1 <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V110_M10_K5_mid-sparse.csv"))
+ref.v.mid2 <- as.matrix(fread("/scratch16/abattle4/ashton/snp_networks/scratch/cohort_overlap_exploration/simulating_factors/custom_easy/u_and_v/V111_M10_K5_mid-sparse.csv"))
+```
+Plot
+
+```{r}
+plotFactors(ref.v.mid1, trait_names = paste0("T", 1:10), title="Init mat",cluster = FALSE)
+ref.v.mid1
+plotFactors(ref.v.mid2, trait_names = paste0("T", 1:10), title="Init mat",cluster = FALSE)
+ref.v.mid2
+```
+Great, that's fine.
+```{r}
+v.sim.mid_dense <- ggplot(core.dat.plt %>% filter(test_type == "low_sparsity") %>% filter(!(method_label %in% drop.methods)), 
+aes(x = method_label, y = yuan_V, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab(bquote(R^2~"wrt V")) + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("R2 with respective to V with low sparsity factors")
+
+v.sim.mid_dense
+```
+U:
+```{r}
+u.sim.mid_dense <- ggplot(core.dat.plt %>% filter(test_type == "low_sparsity") %>% filter(!(method_label %in% drop.methods)), 
+aes(x = method_label, y = yuan_U, fill = method_label)) + 
+  geom_boxplot() + facet_grid(Covar~N,labeller = pop_names) +  theme_bw() + xlab("Factorization method") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) + 
+  theme(axis.text.x=element_blank(), axis.ticks.x = element_blank()) + ylab(bquote(R^2~"wrt U")) + 
+  fillScale +  theme(strip.background =element_rect(fill="white"),legend.position = "top") + 
+  ggtitle("R2 with respective to U with low sparsity factors")
+
+u.sim.mid_dense
+```

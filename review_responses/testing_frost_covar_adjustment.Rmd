@@ -1,0 +1,163 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+pacman::p_load(data.table, magrittr, dplyr,stringr, ggplot2)
+
+```
+Betas to test:
+```{r}
+betas <- fread("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/gwas_extracts/panUKBB_complete/panUKBB_complete_clumped_r2-0.2.beta.tsv")
+```
+
+Now the gene data:
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization//src/factorEvaluationHelper.R")
+source("/scratch16/abattle4/ashton/snp_networks/scratch/factor_interpretation/src/get_pLI.R")
+f4.tp <- loadGeneEnrichments(4, "top_fe")
+
+```
+Correlation structure of top SNPs?
+```{r}
+top.snps <- f4.tp$all_genes %>% select(-rank) %>% distinct() %>% group_by(RSID) %>% slice_max(abs(U)) %>% ungroup() %>% filter(top_snp) %>% filter(!is.na(gene))
+top.snp.dat <- betas %>% filter(ids %in% top.snps$RSID)
+snp.dat.mat <- as.matrix(top.snp.dat[,-1])
+```
+Correlation among the SNPs
+```{r}
+cor.mat <- cor(t(snp.dat.mat),use = "pairwise.complete.obs")
+plotCorrelationHeatmap(cor.mat)
+```
+
+Look at just these guys...
+```{r}
+macro.genes <- c("THPO","ANKRD26","ETV6","FLI1","GATA1","GFI1B","HOXA11","MECOM","RUNX1","NBEAL2","ABCG5","ABCG8","GNE","MPIG6B","SLFN14","SRC","ACTB","ACTN1","CDC42","DIAPH1","FLNA","MYH9","TUBB1","GP1BA","GP1BB","GP9","ITGA2B","ITGB3","VWF")
+
+```
+
+Need to look at these genes everywhere too, not just top snp ones (e.g. all snps that could nominate)
+)
+```{r}
+top.snps.macro <- top.snps %>% filter(gene %in% macro.genes)
+top.snp.dat.macro <-  as.matrix((betas %>% filter(ids %in% top.snps.macro$RSID))[,-1])
+
+```
+
+Correlation among the set SNPs
+```{r}
+cor.mat.set.snps <- cor(t(top.snp.dat.macro),use = "pairwise.complete.obs")
+
+plotCorrelationHeatmap(cor.mat.set.snps)
+
+```
+What would the variance inflation factor look like?
+```{r}
+
+#Get the mean of the off diags
+diag(cor.mat.set.snps) <- NA
+avg.corr <- mean(cor.mat.set.snps, na.rm = TRUE)
+m1 <- nrow(cor.mat.set.snps)
+VIF=1+(m1-1)*avg.corr
+```
+Hmm, okay. That's pretty decently off of 1. But this isn't fair, because there are only a few genes showiung up 
+That's not encouraging.. actually no. This makes sense. This is what we'd expect- these SNPs have strong correlation structure.
+
+Struggling here....Let's try computing the statistic.
+I don't like this because it doesn't use the top gene heuristic- averages out across. Hurts cases where there are many of a single gene. Not an ideal test.
+unisigned version first:
+
+```{r}
+t4.snps.full <- f4.tp$all_genes %>% select(-rank) %>% distinct() %>% group_by(RSID) %>% slice_max(abs(U)) %>% ungroup()%>% mutate("in_set" = ifelse(gene %in% macro.genes, "in","out"))
+stat.dat <- t4.snps.full  %>% group_by(in_set) %>% summarize("mean_u_raw"=mean(U), "mean_u_unsigned"=mean(abs(U)), "m"=n())
+stat.dat
+```
+```{r}
+snps.in.group <-as.matrix((betas %>% filter(ids %in% (t4.snps.full %>% filter(in_set == "in"))$RSID))[,-1])
+cor.mat.set.snps <- cor(t(snps.in.group))
+diag(cor.mat.set.snps) <- NA
+avg.corr <- mean(cor.mat.set.snps, na.rm = TRUE)
+m1 <- unlist(stat.dat[1,4])
+m2 <- unlist(stat.dat[2,4])
+VIF=1+(m1-1)*avg.corr
+sp = 
+
+#from Frost et al:
+sd = sd(abs(t4.snps.full$U))
+  
+```
+
+Do the calc:
+```{r}
+delta=(stat.dat[1,3]-stat.dat[2,3])
+inner.lower.adj = (VIF/m1)-(1/(m2))
+inner.lower.unadj = (1/m1)-(1/(m2))
+unlist(delta/(sd * sqrt(inner.lower.adj)))
+
+unlist(delta/(sd * sqrt(inner.lower.unadj)))
+```
+N is 137 here, so
+```{r}
+n=137
+pt(q=unlist(delta/(sd * sqrt(inner.lower.adj))), df= 135, lower.tail = TRUE)
+pt(q=7.39,df=135, lower.tail = FALSE)
+hist(rt(1000,df=135))
+```
+
+
+
+Look at the gene level-is there a correlation there?
+```{r}
+by.gene.set <- f4.tp$all_genes %>% select(-rank) %>% distinct() %>% 
+  group_by(RSID) %>% slice_max(abs(U)) %>% ungroup() %>% filter(gene %in% macro.genes)
+```
+
+## Do the enrichments hold if I do the correlation approach?
+```{r}
+load("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_final/panUKBB_complete_41K_final_final_dat.RData")
+cor.per.snp.f4 <- apply(betas[,-1],1,function(x) cor(x,ret$V[,4]))
+hist(cor.per.snp.f4)
+```
+Now, look at the stats
+```{r}
+in.snps <- betas$ids %in% (t4.snps.full %>% filter(in_set == "in"))$RSID
+z_set <- mean(abs(cor.per.snp.f4[in.snps]))
+non_z_set <- mean(abs(cor.per.snp.f4[!in.snps]),na.rm = TRUE)
+(z_set - non_z_set)/(sd(abs(cor.per.snp.f4),na.rm=TRUE) * sqrt((1/m1)-(1/m2)))
+```
+How calibrated are our p-values with those proposed using their method?
+```{r}
+calcStat <- function(cors, in_set, out_set, abs = TRUE)
+{
+  if(sum(is.na(cors)) > 0)
+  {
+  warning("Correlation vector contains ", sum(is.na(cors)), " missing values. ")
+  }
+  if(abs)
+  {
+    cors = abs(cors)
+  }
+  m1 = length(in_set)
+  m2 = length(out_set)
+  (z_set - non_z_set)/(sd(abs(cor.per.snp.f4),na.rm=TRUE) * sqrt((1/m1)-(1/m2)))
+}
+in.snps <- betas$ids %in% (t4.snps.full %>% filter(in_set == "in"))$RSID
+stat.per.iter <- list()
+for(i in 1:100)
+{
+  print(i)
+  shuff.index <- sample(1:nrow(ret$V),size = 137, replace = FALSE)
+  v.col <- ret$V[shuff.index,4]
+  cor.per.snp.f4 <- apply(betas[,-1],1,function(x) cor(x,v.col,use = "pairwise.complete.obs" ))
+  
+  stat.per.iter[[i]] <- calcStat(cor.per.snp.f4,which(in.snps), which(!in.snps))
+}
+hist(unlist(stat.per.iter))
+```
+

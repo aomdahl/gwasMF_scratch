@@ -1,0 +1,190 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Specific cquestions to answer:
+1) Does factor 1 also capture the brain enrichments
+2) does GLEANR's sparsity help us better identify genetic architecture?
+  Can we identify high selection traits? doo those correspond with those we detect? do they have similar enrichemnts
+3) Does GLEANR help us at all in teh blood traits
+
+```{r}
+source("/scratch16/abattle4/ashton/snp_networks/gwas_decomp_ldsc/src/plot_functions.R")
+source("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization//src/factorEvaluationHelper.R")
+source("/scratch16/abattle4/ashton/snp_networks/scratch/factor_interpretation/src/get_pLI.R")
+
+pacman::p_load(magrittr, dplyr, ggplot2, data.table, ggsignif)
+f23.tp <- loadGeneEnrichments(23, "top_fe")
+f11.tp <- loadGeneEnrichments(11, "top_fe")
+f4.tp <- loadGeneEnrichments(4, "top_fe")
+```
+
+## Compare LDSC results on factor 1
+```{r}
+
+```
+
+
+## Compare gene set and LDSC enrichments on blood factors:
+4,11,23 in GLEANR
+3, 33, and 37 in flashR
+gleanr enrichments
+```{r}
+f23.tp <- loadGeneEnrichments(23, "top_fe")
+f11.tp <- loadGeneEnrichments(11, "top_fe")
+f4.tp <- loadGeneEnrichments(4, "top_fe")
+```
+flashR enrichments
+```{r}
+flashr.path = "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_flashR/top_elements_by_factor/"
+flash.f3 <- loadGeneEnrichments(3, "top_fe",path =flashr.path ,unique_only = TRUE)
+flash.f33 <- loadGeneEnrichments(33, "top_fe",path =flashr.path ,unique_only = TRUE)
+flash.f37 <- loadGeneEnrichments(37, "top_fe",path =flashr.path ,unique_only = TRUE)
+```
+Okay, what do we see?
+It seems like both have cases where they are inflated pretty badly.
+```{r}
+joined.go_molecular <- left_join(flash.f3$enrichments_unique %>% filter(gene_library=="GO_Molecular_Function_2023"),
+f4.tp$enrichments_unique %>% filter(gene_library=="GO_Molecular_Function_2023") %>% select(`Term name`, `P-value`, `Odds ratio`) %>%
+  set_colnames(c("Term name", "p_gleanr", "or_gleanr")), by="Term name")
+
+ggplot(joined.go_molecular, aes(x=-log10(`P-value`),y=-log10(p_gleanr))) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash -log10(p-value)") + ylab("gleanr -log10(p-value)") + theme_bw()
+ggplot(joined.go_molecular, aes(x=`Odds ratio`,y=or_gleanr)) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash OR") + ylab("gleanr OR") + theme_bw()
+```
+Chromosome location? just of interest
+```{r}
+joined.go_chr <- left_join(flash.f3$enrichments_unique %>% filter(gene_library=="Chromosome_Location"),
+f4.tp$enrichments_unique %>% filter(gene_library=="Chromosome_Location") %>% select(`Term name`, `P-value`, `Odds ratio`) %>%
+  set_colnames(c("Term name", "p_gleanr", "or_gleanr")), by="Term name")
+
+ggplot(joined.go_chr, aes(x=-log10(`P-value`),y=-log10(p_gleanr))) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash -log10(p-value)") + ylab("gleanr -log10(p-value)") + theme_bw()
+ggplot(joined.go_chr, aes(x=`Odds ratio`,y=or_gleanr)) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash OR") + ylab("gleanr OR") + theme_bw()
+```
+
+Seems like it happens in cases with just 3 or fewer genes. These are the ones to be careful of.
+Look overall at the enrichments of interest, get the correlation:
+```{r}
+keep.libs <- unique(flash.f3$enrichments_unique$gene_library)[c(2,3,4,5,6,7,8)]
+joined.go_all <- left_join(
+  flash.f3$enrichments_unique %>% filter(gene_library %in% keep.libs) %>%
+    mutate("num_genes_flashr"=str_count(Genes,",")+1),
+f4.tp$enrichments_unique %>% filter(gene_library %in% keep.libs) %>%  mutate("num_genes_gleanr"=str_count(Genes,",")+1) %>%
+  select(`Term name`, `P-value`, `Odds ratio`,num_genes_gleanr) %>%
+  set_colnames(c("Term name", "p_gleanr", "or_gleanr","num_genes_gleanr")), by="Term name")
+```
+```{r}
+joined.go_all <- joined.go_all %>% filter(`Odds ratio` != Inf,or_gleanr != Inf)
+ggplot(joined.go_all, aes(x=num_genes_flashr,y=num_genes_gleanr)) + geom_point() + 
+  geom_abline(slope = 1,intercept = 0, col="blue") + theme_bw()
+
+ggplot(joined.go_all %>% filter(p_gleanr < 0.001), aes(x=num_genes_flashr,y=num_genes_gleanr)) + 
+  geom_point() + geom_abline(slope = 1,intercept = 0, col="blue") + theme_bw()
+
+ggplot(joined.go_all %>% filter(`P-value` < 0.001), aes(x=num_genes_flashr,y=num_genes_gleanr)) + 
+  geom_point()+ geom_abline(slope = 1,intercept = 0, col="blue") + theme_bw()
+
+
+ggplot(joined.go_all, aes(x=`Odds ratio`,y=or_gleanr)) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash OR") + ylab("gleanr OR") + theme_bw()
+
+ggplot(joined.go_all %>% filter(`P-value` < 0.001 | p_gleanr < 0.001) , aes(x=`Odds ratio`,y=or_gleanr)) + geom_point() + geom_abline(intercept = 0,slope=1, col="blue") +
+  xlab("flash OR") + ylab("gleanr OR") + theme_bw()
+
+
+
+ggplot(joined.go_all %>% filter(num_genes_flashr >2, num_genes_gleanr > 2) , aes(x=`Odds ratio`,y=or_gleanr)) + geom_point() + geom_abline(intercept = 0,slope=1, col="red", lty="dashed") + geom_smooth(method="lm") + 
+  xlab("flash OR") + ylab("gleanr OR") + theme_bw()
+
+
+joined.go_all.gene_count <- joined.go_all %>% filter(num_genes_flashr >= 3, num_genes_gleanr >= 3)
+cor.test(as.numeric(joined.go_all.gene_count$`Odds ratio`), as.numeric(joined.go_all.gene_count$or_gleanr))
+cor.test(as.numeric(joined.go_all.gene_count$`P-value`), as.numeric(joined.go_all.gene_count$p_gleanr))
+``` 
+
+IS this a similar trend with SVD?
+gleanr enrichments
+```{r}
+f2.gleanr <- loadGeneEnrichments(2, "top_fe")
+flashr.path = "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_flashR/top_elements_by_factor/"
+flash.f2 <- loadGeneEnrichments(2, "top_fe",path =flashr.path ,unique_only = TRUE)
+
+svd.path = "/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_SVD/top_elements_by_factor/"
+svd.f2 <- loadGeneEnrichments(2, "top_fe",path =svd.path ,unique_only = TRUE)
+```
+
+```{r}
+all_f2 <- left_join(
+  flash.f2$enrichments_unique %>% filter(gene_library %in% keep.libs) %>%
+    mutate("num_genes_flashr"=str_count(Genes,",")+1) %>%
+    select(`Term name`, `P-value`, `Odds ratio`,num_genes_flashr, gene_library) %>%
+     set_colnames(c("Term_name", "p_flashr", "or_flashr","num_genes_flashr", "gene_lib")) %>%
+    mutate("term_id"=paste0(Term_name, gene_lib)),
+  
+  svd.f2$enrichments_unique %>% filter(gene_library %in% keep.libs) %>% 
+    mutate("num_genes_svd"=str_count(Genes,",")+1) %>%
+    mutate("term_id"=paste0(`Term name`, gene_library)) %>%
+    select(term_id, `P-value`, `Odds ratio`,num_genes_svd) %>%
+     set_colnames(c("term_id", "p_svd", "or_svd","num_genes_svd")),
+      by="term_id")
+
+all_f2 <- left_join(all_f2,
+                   f2.gleanr$enrichments_unique %>% filter(gene_library %in% keep.libs) %>% 
+                  mutate("num_genes_gleanr"=str_count(Genes,",")+1) %>%
+                  mutate("term_id"=paste0(`Term name`, gene_library)) %>%
+                  select(term_id, `P-value`, `Odds ratio`,num_genes_gleanr) %>%
+                   set_colnames(c("term_id", "p_gleanr", "or_gleanr","num_genes_gleanr")),
+                    by="term_id")
+```
+
+Okay, let's see what we got:
+```{r}
+cowplot::plot_grid(
+ggplot(all_f2, aes(x=num_genes_flashr,y=num_genes_svd)) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed")  + geom_smooth(method="lm"),
+ggplot(all_f2, aes(x=num_genes_gleanr,y=num_genes_svd)) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed") + geom_smooth(method="lm"),
+ggplot(all_f2, aes(x=num_genes_gleanr,y=num_genes_flashr)) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed") + geom_smooth(method="lm"), nrow=1)
+```
+Okay- both flashR and SVd get more genes in their sets. This is unsurprising, given that the factors are much more dense.
+Does this result in improved power?
+```{r}
+cowplot::plot_grid(
+ggplot(all_f2 %>% filter(num_genes_flashr > 3,num_genes_svd > 3 ), aes(x=-log10(p_flashr),y=-log10(p_svd))) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed")  + geom_smooth(method="lm"),
+ggplot(all_f2 %>% filter(num_genes_gleanr > 3,num_genes_svd > 3 ), aes(x=-log10(p_gleanr),y=-log10(p_svd))) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed")  + geom_smooth(method="lm"),
+ggplot(all_f2 %>% filter(num_genes_flashr > 3,num_genes_gleanr > 3 ), aes(x=-log10(p_gleanr),y=-log10(p_flashr))) + geom_point() + theme_bw()+ geom_abline(intercept = 0,slope=1, col="red", lty="dashed")  + geom_smooth(method="lm"),nrow=1)
+```
+
+
+## Compare teh genetic architecture:
+Make similar plots- do they stratify as nicely?
+GLEANR factors 18, 32,37,43
+flash factors 16, 29,44,18
+
+
+
+```{r}
+selection.and.polygen.flashr <- fread("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_flashR//selective_pressure/s_scores.tsv")
+
+selection.and.polygen.svd <- fread("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_SVD//selective_pressure/s_scores.tsv")
+
+selection.and.polygen.svd_scaled <- fread("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_SVD_scaled/selective_pressure/s_scores.tsv")
+
+selection.and.polygen.gleanr <- fread("/scratch16/abattle4/ashton/snp_networks/custom_l1_factorization/results/panUKBB_complete_41K_final//selective_pressure/s_scores.tsv")
+
+head(selection.and.polygen.flashr)
+```
+
+```{r}
+flash <- ggplot(selection.and.polygen.flashr, aes(x=Me_scaled,y=S_hat)) + geom_point() + theme_bw() + ggtitle("flash")
+
+svd <- ggplot(selection.and.polygen.svd, aes(x=Me_scaled,y=S_hat)) + geom_point() + theme_bw() + ggtitle("SVD")
+svd_scaled <- ggplot(selection.and.polygen.svd_scaled, aes(x=Me_scaled,y=S_hat)) + geom_point() + theme_bw() + ggtitle("SVD (scaled)")
+
+gleanr <- ggplot(selection.and.polygen.gleanr, aes(x=Me_scaled,y=S_hat)) + geom_point()+ theme_bw() + ggtitle("gleanr")
+
+cowplot::plot_grid(gleanr, flash, svd,svd_scaled)
+```
+
